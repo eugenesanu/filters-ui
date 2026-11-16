@@ -48,7 +48,6 @@ export default function YearExample() {
         summary={summaryOf(years)}
         onClear={() => setYears([null, null])}
         defaultOpen
-        bodyClassName="pb-[18px]"
       >
         <RangeSelect
           options={YEARS}
@@ -56,7 +55,6 @@ export default function YearExample() {
           onChange={setYears}
           buckets={buckets}
           pickerOrder="descending"
-          barScale={0.5}
           labels={{ low: "From year", high: "To year" }}
         />
       </FilterCard>

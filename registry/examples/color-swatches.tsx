@@ -58,7 +58,6 @@ export default function ColourExample() {
         summary={summaryOf(colors)}
         onClear={() => setColors([])}
         defaultOpen
-        bodyClassName="pb-3.5"
       >
         <ColorSwatches label="Colour" options={options} value={colors} onChange={setColors} countLabel={carCount} />
       </FilterCard>

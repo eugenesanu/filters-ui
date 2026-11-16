@@ -6,7 +6,7 @@ import { CAR_FACET_TITLES, clearFacet, formatCarCount, matchingCars, summaryOf, 
 import { CarsBoard } from "@/registry/blocks/cars-board";
 import { FilterCard } from "@/registry/ui/filter-card";
 import { TextSwap } from "@/registry/ui/text-swap";
-import { BODY_FIT, CarFilterBody } from "@/components/stage/car-filter";
+import { CarFilterBody } from "@/components/stage/car-filter";
 import { exampleOf } from "@/components/stage/example-of";
 import { carVocabulary } from "@/registry/demo/cars-vocabulary";
 import { SentenceSearch } from "@/registry/filters/sentence-search";
@@ -113,7 +113,6 @@ function CarFilterStage({ slug, facets }: { slug: string; facets: CarFacet[] }) 
           open={open}
           onOpenChange={setOpen}
           headingLevel={2}
-          bodyClassName={BODY_FIT[facet]}
         >
           <CarFilterBody facet={facet} filters={filters} set={set} />
         </FilterCard>

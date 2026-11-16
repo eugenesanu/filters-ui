@@ -45,7 +45,6 @@ export default function KilometresExample() {
         summary={limit === null ? null : `Under ${km(limit)}`}
         onClear={() => setLimit(null)}
         defaultOpen
-        bodyClassName="pb-[18px]"
       >
         <UpperLimit
           min={0}
@@ -54,7 +53,6 @@ export default function KilometresExample() {
           value={limit}
           onChange={setLimit}
           buckets={buckets}
-          barScale={0.75}
           format={km}
           label="Maximum kilometres"
         />

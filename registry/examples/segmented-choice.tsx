@@ -46,7 +46,6 @@ export default function SeatsExample() {
         summary={seats === null ? null : `${seats}+`}
         onClear={() => setSeats(null)}
         defaultOpen
-        bodyClassName="pb-2.5"
       >
         <SegmentedChoice<number | null> label="Seats" options={options} value={seats} onChange={setSeats} countLabel={carCount} />
       </FilterCard>

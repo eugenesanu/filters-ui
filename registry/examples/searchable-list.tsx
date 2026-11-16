@@ -70,7 +70,6 @@ export default function MakeAndModelExample() {
         summary={summaryOf(makes)}
         onClear={() => setMakes([])}
         defaultOpen
-        bodyClassName="pb-3.5"
       >
         <SearchableList
           label="Make and model"

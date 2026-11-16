@@ -8,10 +8,8 @@ import {
   CAR_FACET_COLUMNS,
   CAR_FACET_TITLES,
   EMPTY_CAR_FILTERS,
-  KM_BARS,
   KM_MAX,
   KM_STEP,
-  PRICE_BARS,
   PRICE_MAX,
   PRICE_MIN,
   PRICE_STEP,
@@ -60,20 +58,6 @@ const ONE_COLUMN: CarFacet[][] = [
   ["price", "body", "make", "year", "km", "condition", "seats", "fuel", "drive", "transmission", "color"],
 ];
 
-// The design sets each open card's height by hand, so the space under the content varies per card.
-const BODY_FIT: Partial<Record<CarFacet, string>> = {
-  price: "pb-[18px]",
-  year: "pb-[18px]",
-  km: "pb-[18px]",
-  seats: "pb-2.5",
-  body: "pb-1.5",
-  color: "pb-3.5",
-  condition: "pb-2.5",
-  transmission: "pb-2.5",
-  fuel: "pb-2",
-  drive: "pb-2",
-  make: "pb-3.5",
-};
 
 const THREE_QUERY = "(min-width: 1000px)";
 const TWO_QUERY = "(min-width: 640px)";
@@ -151,7 +135,6 @@ export function CarsBoard({
             onChange={([yearMin, yearMax]) => set({ yearMin, yearMax })}
             buckets={yearBuckets(filters, cars)}
             pickerOrder="descending"
-            barScale={YEARS.length / PRICE_BARS}
             labels={{ low: "From year", high: "To year" }}
           />
         );
@@ -164,7 +147,6 @@ export function CarsBoard({
             value={filters.kmMax}
             onChange={(kmMax) => set({ kmMax })}
             buckets={kmBuckets(filters, cars)}
-            barScale={KM_BARS / PRICE_BARS}
             format={formatKm}
             label="Maximum kilometres"
           />
@@ -294,7 +276,6 @@ export function CarsBoard({
                   open={open.includes(facet)}
                   onOpenChange={(next) => setOpen((list) => (next ? [...list, facet] : list.filter((f) => f !== facet)))}
                   headingLevel={headingLevel === 1 ? 2 : 3}
-                  bodyClassName={BODY_FIT[facet]}
                 >
                   {bodyOf(facet)}
                 </FilterCard>

@@ -57,7 +57,6 @@ export default function PriceExample() {
         summary={summaryOf(price)}
         onClear={() => setPrice([null, null])}
         defaultOpen
-        bodyClassName="pb-[18px]"
       >
         <RangeHistogram
           min={MIN}

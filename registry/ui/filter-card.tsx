@@ -33,6 +33,9 @@ const SUMMARY_HIDES_WHEN = [
   "group-hover/slot:opacity-0 group-hover/slot:blur-[2px] group-hover/slot:-translate-y-1",
   "group-focus-within/slot:opacity-0 group-focus-within/slot:blur-[2px] group-focus-within/slot:-translate-y-1",
 ].join(" ");
+// Hovering anywhere on a closed card offers Clear in the summary's place.
+const SUMMARY_HIDES_ON_CARD_HOVER = "group-hover/card:opacity-0 group-hover/card:blur-[2px] group-hover/card:-translate-y-1";
+const CLEAR_SHOWS_ON_CARD_HOVER = "group-hover/card:opacity-100 group-hover/card:blur-none group-hover/card:translate-y-0";
 // A hidden Clear takes no taps: only a pointer that can hover reveals it before a click.
 const CLEAR_HIDDEN = "pointer-events-none opacity-0 blur-[2px] translate-y-1 [@media(hover:hover)]:pointer-events-auto";
 const CLEAR_SHOWS_WHEN = [
@@ -139,7 +142,7 @@ export function FilterCard({
           data-filter-card-slot=""
           className="group/slot pointer-events-none absolute right-[46px] top-4 grid h-5 max-w-[55%] justify-items-end text-[14px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]"
         >
-          <span aria-hidden="true" className={cn("pointer-events-none max-w-full truncate font-normal [grid-area:1/1]", swap, set ? SUMMARY_HIDES_WHEN : SUMMARY_HIDDEN)}>
+          <span aria-hidden="true" className={cn("pointer-events-none max-w-full truncate font-normal [grid-area:1/1]", swap, set ? SUMMARY_HIDES_WHEN : SUMMARY_HIDDEN, set && !disabled && SUMMARY_HIDES_ON_CARD_HOVER)}>
             {summary || lastSummary}
           </span>
           <button
@@ -157,6 +160,7 @@ export function FilterCard({
               swap,
               CLEAR_HIDDEN,
               set && CLEAR_SHOWS_WHEN,
+              set && !disabled && CLEAR_SHOWS_ON_CARD_HOVER,
             )}
           >
             Clear

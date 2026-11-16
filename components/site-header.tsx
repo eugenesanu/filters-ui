@@ -18,12 +18,6 @@ export function SiteHeader() {
         </div>
         <nav aria-label="Site" className="flex items-center gap-4 sm:gap-5">
           <Link
-            href="/#filters"
-            className="inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
-          >
-            Filters
-          </Link>
-          <Link
             href="/about"
             className="inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
           >

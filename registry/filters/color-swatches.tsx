@@ -56,7 +56,7 @@ export function ColorSwatches<V extends string>({
             onClick={(event) => toggle(option.value, event.currentTarget)}
             data-state={on ? "on" : "off"}
             className={cn(
-              "group/swatch flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-[12px] pt-1.5 pb-1 font-[inherit] text-[13px] leading-[18px] text-[var(--fu-swatch-text,#EDEAE6)]",
+              "group/swatch flex min-w-0 cursor-pointer flex-col items-center gap-1 rounded-[12px] pt-3 pb-1 font-[inherit] text-[13px] leading-[18px] text-[var(--fu-swatch-text,#EDEAE6)]",
               "transition-[background-color,scale,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               on ? "bg-[var(--fu-wash,rgb(255_255_255/0.08))]" : "enabled:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",

@@ -4,11 +4,9 @@ import type { ReactNode } from "react";
 import { BodyIcon } from "@/registry/demo/body-icons";
 import { BODIES, COLORS, COLOR_PAINTS, DRIVES, FUELS, type Condition, type Transmission } from "@/registry/demo/cars";
 import {
-  KM_BARS,
   KM_MAX,
   KM_STEP,
   MAKES_UP_FRONT,
-  PRICE_BARS,
   PRICE_MAX,
   PRICE_MIN,
   PRICE_STEP,
@@ -39,20 +37,6 @@ import { SearchableList } from "@/registry/filters/searchable-list";
 import { SegmentedChoice } from "@/registry/filters/segmented-choice";
 import { UpperLimit } from "@/registry/filters/upper-limit";
 
-// The same space under each body as the full board, so a card here matches the stills.
-export const BODY_FIT: Partial<Record<CarFacet, string>> = {
-  price: "pb-[18px]",
-  year: "pb-[18px]",
-  km: "pb-[18px]",
-  seats: "pb-2.5",
-  body: "pb-1.5",
-  color: "pb-3.5",
-  condition: "pb-2.5",
-  transmission: "pb-2.5",
-  fuel: "pb-2",
-  drive: "pb-2",
-  make: "pb-3.5",
-};
 
 type Props = {
   facet: CarFacet;
@@ -84,7 +68,6 @@ export function CarFilterBody({ facet, filters, set }: Props): ReactNode {
           onChange={([yearMin, yearMax]) => set({ yearMin, yearMax })}
           buckets={yearBuckets(filters)}
           pickerOrder="descending"
-          barScale={YEARS.length / PRICE_BARS}
           labels={{ low: "From year", high: "To year" }}
         />
       );
@@ -97,7 +80,6 @@ export function CarFilterBody({ facet, filters, set }: Props): ReactNode {
           value={filters.kmMax}
           onChange={(kmMax) => set({ kmMax })}
           buckets={kmBuckets(filters)}
-          barScale={KM_BARS / PRICE_BARS}
           format={formatKm}
           label="Maximum kilometres"
         />

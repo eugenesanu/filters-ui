@@ -12,7 +12,7 @@ import {
 } from "@/registry/demo/cars-facets";
 import { FilterCard } from "@/registry/ui/filter-card";
 import { FiltersHead } from "@/registry/ui/filters-head";
-import { BODY_FIT, CarFilterBody } from "@/components/stage/car-filter";
+import { CarFilterBody } from "@/components/stage/car-filter";
 import { exampleOf } from "@/components/stage/example-of";
 import { PRESETS, SENTENCE_PRESET } from "@/components/tile/presets";
 import { CARS } from "@/registry/demo/cars";
@@ -30,7 +30,6 @@ function PresetCard({ facet, filters, headingLevel = 3 }: { facet: CarFacet; fil
       summary={summaryOf(filters, facet)}
       open
       headingLevel={headingLevel}
-      bodyClassName={BODY_FIT[facet]}
     >
       <CarFilterBody facet={facet} filters={filters} set={still} />
     </FilterCard>

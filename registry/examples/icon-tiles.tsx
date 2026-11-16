@@ -47,7 +47,6 @@ export default function BodyStyleExample() {
         summary={summaryOf(bodies)}
         onClear={() => setBodies([])}
         defaultOpen
-        bodyClassName="pb-1.5"
       >
         <IconTiles label="Body style" options={options} value={bodies} onChange={setBodies} countLabel={carCount} />
       </FilterCard>

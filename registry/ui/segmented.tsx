@@ -24,14 +24,14 @@ export type SegmentedProps<V extends SegmentedValue> = Omit<HTMLAttributes<HTMLD
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
   disabled?: boolean;
-  /** "equal": every option takes the same width. "content": the same, except an option whose words need more keeps its own width and the others share the rest. */
+  /** "equal": options with a count share the width equally. "content": the same, except an option whose words need more keeps its own width. An option without a count ("Any") always hugs its words. */
   fit?: "equal" | "content";
 };
 
 const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 /**
- * A segmented control: options share the width equally and one pill slides to the chosen one over 340ms.
+ * A segmented control: an option without a count ("Any") hugs its words, the others share the rest equally, and one pill slides to the chosen one over 340ms.
  * It is a radiogroup with one tab stop; arrow keys, Home and End move and select.
  */
 export function Segmented<V extends SegmentedValue>({
@@ -51,19 +51,29 @@ export function Segmented<V extends SegmentedValue>({
   const index = options.findIndex((option) => Object.is(option.value, value));
   const usable = (i: number) => !disabled && !options[i].disabled;
   const [box, setBox] = useState<{ left: number; width: number } | null>(null);
+  const [placed, setPlaced] = useState(false);
+  // "Any" hugs its words only beside options that carry counts; a set without counts stays equal.
+  const counted = options.some((option) => option.count !== undefined);
+  const hugs = counted && options.some((option) => option.count === undefined);
+  const measuring = fit === "content" || hugs;
   const tabStop = index >= 0 ? index : options.findIndex((_, i) => usable(i));
 
-  // Content widths differ per option, so the pill takes the chosen button's measured box instead of a share of the track.
+  // Widths differ per option, so the pill takes the chosen button's measured box instead of a share of the track.
+  // Until it is measured, the chosen button paints its own pill, so the server render already shows the choice.
   useLayoutEffect(() => {
-    const button = fit === "content" && index >= 0 ? buttons.current[index] : null;
+    const button = measuring && index >= 0 ? buttons.current[index] : null;
     if (!button) return;
     const measure = () => setBox({ left: button.offsetLeft, width: button.offsetWidth });
     measure();
+    const frame = requestAnimationFrame(() => setPlaced(true));
     const observer = new ResizeObserver(measure);
     buttons.current.forEach((b) => b && observer.observe(b));
-    return () => observer.disconnect();
-  }, [fit, index, options.length]);
-  const measured = fit === "content" ? box : null;
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [measuring, index, options.length]);
+  const measured = measuring ? box : null;
 
   const pick = (i: number) => {
     buttons.current[i]?.focus();
@@ -114,12 +124,12 @@ export function Segmented<V extends SegmentedValue>({
         aria-hidden="true"
         className={cn(
           "pointer-events-none absolute top-1 bottom-1 left-1 rounded-[9px] bg-[var(--fu-line,#404040)]",
-          fit === "content" ? "transition-[left,width,opacity]" : "transition-[translate,opacity]",
+          measuring ? placed && "transition-[left,width,opacity]" : "transition-[translate,opacity]",
           "duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-          (index < 0 || (fit === "content" && !measured)) && "opacity-0",
+          (index < 0 || (measuring && !measured)) && "opacity-0",
         )}
         style={
-          fit === "content"
+          measuring
             ? { left: measured?.left, width: measured?.width }
             : { width: `calc((100% - 8px) / ${options.length})`, translate: `${Math.max(index, 0) * 100}% 0` }
         }
@@ -127,6 +137,7 @@ export function Segmented<V extends SegmentedValue>({
       {options.map((option, i) => {
         const on = i === index;
         const off = !usable(i);
+        const hug = hugs && option.count === undefined;
         return (
           <button
             key={String(option.value)}
@@ -140,8 +151,10 @@ export function Segmented<V extends SegmentedValue>({
             disabled={off}
             onClick={() => pick(i)}
             className={cn(
-              "relative flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] px-1 text-[14px] leading-5 font-medium",
-              fit === "content" && "min-w-fit",
+              "group/seg relative flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-[14px] leading-5 font-medium",
+              hug ? "flex-none px-2.5" : "flex-1 px-0.5",
+              fit === "content" && !hug && "min-w-fit",
+              on && measuring && !measured && "bg-[var(--fu-line,#404040)]",
               "transition-[color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               on ? "text-[var(--fu-text,#F8F5F1)]" : "text-[var(--fu-mute,#BDBDBD)] enabled:hover:text-[var(--fu-text,#F8F5F1)]",
@@ -152,7 +165,12 @@ export function Segmented<V extends SegmentedValue>({
             <span className="truncate">{option.label}</span>
             {option.count !== undefined && (
               <>
-                <CountPill aria-hidden="true" count={option.count} format={formatCount} />
+                <CountPill
+                  aria-hidden="true"
+                  count={option.count}
+                  format={formatCount}
+                  className="group-enabled/seg:group-hover/seg:bg-[var(--fu-pill-hover,rgb(255_255_255/0.16))] group-enabled/seg:group-hover/seg:text-[var(--fu-text,#F8F5F1)]"
+                />
                 <span className="sr-only">, {countLabel(option.count)}</span>
               </>
             )}

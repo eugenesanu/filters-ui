@@ -48,7 +48,6 @@ export default function FuelExample() {
         summary={summaryOf(fuels)}
         onClear={() => setFuels([])}
         defaultOpen
-        bodyClassName="pb-2"
       >
         <ChipGroup label="Fuel" options={options} value={fuels} onChange={setFuels} countLabel={carCount} />
       </FilterCard>

@@ -21,16 +21,13 @@ export default function Home() {
             {HERO.title}
           </h1>
           <p className="mt-4 max-w-[560px] text-[17px] leading-[1.5] text-pretty text-mute sm:text-[18px]">{HERO.subtitle}</p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
-            <a href="#filters" className={`${BUTTON} bg-accent text-white hover:bg-accent-hover`}>
-              Browse filters
-            </a>
-            {site.isPublic && (
+          {site.isPublic && (
+            <div className="mt-7 flex flex-wrap items-center gap-3">
               <a href={site.repoUrl} target="_blank" rel="noopener" className={`${BUTTON} bg-surface-3 text-text hover:bg-hover`}>
                 View on GitHub
               </a>
-            )}
-          </div>
+            </div>
+          )}
         </section>
 
         <section id="filters" aria-labelledby="filters-heading" className="scroll-mt-24">
