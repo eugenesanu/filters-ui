@@ -12,6 +12,7 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   metadataBase: new URL("https://filtersui.com"),
   title: "FiltersUI",
+  alternates: { canonical: "/" },
   description:
     "Free, open-source filter cards for search pages, ready to copy as code or as a prompt.",
   // remove at launch
@@ -26,7 +27,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={outfit.variable}>
+    <html lang="en" className={outfit.variable} data-scroll-behavior="smooth">
       <body className="min-h-dvh font-sans antialiased">{children}</body>
     </html>
   );

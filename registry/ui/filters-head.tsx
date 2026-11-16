@@ -97,7 +97,7 @@ export function FiltersHead({
   const Heading = `h${headingLevel}` as const;
   const label = labelOf({ count, noun, formatCount, showLabel });
   return (
-    <div className={cn("flex min-h-10 items-center gap-2", className)} {...props}>
+    <div className={cn("not-prose flex min-h-10 items-center gap-2", className)} {...props}>
       <Heading className="m-0 mr-auto text-[26px] font-semibold leading-8 text-[var(--fu-text,#F8F5F1)]">{title}</Heading>
       <span className="sr-only" aria-live="polite" aria-atomic="true">
         {label.replace(/^Show /, "")}

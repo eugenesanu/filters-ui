@@ -91,7 +91,7 @@ export function FilterCard({
       data-state={open ? "open" : "closed"}
       data-set={set ? "true" : "false"}
       className={cn(
-        "group/card relative overflow-hidden rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] text-[var(--fu-text,#F8F5F1)]",
+        "not-prose group/card relative overflow-hidden rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] text-[var(--fu-text,#F8F5F1)]",
         "transition-[background-color,border-color,opacity] duration-200 motion-reduce:transition-none",
         "[@media(hover:hover)]:data-[state=closed]:has-[[data-filter-card-head]:enabled:hover,[data-filter-card-slot]:hover]:border-[var(--fu-line,#404040)] [@media(hover:hover)]:data-[state=closed]:has-[[data-filter-card-head]:enabled:hover,[data-filter-card-slot]:hover]:bg-[var(--fu-card-hover,#262626)]",
         // The head button sits flush in a clipped card, so its focus ring is drawn around the card.
@@ -100,7 +100,7 @@ export function FilterCard({
       )}
       {...props}
     >
-      <Heading className="m-0 -mb-0.5 text-[15px] font-semibold leading-5">
+      <Heading className="m-0 -mb-0.5 text-[15px] font-semibold leading-5 text-[var(--fu-text,#F8F5F1)]">
         <button
           ref={head}
           type="button"
@@ -118,7 +118,7 @@ export function FilterCard({
           <span className="min-w-0 truncate">{title}</span>
           {set && <span className="sr-only">, {summary}</span>}
           {set && (
-            <span aria-hidden="true" className="invisible min-w-0 max-w-[calc((100%+32px)*0.55)] shrink-0 truncate text-sm font-normal">
+            <span aria-hidden="true" className="invisible min-w-0 max-w-[calc((100%+32px)*0.55)] shrink-0 truncate text-[14px] font-normal">
               {summary}
             </span>
           )}
@@ -137,7 +137,7 @@ export function FilterCard({
         <div
           inert={!set}
           data-filter-card-slot=""
-          className="group/slot pointer-events-none absolute right-[46px] top-4 grid h-5 max-w-[55%] justify-items-end text-sm leading-5 text-[var(--fu-accent-soft,#8FAAFF)]"
+          className="group/slot pointer-events-none absolute right-[46px] top-4 grid h-5 max-w-[55%] justify-items-end text-[14px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]"
         >
           <span aria-hidden="true" className={cn("pointer-events-none max-w-full truncate font-normal [grid-area:1/1]", swap, set ? SUMMARY_HIDES_WHEN : SUMMARY_HIDDEN)}>
             {summary || lastSummary}
@@ -167,7 +167,7 @@ export function FilterCard({
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute right-[46px] top-4 max-w-[55%] truncate text-sm leading-5 text-[var(--fu-accent-soft,#8FAAFF)]",
+            "pointer-events-none absolute right-[46px] top-4 max-w-[55%] truncate text-[14px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]",
             swap,
             "group-data-[state=open]/card:opacity-0",
           )}

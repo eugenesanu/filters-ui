@@ -3,6 +3,8 @@
 :root {
   --fu-page: #0a0a0a;
   --fu-surface-1: #171717;
+  /* Site only: stages and panels. */
+  --fu-panel: #141414;
   --fu-card: #1f1f1f;
   --fu-surface-3: #2a2a2a;
   --fu-hover: #333333;
@@ -20,7 +22,7 @@
   --fu-selected: #1f2747;
 
   --fu-radius-card: 24px;
-  --fu-radius-panel: 28px;
+  --fu-radius-panel: 24px;
   --fu-radius-tile: 16px;
   --fu-radius-field: 12px;
   --fu-radius-button: 10px;
@@ -35,6 +37,7 @@
 
   --color-page: var(--fu-page);
   --color-surface-1: var(--fu-surface-1);
+  --color-panel: var(--fu-panel);
   --color-card: var(--fu-card);
   --color-surface-3: var(--fu-surface-3);
   --color-hover: var(--fu-hover);
@@ -81,5 +84,27 @@ body {
   :focus-visible {
     outline: 2px solid var(--fu-accent-soft);
     outline-offset: 3px;
+  }
+}
+
+/* Code highlighted by Shiki at build time; the colours come from lib/highlight.ts. */
+.fu-code pre {
+  margin: 0;
+  padding: 16px;
+  width: max-content;
+  min-width: 100%;
+  background-color: transparent !important;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 20px;
+  tab-size: 2;
+}
+.fu-code pre:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
   }
 }

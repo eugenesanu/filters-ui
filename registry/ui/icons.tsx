@@ -1,3 +1,5 @@
+import type { ReactNode, SVGProps } from "react";
+
 /*
  * Icon paths from Lucide (https://lucide.dev), ISC License.
  * Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather (MIT).
@@ -13,7 +15,6 @@
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-import type { ReactNode, SVGProps } from "react";
 
 export type IconProps = Omit<SVGProps<SVGSVGElement>, "children"> & { size?: number };
 

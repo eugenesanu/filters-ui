@@ -1,42 +1,56 @@
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { BoardTile, ItemTile, TileGrid } from "@/components/tile/item-tile";
+import { HERO } from "@/lib/home-copy";
+import { site } from "@/lib/site";
+import { ITEMS } from "@/registry/items";
+
+const BUTTON =
+  "inline-flex h-11 items-center whitespace-nowrap rounded-[10px] px-4 text-[15px] font-medium leading-5 transition-[background-color] duration-200 ease-smooth";
 
 export default function Home() {
+  const filters = ITEMS.filter((item) => item.kind === "filter");
+  const block = ITEMS.find((item) => item.kind === "block");
+
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
-      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-20 sm:px-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[560px] w-[min(1100px,140vw)] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(closest-side,rgba(143,170,255,0.06),transparent)]"
-        />
-        <div className="relative flex max-w-[960px] flex-col items-center text-center">
-          <span className="rounded-full bg-surface-3 px-3 py-1 text-[13px] font-medium leading-5 text-mute">
-            Coming soon
-          </span>
-          <h1 className="mt-7 text-[clamp(44px,7.5vw,88px)] font-semibold leading-[1.02] tracking-[-0.03em] text-balance text-text">
-            Filters, ready to use.
+      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 sm:px-8">
+        <section className="pb-12 pt-14 sm:pb-14 sm:pt-16">
+          <h1 className="max-w-[760px] text-[clamp(36px,5vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em] text-balance text-text">
+            {HERO.title}
           </h1>
-          <p className="mt-6 max-w-[560px] text-[18px] leading-[1.5] text-balance text-mute sm:text-[20px]">
-            Free filter cards for search pages. Try one, then copy the code or a prompt for your AI tool.
-          </p>
-        </div>
-      </main>
-      <footer className="border-t border-card">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-4 py-6 text-[13px] text-dim sm:px-8">
-          <span className="whitespace-nowrap">MIT licence</span>
-          <span className="whitespace-nowrap">
-            Designed and built by{" "}
-            <a
-              href="https://eugenesanu.com"
-              target="_blank"
-              rel="noopener"
-              className="rounded-[4px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
-            >
-              Eugen Eşanu
+          <p className="mt-4 max-w-[560px] text-[17px] leading-[1.5] text-pretty text-mute sm:text-[18px]">{HERO.subtitle}</p>
+          <div className="mt-7 flex flex-wrap items-center gap-3">
+            <a href="#filters" className={`${BUTTON} bg-accent text-white hover:bg-accent-hover`}>
+              Browse filters
             </a>
-          </span>
-        </div>
-      </footer>
+            {site.isPublic && (
+              <a href={site.repoUrl} target="_blank" rel="noopener" className={`${BUTTON} bg-surface-3 text-text hover:bg-hover`}>
+                View on GitHub
+              </a>
+            )}
+          </div>
+        </section>
+
+        <section id="filters" aria-labelledby="filters-heading" className="scroll-mt-24">
+          <h2 id="filters-heading" className="mb-5 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">
+            Filters
+          </h2>
+          <TileGrid>
+            {filters.map((item) => (
+              <ItemTile key={item.slug} item={item} />
+            ))}
+          </TileGrid>
+        </section>
+
+        {block && (
+          <div className="pb-24 pt-14 sm:pb-28 sm:pt-16">
+            <BoardTile item={block} />
+          </div>
+        )}
+      </main>
+      <SiteFooter />
     </div>
   );
 }

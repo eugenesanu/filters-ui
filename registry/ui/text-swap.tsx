@@ -17,12 +17,11 @@ const reducedMotion = () =>
 export function TextSwap({ children, className, ...props }: TextSwapProps) {
   const [shown, setShown] = useState(children);
   const [leaving, setLeaving] = useState<{ text: string; key: number } | null>(null);
-  const counter = useRef(0);
   const nowRef = useRef<HTMLSpanElement>(null);
   const oldRef = useRef<HTMLSpanElement>(null);
 
   if (children !== shown) {
-    setLeaving(reducedMotion() ? null : { text: shown, key: ++counter.current });
+    setLeaving(reducedMotion() ? null : { text: shown, key: (leaving?.key ?? 0) + 1 });
     setShown(children);
   }
 

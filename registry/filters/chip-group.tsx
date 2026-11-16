@@ -57,7 +57,7 @@ export function ChipGroup<V extends string>({
             onClick={(event) => toggle(option.value, event.currentTarget)}
             data-state={on ? "on" : "off"}
             className={cn(
-              "inline-flex h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-full border pr-1.5 pl-3 font-[inherit] text-sm leading-5 whitespace-nowrap",
+              "inline-flex h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-full border pr-1.5 pl-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
               "transition-[background-color,border-color,color,scale,opacity] duration-200 ease-[cubic-bezier(0.42,0,0.58,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               on

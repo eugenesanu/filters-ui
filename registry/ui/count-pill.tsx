@@ -21,7 +21,7 @@ export function CountPill({ count, variant = "default", on = false, format = def
         "transition-[background-color,color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         variant === "square"
           ? "h-[18px] min-w-5 rounded-[5px] px-[5px] text-[11px] leading-4"
-          : "h-5 min-w-[22px] rounded-[6px] px-1.5 text-xs leading-4",
+          : "h-5 min-w-[22px] rounded-[6px] px-1.5 text-[12px] leading-4",
         on
           ? "bg-[var(--fu-accent,#3B57E6)] text-[var(--fu-on-accent,#FFFFFF)]"
           : variant === "square"

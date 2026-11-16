@@ -129,7 +129,7 @@ function Row({ label, query, count, checked, disabled, nested, formatCount, coun
     <label
       data-state={checked ? "on" : "off"}
       className={cn(
-        "group/row relative flex h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] pr-3 text-sm leading-5 text-[var(--fu-text,#F8F5F1)]",
+        "group/row relative flex h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] pr-3 text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]",
         nested ? "pl-[40px]" : "pl-3",
         "transition-[background-color,opacity] duration-200 motion-reduce:transition-none",
         "[@media(hover:hover)]:has-[input:enabled]:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",
@@ -271,12 +271,12 @@ export function SearchableList({
   const childRows = (option: SearchableListOption, children: readonly SearchableListChild[], q: string) => {
     const pick = pickOf(option.value);
     return (
-      <ul aria-label={option.label}>
+      <ul aria-label={option.label} className="m-0 list-none p-0">
         {children.map((child) => {
           const key = `${option.value}\n${child.value}`;
           const checked = Boolean(pick?.children.includes(child.value));
           return (
-            <li key={child.value}>
+            <li key={child.value} className="m-0 p-0">
               <Row
                 nested
                 label={child.label}
@@ -310,7 +310,7 @@ export function SearchableList({
       const checked = Boolean(pickOf(option.value));
       const showAll = !kids.length || (checked && self);
       return (
-        <li key={option.value}>
+        <li key={option.value} className="m-0 p-0">
           {parentRow(option, typed)}
           {(option.children?.length ?? 0) > 0 && (
             <Reveal open={checked || kids.length > 0}>{childRows(option, showAll ? option.children! : kids, typed)}</Reveal>
@@ -327,7 +327,7 @@ export function SearchableList({
         </>
       );
       return (
-        <li key={option.value}>
+        <li key={option.value} className="m-0 p-0">
           {i < collapsedCount ? item : <Reveal open={all || pinned.includes(option.value)}>{item}</Reveal>}
         </li>
       );
@@ -370,7 +370,7 @@ export function SearchableList({
           )}
           style={typed ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
         >
-          <ul ref={content} aria-label={label}>
+          <ul ref={content} aria-label={label} className="m-0 list-none p-0">
             {rows}
           </ul>
         </div>
@@ -390,7 +390,7 @@ export function SearchableList({
         />
       </div>
 
-      <div role="status" className="text-sm leading-5">
+      <div role="status" className="text-[14px] leading-5">
         {typed && found === 0 && (
           <div className="px-3 pt-1 pb-1.5">
             <p className="flex min-w-0 text-[var(--fu-mute,#BDBDBD)]">
@@ -427,7 +427,7 @@ export function SearchableList({
             setAll(!all);
           }}
           className={cn(
-            "relative mt-1.5 ml-3 cursor-pointer rounded-[6px] text-sm leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
+            "relative mt-1.5 ml-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
             "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
           )}
         >

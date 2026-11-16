@@ -140,7 +140,7 @@ export function Segmented<V extends SegmentedValue>({
             disabled={off}
             onClick={() => pick(i)}
             className={cn(
-              "relative flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] px-1 text-sm leading-5 font-medium",
+              "relative flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] px-1 text-[14px] leading-5 font-medium",
               fit === "content" && "min-w-fit",
               "transition-[color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",

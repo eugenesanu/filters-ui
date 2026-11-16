@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { CarsBoard } from "@/registry/blocks/cars-board";
 import { CAR_FACET_COLUMNS, EMPTY_CAR_FILTERS, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
 
@@ -39,6 +40,8 @@ const first = (value: string | string[] | undefined) => (Array.isArray(value) ? 
 
 // ?state=shot|empty|all-open|busy picks the stills' state; ?zoom=1.45 frames the board like the 1440x1080 shot.
 export default async function LabCardsPage({ searchParams }: PageProps<"/lab/cards">) {
+  // A private board for making stills; never served by a production build.
+  if (process.env.NODE_ENV === "production") notFound();
   const query = await searchParams;
   const state = STATES[first(query.state) ?? "shot"] ?? STATES.shot;
   const zoom = Number(first(query.zoom));
