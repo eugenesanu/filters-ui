@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { Button, IconButton } from "../ui/button";
-import { CopyIcon, PlusIcon } from "../ui/icons";
+import { Button } from "../ui/button";
+import { CopyButton } from "../ui/copy-button";
+import { PlusIcon } from "../ui/icons";
 import { TextLink } from "../ui/link";
 
 function Row({ title, children }: { title: string; children: ReactNode }) {
@@ -44,15 +45,12 @@ export default function ButtonsExample() {
         <Button size="sm" variant="secondary" before={<PlusIcon />}>
           Add filter
         </Button>
-        <Button variant="secondary" before={<CopyIcon />}>
-          Copy code
-        </Button>
-        <span className="flex gap-2">
-          <Button size="lg">Search cars</Button>
-          <IconButton size="lg" variant="secondary" label="Copy link">
-            <CopyIcon />
-          </IconButton>
-        </span>
+        <Button size="lg">Search cars</Button>
+      </Row>
+      <Row title="Copy: press one">
+        <CopyButton text="npx shadcn@latest add https://filtersui.com/r/buttons.json" label="Copy code" announce="Code copied" />
+        <CopyButton variant="primary" size="lg" text="Show me cars under $30k" label="Copy prompt" announce="Prompt copied" />
+        <CopyButton size="lg" text="https://filtersui.com/basics/buttons" aria-label="Copy link" announce="Link copied" />
       </Row>
       <Row title="Busy: press one">
         <Button busy={busy === "save"} onClick={() => send("save")}>

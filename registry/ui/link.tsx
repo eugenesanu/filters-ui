@@ -1,4 +1,4 @@
-import type { AnchorHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes, ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { ArrowUpRightIcon, ChevronDownIcon } from "./icons";
 
@@ -25,7 +25,8 @@ export function linkClasses({ variant = "inline", tone = "mute", size = "md", cl
     variant === "inline"
       ? cn(
           "text-[var(--fu-accent-soft,#8FAAFF)] underline decoration-1 underline-offset-[3px] decoration-[color:var(--fu-link-line,rgb(143_170_255/0.4))]",
-          "hover:text-[var(--fu-accent-pale,#D1DDFF)] hover:decoration-[color:var(--fu-accent-pale,#D1DDFF)]",
+          "transition-[color,text-decoration-color,text-underline-offset]",
+          "hover:text-[var(--fu-accent-pale,#D1DDFF)] hover:decoration-[color:var(--fu-accent-pale,#D1DDFF)] hover:underline-offset-[5px] active:opacity-80",
         )
       : cn(
           "relative inline-flex items-center gap-1 text-[14px] leading-5 whitespace-nowrap no-underline hover:text-[var(--fu-text,#F8F5F1)]",
@@ -47,6 +48,22 @@ export function LinkArrow({ direction = "forward", className }: { direction?: "f
         className,
       )}
     />
+  );
+}
+
+/** A quiet link's words: a 1px line draws in under them from the left while the link is hovered or focused. */
+export function LinkText({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] bg-no-repeat pb-px",
+        "transition-[background-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+        "[@media(hover:hover)]:group-hover/link:bg-[length:100%_1px] group-focus-visible/link:bg-[length:100%_1px]",
+        className,
+      )}
+    >
+      {children}
+    </span>
   );
 }
 
@@ -83,7 +100,7 @@ export function TextLink({ variant, tone, size, arrow, target, rel, className, c
   return (
     <a target={target} rel={rel ?? (external ? "noopener" : undefined)} className={linkClasses({ variant, tone, size, className })} {...props}>
       {arrow === "back" && <LinkArrow direction="back" />}
-      {children}
+      {variant === "quiet" ? <LinkText>{children}</LinkText> : children}
       {arrow === "forward" && <LinkArrow />}
       {external && <ExternalMark />}
     </a>
