@@ -7,6 +7,7 @@
   --fu-surface-3: #2a2a2a;
   --fu-hover: #333333;
   --fu-line: #404040;
+  --fu-rail: #4a4a4a;
   --fu-card-border: #2a2a2a;
   --fu-control-border: #737373;
   --fu-text: #f8f5f1;
@@ -76,7 +77,9 @@ body {
   color: #171717;
 }
 
-:focus-visible {
-  outline: 2px solid var(--fu-accent-soft);
-  outline-offset: 3px;
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--fu-accent-soft);
+    outline-offset: 3px;
+  }
 }
