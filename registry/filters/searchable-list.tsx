@@ -36,6 +36,12 @@ export type SearchableListProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /**
+   * "card" (default): the look inside a FilterCard. "panel": a 48px search, 20px filled checkboxes, 17px names, counts as
+   * plain numbers and rows flush with the field, as in the Filter panel block. The list grows in place for its scrolling
+   * parent rather than scrolling in a box of its own.
+   */
+  variant?: "card" | "panel";
 };
 
 const ROW_HEIGHT = 36;
@@ -70,9 +76,20 @@ function nearestName(typed: string, options: readonly SearchableListOption[]) {
   return best?.name ?? null;
 }
 
-function Marked({ text, query }: { text: string; query: string }) {
+// Names in the panel look are already semibold, so there the letters around the match dim instead.
+function Marked({ text, query, panel = false }: { text: string; query: string; panel?: boolean }) {
   const at = query ? text.toLowerCase().indexOf(query) : -1;
   if (at < 0) return <>{text}</>;
+  if (panel) {
+    const dim = "text-[var(--fu-dim,#8C8C8C)]";
+    return (
+      <>
+        <span className={dim}>{text.slice(0, at)}</span>
+        {text.slice(at, at + query.length)}
+        <span className={dim}>{text.slice(at + query.length)}</span>
+      </>
+    );
+  }
   return (
     <>
       {text.slice(0, at)}
@@ -117,6 +134,7 @@ type RowProps = {
   checked: boolean;
   disabled: boolean;
   nested?: boolean;
+  panel: boolean;
   formatCount: (n: number) => string;
   countLabel: (n: number) => string;
   onToggle: (input: HTMLInputElement) => void;
@@ -124,13 +142,16 @@ type RowProps = {
 };
 
 // The whole row is the checkbox's label. The native box is hidden and drawn again: 18px, 5px radius, the tile's selected fill with an accent check that draws in.
-function Row({ label, query, count, checked, disabled, nested, formatCount, countLabel, onToggle, onBlur }: RowProps) {
+// The panel look draws it 20px with 6px corners, filled with the accent and a white check once ticked.
+function Row({ label, query, count, checked, disabled, nested, panel, formatCount, countLabel, onToggle, onBlur }: RowProps) {
   return (
     <label
       data-state={checked ? "on" : "off"}
       className={cn(
         "group/row relative flex h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] pr-3 text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]",
         nested ? "pl-[40px]" : "pl-3",
+        panel && "rounded-[10px] pr-2 text-[17px] font-semibold pointer-coarse:h-11",
+        panel && (nested ? "pl-[38px]" : "pl-2"),
         "transition-[background-color,opacity] duration-200 motion-reduce:transition-none",
         "[@media(hover:hover)]:has-[input:enabled]:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",
         // Drawn inside the row, so neither the scroll area nor the card can clip it.
@@ -146,7 +167,7 @@ function Row({ label, query, count, checked, disabled, nested, formatCount, coun
         aria-label={`${label}, ${countLabel(count)}`}
         onChange={(event) => onToggle(event.currentTarget)}
         onBlur={onBlur}
-        className="peer absolute size-[18px] cursor-[inherit] opacity-0"
+        className={cn("peer absolute size-[18px] cursor-[inherit] opacity-0", panel && "size-5")}
       />
       <span
         aria-hidden="true"
@@ -155,7 +176,9 @@ function Row({ label, query, count, checked, disabled, nested, formatCount, coun
           "transition-[background-color,border-color] duration-200 motion-reduce:transition-none",
           SMOOTH,
           "[@media(hover:hover)]:group-hover/row:peer-enabled:border-[var(--fu-control-hover,#A3A3A3)]",
-          "peer-checked:border-[var(--fu-accent-soft,#8FAAFF)] peer-checked:bg-[var(--fu-selected,#1F2747)] [@media(hover:hover)]:group-hover/row:peer-checked:border-[var(--fu-accent-soft,#8FAAFF)]",
+          panel
+            ? "size-5 rounded-[6px] border-[1.5px] bg-[var(--fu-field,rgb(255_255_255/0.03))] text-[var(--fu-on-accent,#FFFFFF)] peer-checked:border-[var(--fu-accent,#3B57E6)] peer-checked:bg-[var(--fu-accent,#3B57E6)] [@media(hover:hover)]:group-hover/row:peer-checked:border-[var(--fu-accent,#3B57E6)]"
+            : "peer-checked:border-[var(--fu-accent-soft,#8FAAFF)] peer-checked:bg-[var(--fu-selected,#1F2747)] [@media(hover:hover)]:group-hover/row:peer-checked:border-[var(--fu-accent-soft,#8FAAFF)]",
         )}
       >
         <CheckIcon
@@ -169,9 +192,15 @@ function Row({ label, query, count, checked, disabled, nested, formatCount, coun
         />
       </span>
       <span aria-hidden="true" className="min-w-0 flex-1 truncate">
-        <Marked text={label} query={query} />
+        <Marked text={label} query={query} panel={panel} />
       </span>
-      <CountPill aria-hidden="true" variant="square" on={checked} count={count} format={formatCount} />
+      {panel ? (
+        <span aria-hidden="true" className="shrink-0 font-normal tabular-nums text-[var(--fu-mute,#BDBDBD)]">
+          {formatCount(count)}
+        </span>
+      ) : (
+        <CountPill aria-hidden="true" variant="square" on={checked} count={count} format={formatCount} />
+      )}
     </label>
   );
 }
@@ -191,9 +220,11 @@ export function SearchableList({
   collapsedCount = 8,
   formatCount = defaultFormat,
   countLabel = defaultCountLabel,
+  variant = "card",
   className,
   ...props
 }: SearchableListProps) {
+  const panel = variant === "panel";
   const listId = useId();
   const [query, setQuery] = useState("");
   const [all, setAll] = useState(false);
@@ -260,6 +291,7 @@ export function SearchableList({
         count={option.count}
         checked={checked}
         disabled={option.count === 0 && !checked && kept !== option.value}
+        panel={panel}
         formatCount={formatCount}
         countLabel={countLabel}
         onToggle={(input) => toggleParent(option.value, input)}
@@ -284,6 +316,7 @@ export function SearchableList({
                 count={child.count}
                 checked={checked}
                 disabled={child.count === 0 && !checked && kept !== key}
+                panel={panel}
                 formatCount={formatCount}
                 countLabel={countLabel}
                 onToggle={(input) => toggleChild(option.value, child.value, input)}
@@ -346,10 +379,11 @@ export function SearchableList({
           onChange={setQuery}
           label={`Search ${noun}`}
           placeholder={`Search ${noun}`}
-          prefix={<SearchIcon size={16} className="block" />}
+          prefix={<SearchIcon size={panel ? 20 : 16} className="block" />}
           clearLabel="Clear search"
           autoComplete="off"
           spellCheck={false}
+          className={panel ? "h-12 gap-3 bg-[var(--fu-field,rgb(255_255_255/0.03))] px-3.5 text-[17px]" : undefined}
           inputClassName="[&::-webkit-search-cancel-button]:appearance-none"
           onKeyDown={(event) => {
             if (event.key === "Escape" && query) {
@@ -361,14 +395,16 @@ export function SearchableList({
         />
       </div>
 
-      <div className="relative mt-2">
+      {/* In the panel look the list reaches 8px past the field on each side, so boxes and counts line up with its edges.
+          The panel scrolls the whole list itself, so there the list neither scrolls in its own box nor holds its height while typing. */}
+      <div className={cn("relative mt-2", panel && "-mx-2")}>
         <div
           ref={scroller}
           id={listId}
           className={cn(
-            all && "max-h-80 scroll-py-7 overflow-y-auto overscroll-contain [scrollbar-color:var(--fu-line,#404040)_transparent] [scrollbar-width:thin]",
+            all && !panel && "max-h-80 scroll-py-7 overflow-y-auto overscroll-contain [scrollbar-color:var(--fu-line,#404040)_transparent] [scrollbar-width:thin]",
           )}
-          style={typed ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
+          style={typed && !panel ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
         >
           <ul ref={content} aria-label={label} className="m-0 list-none p-0">
             {rows}
@@ -390,9 +426,9 @@ export function SearchableList({
         />
       </div>
 
-      <div role="status" className="text-[14px] leading-5">
+      <div role="status" className={cn("text-[14px] leading-5", panel && "text-[15px]")}>
         {typed && found === 0 && (
-          <div className="px-3 pt-1 pb-1.5">
+          <div className={cn("px-3 pt-1 pb-1.5", panel && "px-0")}>
             <p className="flex min-w-0 text-[var(--fu-mute,#BDBDBD)]">
               <span className="shrink-0">No {noun} match&nbsp;</span>
               <span className="min-w-0 truncate text-[var(--fu-text,#F8F5F1)]">“{query.trim()}</span>
@@ -429,6 +465,7 @@ export function SearchableList({
           className={cn(
             "relative mt-1.5 ml-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
             "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
+            panel && "mt-2 ml-0 text-[15px] pointer-coarse:before:-inset-y-3",
           )}
         >
           {all ? "Show fewer" : `All ${options.length} ${noun}`}

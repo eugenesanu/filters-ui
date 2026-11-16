@@ -13,7 +13,7 @@ export const site = {
 export const registryJsonUrl = (slug: string) => `${site.url}/r/${slug}.json`;
 
 /** Blocks live under /sets, basics under /basics, filters under /filters. */
-const SET_PATHS: Record<string, string> = { "cars-board": "/sets/cars" };
+const SET_PATHS: Record<string, string> = { "cars-board": "/sets/cars", "filter-panel": "/sets/filter-panel" };
 
 /** The page that shows one item. */
 export const itemPath = (slug: string) =>

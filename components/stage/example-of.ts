@@ -19,6 +19,17 @@ const EXAMPLES: Record<string, ComponentType> = {
   select: dynamic(() => import("@/registry/examples/select")),
   buttons: dynamic(() => import("@/registry/examples/buttons")),
   "cars-board": dynamic(() => import("@/registry/examples/cars-board")),
+  "filter-pills": dynamic(() => import("@/registry/examples/filter-pills")),
+  "all-filters": dynamic(() => import("@/registry/examples/all-filters")),
+  "cascading-dropdown": dynamic(() => import("@/registry/examples/cascading-dropdown")),
+  "bar-list": dynamic(() => import("@/registry/examples/bar-list")),
+  "date-range": dynamic(() => import("@/registry/examples/date-range")),
+  budget: dynamic(() => import("@/registry/examples/budget")),
+  "no-results": dynamic(() => import("@/registry/examples/no-results")),
+  "applied-filters": dynamic(() => import("@/registry/examples/applied-filters")),
+  "recent-searches": dynamic(() => import("@/registry/examples/recent-searches")),
+  rules: dynamic(() => import("@/registry/examples/rules")),
+  "filter-panel": dynamic(() => import("@/registry/examples/filter-panel")),
 };
 
 const Missing = () => null;

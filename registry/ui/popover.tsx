@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode, type Ref, type RefObject } from "react";
 import { cn } from "../lib/cn";
+import { CheckIcon } from "./icons";
 
 export type PopoverCloseReason = "escape" | "outside" | "blur" | "away";
 
@@ -59,16 +60,18 @@ function hide(node: HTMLElement) {
   } catch {}
 }
 
-/** The surface of a menu or list panel: 12px radius, #2A2A2A, a #404040 hairline, 4px inside. */
+/** The surface of a menu or list panel: 14px radius, #1F1F1F, a #404040 hairline, 6px inside, a deep soft shadow. */
 export const LIST_PANEL =
-  "w-max rounded-[12px] border border-[var(--fu-line,#404040)] bg-[var(--fu-surface-3,#2A2A2A)] p-1 shadow-[0_16px_40px_rgb(0_0_0/0.45)] [scrollbar-width:thin]";
+  "w-max rounded-[14px] border border-[var(--fu-line,#404040)] bg-[var(--fu-card,#1F1F1F)] p-1.5 [scrollbar-width:thin] shadow-[inset_0_1px_0_rgb(255_255_255/0.04),0_24px_48px_-12px_rgb(0_0_0/0.8),0_10px_20px_-8px_rgb(0_0_0/0.55)]";
 
 /**
  * A floating panel for menus and lists. It stays where it is in the DOM, so it inherits fonts and --fu-* variables and
  * Tab reaches it right after its trigger, and opens on the browser's top layer (popover="manual"), so no overflow,
  * transform or z-index around the trigger can clip or bury it. It opens below the trigger, or above when only that fits,
  * keeps 8px from the screen edges (16px at the sides on phones) and follows the trigger while the page scrolls.
- * It fades in over 260ms from 6px towards the trigger and out over 170ms; it is inert while it leaves.
+ * It grows out of the trigger over 480ms (scale 0.98 to 1 from the trigger's side, through a 6px blur) and leaves
+ * over 160ms; it is inert while it leaves. Children can follow it through group/popover's data-state: closed, open,
+ * closing.
  */
 export function PopoverPanel({
   ref,
@@ -87,6 +90,8 @@ export function PopoverPanel({
 }: PopoverPanelProps) {
   const panel = useRef<HTMLDivElement | null>(null);
   const [phase, setPhase] = useState<"hidden" | "open" | "closing">("hidden");
+  // Which edges have rows scrolled out of view, so a soft fade there says the list goes on.
+  const [more, setMore] = useState({ top: false, bottom: false });
   const side = useRef<"bottom" | "top">("bottom");
   const close = useRef(onClose);
   useLayoutEffect(() => {
@@ -170,9 +175,27 @@ export function PopoverPanel({
 
   useEffect(() => {
     const node = panel.current;
+    if (!node || (!still && phase !== "open")) return;
+    const measure = () => {
+      const top = node.scrollTop > 1;
+      const bottom = node.scrollTop + node.clientHeight < node.scrollHeight - 1;
+      setMore((now) => (now.top === top && now.bottom === bottom ? now : { top, bottom }));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    node.addEventListener("scroll", measure, { passive: true });
+    return () => {
+      observer.disconnect();
+      node.removeEventListener("scroll", measure);
+    };
+  }, [phase, still]);
+
+  useEffect(() => {
+    const node = panel.current;
     if (phase !== "closing" || !node) return;
     const done = () => setPhase((now) => (now === "closing" ? "hidden" : now));
-    const timer = setTimeout(done, 200);
+    const timer = setTimeout(done, 190);
     const onEnd = (event: TransitionEvent) => {
       if (event.target === node && event.propertyName === "opacity") done();
     };
@@ -264,23 +287,29 @@ export function PopoverPanel({
       style={still ? { maxWidth, maxHeight, ...style } : style}
       className={cn(
         // The browser's own popover look is reset: no inset, margin or padding, and these colours, not Canvas.
-        "m-0 box-border overflow-x-hidden overflow-y-auto overscroll-contain text-[var(--fu-text,#F8F5F1)] [-webkit-tap-highlight-color:transparent]",
+        "group/popover m-0 box-border overflow-x-hidden overflow-y-auto overscroll-contain text-[var(--fu-text,#F8F5F1)] [-webkit-tap-highlight-color:transparent]",
         still
           ? cn("absolute top-full z-10 mt-1.5", align === "end" ? "right-0" : "left-0", matchWidth && "min-w-full", !open && "hidden")
           : "fixed inset-auto z-50",
-        "transition-[opacity,translate] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-        "data-[state=open]:duration-[260ms] data-[state=closing]:duration-[170ms]",
-        "data-[state=closed]:pointer-events-none data-[state=closed]:opacity-0 data-[state=closing]:pointer-events-none data-[state=closing]:opacity-0",
-        "data-[side=bottom]:data-[state=closed]:-translate-y-1.5 data-[side=top]:data-[state=closed]:translate-y-1.5",
-        "data-[side=bottom]:data-[state=closing]:-translate-y-1 data-[side=top]:data-[state=closing]:translate-y-1",
+        "transition-[opacity,translate,scale,filter] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+        "data-[state=open]:duration-[480ms] data-[state=closing]:duration-[160ms]",
+        "data-[state=closed]:pointer-events-none data-[state=closed]:scale-[0.98] data-[state=closed]:opacity-0 data-[state=closed]:blur-[6px]",
+        "data-[state=closing]:pointer-events-none data-[state=closing]:scale-[0.98] data-[state=closing]:opacity-0 data-[state=closing]:blur-[2px]",
+        "data-[side=bottom]:data-[state=closed]:-translate-y-1 data-[side=top]:data-[state=closed]:translate-y-1",
         className,
       )}
       {...props}
     >
+      <span aria-hidden="true" className={cn(FADE, "-top-1.5 -mt-1.5 mb-[-26px] bg-linear-to-b", more.top && "opacity-100")} />
       {children}
+      <span aria-hidden="true" className={cn(FADE, "-bottom-1.5 mt-[-26px] -mb-1.5 bg-linear-to-t", more.bottom && "opacity-100")} />
     </div>
   );
 }
+
+// Pinned to the panel edge as it scrolls, over the rows and the highlight; it takes no room in the list. Sized for LIST_PANEL.
+const FADE =
+  "pointer-events-none sticky z-[2] -mx-1.5 block h-8 from-[var(--fu-card,#1F1F1F)] to-transparent opacity-0 transition-opacity duration-150 motion-reduce:transition-none forced-colors:hidden";
 
 /** Scrolls a list panel just enough that `row` shows whole, with the panel's 4px inset around it. */
 export function keepRowInView(panel: HTMLElement, row: HTMLElement) {
@@ -293,8 +322,9 @@ export function keepRowInView(panel: HTMLElement, row: HTMLElement) {
 type Mark = { top: number; height: number; slide: boolean; shown: boolean };
 
 /**
- * The one fill that slides between a list's rows over 200ms, as in the search suggestions. It fades in where it lands
- * when the list opens, and stays put while the list fades out. Place it first inside the panel.
+ * The one fill that slides between a list's rows over 260ms, as in the search suggestions. It lies over the rows, a
+ * light veil, so it shows on the chosen row's tint too. It fades in where it lands when the list opens, and stays put
+ * while the list fades out. Place it first inside the panel.
  */
 export function RowHighlight({ activeId, open, pressed = false }: { activeId: string | null; open: boolean; pressed?: boolean }) {
   const [mark, setMark] = useState<Mark | null>(null);
@@ -329,14 +359,91 @@ export function RowHighlight({ activeId, open, pressed = false }: { activeId: st
     <div
       aria-hidden="true"
       className={cn(
-        "pointer-events-none absolute inset-x-1 top-0 rounded-[8px] transition-[opacity,background-color] duration-150 motion-reduce:transition-none forced-colors:hidden",
-        mark?.slide && "transition-[opacity,background-color,translate,height] duration-200",
+        "pointer-events-none absolute inset-x-1.5 top-0 z-[1] rounded-[9px] transition-[opacity,background-color] duration-150 motion-reduce:transition-none forced-colors:hidden",
+        mark?.slide && "transition-[opacity,background-color,translate,height] duration-[260ms]",
         "ease-[cubic-bezier(0.22,1,0.36,1)]",
-        pressed ? "bg-[var(--fu-row-press,rgb(255_255_255/0.14))]" : "bg-[var(--fu-row-hover,rgb(255_255_255/0.1))]",
+        pressed ? "bg-[var(--fu-row-press,rgb(255_255_255/0.12))]" : "bg-[var(--fu-row-active,rgb(255_255_255/0.07))]",
         !mark?.shown && "opacity-0",
       )}
       style={mark ? { translate: `0 ${mark.top}px`, height: mark.height } : undefined}
     />
+  );
+}
+
+const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
+
+/**
+ * The check on a chosen row. It draws itself in, from the short leg up, 140ms after its panel starts to open, and
+ * stays drawn while the panel leaves. Takes its 16px place even when off, so rows line up.
+ */
+export function ListCheck({ on }: { on: boolean }) {
+  return (
+    <CheckIcon
+      size={16}
+      strokeWidth={2.5}
+      className={cn(
+        "shrink-0 text-[var(--fu-accent-soft,#8FAAFF)]",
+        on
+          ? cn(
+              // The path is about 23 units long; a negative offset draws it from the short leg up.
+              "[&_path]:[stroke-dasharray:23] [&_path]:[stroke-dashoffset:0] [&_path]:transition-[stroke-dashoffset] [&_path]:delay-[140ms] [&_path]:duration-[420ms]",
+              "[&_path]:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:[&_path]:transition-none",
+              "group-data-[state=closed]/popover:[&_path]:[stroke-dashoffset:-23] group-data-[state=closed]/popover:[&_path]:transition-none",
+            )
+          : "invisible",
+      )}
+    />
+  );
+}
+
+const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
+
+/**
+ * A row's count as a short bar and a number. The bar is the count's share of `max`; bars grow in from the left as
+ * their panel opens, one row after another (`order`), and ease to a new width when the count changes. With bar false
+ * only the number shows, in the same place, e.g. for "Any".
+ */
+export function ListCount({
+  count,
+  max,
+  order = 0,
+  on = false,
+  bar = true,
+  format = defaultFormat,
+}: {
+  count: number;
+  max: number;
+  order?: number;
+  on?: boolean;
+  bar?: boolean;
+  format?: (n: number) => string;
+}) {
+  const share = max > 0 ? Math.min(1, count / max) : 0;
+  return (
+    <span aria-hidden="true" className="flex shrink-0 items-center gap-2.5">
+      <span className={cn("flex h-1 w-12 items-center rounded-full bg-[var(--fu-track,rgb(255_255_255/0.06))]", !bar && "invisible")}>
+        <span
+          className={cn(
+            "h-1 origin-left rounded-full transition-[scale,width,background-color] duration-[480ms] motion-reduce:transition-none",
+            SMOOTH,
+            "group-data-[state=closed]/popover:scale-x-0 group-data-[state=closed]/popover:transition-none",
+            on
+              ? "bg-[var(--fu-accent-soft,#8FAAFF)]"
+              : "bg-[var(--fu-rail,#4A4A4A)] group-data-[active]/row:bg-[var(--fu-control-border,#737373)]",
+          )}
+          // A count above 0 always shows a sliver, so only an empty option has no bar.
+          style={{ width: `${count > 0 ? Math.max(share * 100, 6) : 0}%`, transitionDelay: `${90 + Math.min(order, 10) * 22}ms, 0ms, 0ms` }}
+        />
+      </span>
+      <span
+        className={cn(
+          "min-w-[3ch] text-right text-[13px] leading-5 tabular-nums transition-[color] duration-200",
+          on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)] group-data-[active]/row:text-[var(--fu-mute,#BDBDBD)]",
+        )}
+      >
+        {format(count)}
+      </span>
+    </span>
   );
 }
 

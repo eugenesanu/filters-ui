@@ -56,6 +56,7 @@ export default function YearExample() {
           buckets={buckets}
           pickerOrder="descending"
           labels={{ low: "From year", high: "To year" }}
+          countLabel={(n) => (n === 1 ? "1 car" : `${n} cars`)}
         />
       </FilterCard>
       <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">

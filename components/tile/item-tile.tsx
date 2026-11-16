@@ -15,14 +15,15 @@ function isNew(item: RegistryItem) {
 }
 
 // The link's ::after covers the whole tile, so the tile is one target while the preview stays outside the link.
-function Tile({ item, heading: Heading, stageClassName, children }: {
+function Tile({ item, heading: Heading, stageClassName, className, children }: {
   item: RegistryItem;
   heading: "h2" | "h3";
   stageClassName: string;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="group/tile relative rounded-[28px] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-solid has-[a:focus-visible]:outline-accent-soft">
+    <div className={cn("group/tile relative rounded-[28px] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-4 has-[a:focus-visible]:outline-solid has-[a:focus-visible]:outline-accent-soft", className)}>
       <div
         className={cn(
           "relative isolate overflow-hidden rounded-[24px] border border-card bg-panel transition-[border-color] duration-300 ease-smooth group-hover/tile:border-surface-3",
@@ -60,8 +61,28 @@ function Tile({ item, heading: Heading, stageClassName, children }: {
   );
 }
 
-/** One filter: its real card in a set state, inert, over its title. The whole tile opens the filter's page. */
-export function ItemTile({ item, heading = "h3" }: { item: RegistryItem; heading?: "h2" | "h3" }) {
+/**
+ * One filter: its real card in a set state, inert, over its title. The whole tile opens the filter's page. A wide tile
+ * spans two columns of the three-column grid, matches its row's height and draws its preview at twice the width, for
+ * a two-pane filter that closes the grid; with two columns or one it is an ordinary tile.
+ */
+export function ItemTile({ item, heading = "h3", wide = false }: { item: RegistryItem; heading?: "h2" | "h3"; wide?: boolean }) {
+  if (wide) {
+    return (
+      <Tile
+        item={item}
+        heading={heading}
+        className="min-[1100px]:col-span-2 min-[1100px]:flex min-[1100px]:flex-col"
+        stageClassName="aspect-[4/3] [container-type:inline-size] min-[1100px]:aspect-auto min-[1100px]:flex-1"
+      >
+        <div className="flex h-full flex-col items-center px-8 pt-8">
+          <div className="w-[320px] shrink-0 [zoom:min(1,tan(atan2(100cqw-64px,320px)))] min-[1100px]:w-[640px] min-[1100px]:[zoom:min(1,tan(atan2(100cqw-64px,640px)))]">
+            <TilePreview slug={item.slug} />
+          </div>
+        </div>
+      </Tile>
+    );
+  }
   return (
     <Tile item={item} heading={heading} stageClassName="aspect-[4/3] [container-type:inline-size]">
       {/* Every card starts on the same top line; a tall one fades out at the bottom. */}

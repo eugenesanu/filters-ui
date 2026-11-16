@@ -1,12 +1,20 @@
 "use client";
 
-import { Fragment, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Fragment, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { CheckIcon, ChevronDownIcon } from "./icons";
-import { typesCharacter, keepRowInView, LIST_PANEL, PopoverPanel, RowHighlight, useTypeAhead, type PopoverCloseReason } from "./popover";
+import { typesCharacter, keepRowInView, LIST_PANEL, ListCheck, PopoverPanel, RowHighlight, useTypeAhead, type PopoverCloseReason } from "./popover";
 import { TextSwap } from "./text-swap";
 
-export type MenuOption<V extends string = string> = { value: V; label: string; disabled?: boolean; hint?: string };
+export type MenuOption<V extends string = string> = {
+  value: V;
+  label: string;
+  disabled?: boolean;
+  /** Muted words after the label, e.g. what comes first in this order. */
+  hint?: string;
+  /** A 16px glyph before the label, drawn in currentColor. It takes the accent when chosen. */
+  icon?: ReactNode;
+};
 export type MenuGroup<V extends string = string> = { label?: string; options: readonly MenuOption<V>[] };
 export type MenuAction = { label: string; onSelect: () => void; disabled?: boolean; hint?: string };
 
@@ -43,7 +51,7 @@ export type DropdownMenuProps<V extends string = string> = SharedProps<V> &
       }
   );
 
-type Entry<V extends string> = { label: string; hint?: string; disabled: boolean; group: number } & (
+type Entry<V extends string> = { label: string; hint?: string; icon?: ReactNode; disabled: boolean; group: number } & (
   | { kind: "radio" | "check"; value: V }
   | { kind: "action"; action: MenuAction }
 );
@@ -51,9 +59,11 @@ type Entry<V extends string> = { label: string; hint?: string; disabled: boolean
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 
 /**
- * A trigger pill ("Sort by Newest") that opens a menu of single-choice options with a check, multi-choice options with
- * a box, and plain actions. Focus moves into the menu: arrows (wrapping), Home, End and first letters move it, Enter
- * or Space picks, Escape closes back to the trigger. A single choice closes the menu; ticking a box keeps it open.
+ * A trigger pill ("Sort by Newest") that opens a menu, grown out of the pill, of single-choice options (the chosen one
+ * tinted, with a check that draws in), multi-choice options with a box, and plain actions. One highlight slides between
+ * the rows; an option may carry a glyph and a hint. Focus moves into the menu: arrows (wrapping), Home, End and first
+ * letters move it, Enter or Space picks, Escape closes back to the trigger. A single choice closes the menu; ticking a
+ * box keeps it open.
  */
 export function DropdownMenu<V extends string = string>(props: DropdownMenuProps<V>) {
   const { label, prefix, options, actions = [], variant = "filled", align = "start", valueLabel, disabled = false, still = false, className } = props;
@@ -87,6 +97,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         value: option.value,
         label: option.label,
         hint: option.hint,
+        icon: option.icon,
         disabled: Boolean(option.disabled),
         group: at,
       })),
@@ -231,8 +242,9 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         onPointerLeave={() => setPressed(false)}
         onClick={() => pick(index)}
         className={cn(
-          "group/item relative flex min-h-9 cursor-pointer items-center gap-2 rounded-[8px] px-2 py-2 text-[15px] leading-5 outline-none select-none pointer-coarse:min-h-11",
-          entry.kind === "radio" && checked && "font-medium",
+          "group/item relative flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[9px] py-2 pr-2 pl-2.5 text-[14px] leading-5 outline-none select-none pointer-coarse:min-h-11",
+          "transition-[background-color,color] duration-200 motion-reduce:transition-none",
+          entry.kind === "radio" && checked && "bg-[var(--fu-selected,#1F2747)] font-medium text-[var(--fu-accent-pale,#D1DDFF)]",
           entry.disabled && "cursor-default opacity-40",
           "forced-colors:data-[active]:bg-[Highlight] forced-colors:data-[active]:text-[HighlightText]",
         )}
@@ -259,11 +271,31 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
             />
           </span>
         )}
-        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{entry.label}</span>
-        {entry.hint && <span className="shrink-0 pl-2 text-[13px] leading-5 font-normal text-[var(--fu-mute,#BDBDBD)]">{entry.hint}</span>}
-        {entry.kind === "radio" && (
-          <CheckIcon size={16} strokeWidth={2.5} className={cn("shrink-0 text-[var(--fu-accent-soft,#8FAAFF)]", !checked && "invisible")} />
+        {entry.icon && (
+          <span
+            aria-hidden="true"
+            className={cn(
+              "-my-0.5 grid size-6 shrink-0 place-items-center rounded-[7px] transition-[color,background-color] duration-200 motion-reduce:transition-none",
+              entry.kind !== "action" && checked
+                ? "bg-[var(--fu-accent,#3B57E6)]/45 text-[var(--fu-accent-pale,#D1DDFF)]"
+                : "bg-[var(--fu-surface-3,#2A2A2A)] text-[var(--fu-mute,#BDBDBD)] group-data-[active]/item:text-[var(--fu-text,#F8F5F1)]",
+            )}
+          >
+            {entry.icon}
+          </span>
         )}
+        <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{entry.label}</span>
+        {entry.hint && (
+          <span
+            className={cn(
+              "shrink-0 pl-2 text-[13px] leading-5 font-normal tabular-nums",
+              entry.kind !== "action" && checked ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)]",
+            )}
+          >
+            {entry.hint}
+          </span>
+        )}
+        {entry.kind === "radio" && <ListCheck on={checked} />}
       </div>
     );
   });
@@ -315,7 +347,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         <TextSwap data-swap="" className="min-w-0 grid-cols-[minmax(0,1fr)] font-medium text-[var(--fu-text,#F8F5F1)] [&>span]:truncate">{shown}</TextSwap>
         <ChevronDownIcon
           size={16}
-          className={cn("ml-0.5 shrink-0 text-[var(--fu-mute,#BDBDBD)] transition-[rotate] duration-[260ms] motion-reduce:transition-none", SMOOTH, open && "rotate-180")}
+          className={cn("ml-0.5 shrink-0 text-[var(--fu-mute,#BDBDBD)] transition-[rotate,color] duration-[480ms] motion-reduce:transition-none", SMOOTH, open && "rotate-180 text-[var(--fu-accent-soft,#8FAAFF)]")}
         />
       </button>
 
@@ -339,7 +371,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
             panel.current?.focus({ preventScroll: true });
           }
         }}
-        className={cn(LIST_PANEL, "min-w-[200px] outline-none")}
+        className={cn(LIST_PANEL, "min-w-[220px] outline-none")}
       >
         <RowHighlight activeId={open && current !== null ? itemId(current) : null} open={open} pressed={pressed} />
         {sections.map(({ label: title, at }, n) => {
@@ -347,11 +379,11 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
           const own = rows.filter((_, index) => entries[index].group === at);
           return (
             <Fragment key={at}>
-              {n > 0 && <div role="separator" className="mx-2 my-1 h-px bg-[var(--fu-line,#404040)]" />}
+              {n > 0 && <div role="separator" className="mx-2.5 my-1.5 h-px bg-[var(--fu-card-border,#2A2A2A)]" />}
               {at < groups.length ? (
                 <div role="group" aria-labelledby={title ? titleId : undefined}>
                   {title && (
-                    <div id={titleId} className="px-2 pt-2 pb-1 text-[12px] leading-4 font-medium text-[var(--fu-mute,#BDBDBD)]">
+                    <div id={titleId} className="px-2.5 pt-1.5 pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#8C8C8C)]">
                       {title}
                     </div>
                   )}

@@ -23,6 +23,8 @@ export type Car = {
   color: Color | null;
   seats: number | null;
   condition: Condition;
+  /** Days since the listing went up: 0 is today, 59 the oldest. */
+  listed: number;
 };
 
 type Model = {
@@ -115,7 +117,7 @@ export const THIS_YEAR = 2026;
 const GENERATED = 240;
 
 // A few hand-placed listings so common searches have matches.
-type Fixed = Omit<Car, "id" | "condition">;
+type Fixed = Omit<Car, "id" | "condition" | "listed">;
 const FIXED: Fixed[] = [
   { year: 2021, make: "Toyota", model: "RAV4", price: 29900, km: 58210, body: "SUV", fuel: "Gas", drive: "AWD", transmission: "Automatic", color: "Gray", seats: 5 },
   { year: 2021, make: "Toyota", model: "RAV4", price: 32495, km: 44120, body: "SUV", fuel: "Gas", drive: "AWD", transmission: "Automatic", color: "White", seats: 5 },
@@ -159,7 +161,7 @@ function generate(): Omit<Car, "id">[] {
     return "Gray";
   };
 
-  const drafts: Omit<Car, "id">[] = Array.from({ length: GENERATED }, (_, index) => {
+  const drafts: Omit<Car, "id" | "listed">[] = Array.from({ length: GENERATED }, (_, index) => {
     const model = MODELS[index % MODELS.length];
     const isNew = random() < 0.16;
     const age = isNew ? 0 : Math.floor(between(1, 10));
@@ -193,12 +195,14 @@ function generate(): Omit<Car, "id">[] {
     };
   });
 
-  // Second pass, own seed: some listings leave details out.
+  // Second pass, own seed: how many days ago each went up (newer listings are more common, as older cars sell), and
+  // some listings leave details out.
   const blankRandom = seeded(20261031);
   const blank = (share: number) => blankRandom() < share;
   const skipOnce = new Set(["CR-V", "Crosstrek", "Tucson"]);
   return drafts.map((car) => {
-    for (let i = 0; i < 4; i++) blankRandom();
+    const listed = Math.min(120, Math.floor(-Math.log(1 - blankRandom()) * 21));
+    for (let i = 0; i < 3; i++) blankRandom();
     const skips = car.condition === "Used" && skipOnce.delete(car.model);
     if (!skips) blankRandom();
     blankRandom();
@@ -209,12 +213,15 @@ function generate(): Omit<Car, "id">[] {
     const seats = blank(0.06) ? null : car.seats;
     const fuel = blank(0.03) ? null : car.fuel;
     const km = car.condition === "Used" && blank(0.03) ? null : car.km;
-    return { ...car, transmission, drive, color, seats, fuel, km };
+    return { ...car, transmission, drive, color, seats, fuel, km, listed };
   });
 }
 
+// Days since each featured listing went up.
+const FIXED_LISTED = [3, 12, 27, 6, 41, 9, 2, 18, 33, 14, 51, 5, 22, 11, 7, 16];
+
 export const CARS: Car[] = [
-  ...FIXED.map((car, index) => ({ ...car, id: `fixed-${index + 1}`, condition: "Used" as const })),
+  ...FIXED.map((car, index) => ({ ...car, id: `fixed-${index + 1}`, condition: "Used" as const, listed: FIXED_LISTED[index] })),
   ...generate().map((car, index) => ({ ...car, id: `car-${index + 1}` })),
 ];
 

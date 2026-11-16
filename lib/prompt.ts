@@ -17,7 +17,9 @@ const WHERE: Record<PromptTarget, string> = {
 // A basic named "X and Y" holds several components.
 const what = (item: RegistryItem) =>
   item.kind === "block"
-    ? "the full filter set"
+    ? item.slug === "cars-board"
+      ? "the full filter set"
+      : `the "${item.title}" block`
     : item.kind === "basic"
       ? `the "${item.title}" ${/ and /.test(item.title) ? "components" : "component"}`
       : `the "${item.title}" filter`;

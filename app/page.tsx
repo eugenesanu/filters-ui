@@ -8,9 +8,16 @@ import { ITEMS } from "@/registry/items";
 import { buttonClasses } from "@/registry/ui/button-classes";
 
 export default function Home() {
-  const filters = ITEMS.filter((item) => item.kind === "filter");
+  // Narrow blocks, such as the filter panel, take an ordinary tile at the end of the Filters grid, before All filters,
+  // which spans two columns beside it and closes the grid.
+  const all = ITEMS.filter((item) => item.kind === "filter");
+  const filters = [
+    ...all.filter((item) => item.slug !== "all-filters"),
+    ...ITEMS.filter((item) => item.kind === "block" && item.narrow),
+    ...all.filter((item) => item.slug === "all-filters"),
+  ];
   const basics = ITEMS.filter((item) => item.kind === "basic");
-  const block = ITEMS.find((item) => item.kind === "block");
+  const block = ITEMS.find((item) => item.kind === "block" && !item.narrow);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -42,7 +49,7 @@ export default function Home() {
             </h2>
             <TileGrid>
               {filters.map((item) => (
-                <ItemTile key={item.slug} item={item} />
+                <ItemTile key={item.slug} item={item} wide={item.slug === "all-filters"} />
               ))}
             </TileGrid>
           </section>

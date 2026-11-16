@@ -18,6 +18,9 @@ export type CarFilters = {
   transmission: Transmission | null;
   colors: Color[];
   seatsMin: number | null;
+  /** How long ago the listing went up, in days, both ends included: 0 and 6 is the last 7 days. null is an open end. */
+  listedMin: number | null;
+  listedMax: number | null;
 };
 
 export const EMPTY_CAR_FILTERS: CarFilters = {
@@ -34,6 +37,8 @@ export const EMPTY_CAR_FILTERS: CarFilters = {
   transmission: null,
   colors: [],
   seatsMin: null,
+  listedMin: null,
+  listedMax: null,
 };
 
 export type CarFacet =
@@ -47,7 +52,8 @@ export type CarFacet =
   | "drive"
   | "transmission"
   | "color"
-  | "seats";
+  | "seats"
+  | "listed";
 
 export const PRICE_MIN = 0;
 export const PRICE_MAX = 100000;
@@ -78,6 +84,7 @@ export const carFacets = createFacets<Car, CarFilters, CarFacet>({
   transmission: (car, f) => !f.transmission || car.transmission === f.transmission,
   color: (car, f) => !f.colors.length || known(car.color, (color) => f.colors.includes(color)),
   seats: (car, f) => f.seatsMin === null || known(car.seats, (seats) => seats >= f.seatsMin!),
+  listed: (car, f) => (f.listedMin === null || car.listed >= f.listedMin) && (f.listedMax === null || car.listed <= f.listedMax),
 });
 
 /** Cars per price bar among those matching every other filter, so the bars show what moving the price could reach. */
@@ -121,6 +128,9 @@ export const transmissionOptions = (f: CarFilters, cars: readonly Car[] = CARS) 
 
 /** Cars per fuel, with the fuel choice left out. A car with no fuel on record is not counted. */
 export const fuelCounts = (f: CarFilters, cars: readonly Car[] = CARS) => carFacets.countBy(cars, f, "fuel", (car) => car.fuel);
+
+/** Cars per day since listed (0 is today), with the listed choice left out. */
+export const listedCounts = (f: CarFilters, cars: readonly Car[] = CARS) => carFacets.countBy(cars, f, "listed", (car) => car.listed);
 
 /** Cars per drivetrain, with the drivetrain choice left out. */
 export const driveCounts = (f: CarFilters, cars: readonly Car[] = CARS) => carFacets.countBy(cars, f, "drive", (car) => car.drive);
@@ -205,6 +215,8 @@ export function clearFacet(f: CarFilters, facet: CarFacet): CarFilters {
       return { ...f, colors: [] };
     case "seats":
       return { ...f, seatsMin: null };
+    case "listed":
+      return { ...f, listedMin: null, listedMax: null };
   }
 }
 
@@ -258,7 +270,21 @@ export function summaryOf(f: CarFilters, facet: CarFacet): string | null {
       return listSummary(f.colors);
     case "seats":
       return f.seatsMin === null ? null : `${f.seatsMin}+`;
+    case "listed":
+      return listedSummary(f.listedMin, f.listedMax);
   }
+}
+
+const daysAgo = (n: number) => (n === 0 ? "today" : n === 1 ? "yesterday" : `${n} days ago`);
+
+/** "Today", "Last 7 days", "3 days ago" or "7 to 13 days ago": days rather than dates, so it reads the same on any day. */
+function listedSummary(min: number | null, max: number | null): string | null {
+  if (min === null && max === null) return null;
+  const from = min ?? 0;
+  if (max === null) return from === 0 ? null : from === 1 ? "Before today" : `${from} or more days ago`;
+  if (from === 0) return max === 0 ? "Today" : `Last ${max + 1} days`;
+  if (from === max) return daysAgo(from).replace(/^./, (c) => c.toUpperCase());
+  return `${from} to ${max} days ago`;
 }
 
 /** Card titles, in the designer's wording. */
@@ -274,6 +300,7 @@ export const CAR_FACET_TITLES: Record<CarFacet, string> = {
   fuel: "Fuel",
   make: "Make and model",
   transmission: "Transmission",
+  listed: "Listed",
 };
 
 /** The board's three columns, as drawn. */

@@ -69,6 +69,7 @@ export function CarFilterBody({ facet, filters, set }: Props): ReactNode {
           buckets={yearBuckets(filters)}
           pickerOrder="descending"
           labels={{ low: "From year", high: "To year" }}
+          countLabel={formatCarCount}
         />
       );
     case "km":

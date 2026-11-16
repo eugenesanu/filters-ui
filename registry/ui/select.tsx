@@ -2,11 +2,17 @@
 
 import { useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
-import { CheckIcon, ChevronDownIcon } from "./icons";
-import { typesCharacter, keepRowInView, LIST_PANEL, PopoverPanel, RowHighlight, useTypeAhead } from "./popover";
+import { ChevronDownIcon } from "./icons";
+import { typesCharacter, keepRowInView, LIST_PANEL, ListCheck, ListCount, PopoverPanel, RowHighlight, useTypeAhead } from "./popover";
 import { TextSwap } from "./text-swap";
 
-export type SelectOption = { value: string; label: string; disabled?: boolean };
+export type SelectOption = {
+  value: string;
+  label: string;
+  disabled?: boolean;
+  /** How many items this choice gives. Shown as a short bar and a number; an option at 0 is dimmed and cannot be picked. */
+  count?: number;
+};
 
 export type SelectProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
@@ -23,6 +29,16 @@ export type SelectProps = Omit<
   placeholder?: string;
   /** Sends the value with a form under this name. */
   name?: string;
+  /** A line at the top of the list, e.g. "Toyota models". Not read out: the label names the list. */
+  heading?: ReactNode;
+  /** Shown in the open list when there are no options. Default "No choices". */
+  emptyText?: string;
+  /** Text of each count. Default 1,234. */
+  formatCount?: (n: number) => string;
+  /** Screen-reader words for a count, read after the option's name. Default "6 results". */
+  countLabel?: (n: number) => string;
+  /** A quieter field (#404040 border, dim text) while it waits on another choice, such as Model before a make. It still opens. */
+  waiting?: boolean;
   /** Classes for the outer wrapper, e.g. its width. */
   className?: string;
   /** Draws the list open in place, for a still picture. Nothing responds. */
@@ -31,11 +47,14 @@ export type SelectProps = Omit<
 
 const PAGE = 10;
 
+const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
+
 /**
- * A select drawn like TextField (44px, 12px radius, #737373 border, 15px text, a chevron) whose list opens in a panel of
- * its own instead of the system menu. Focus stays on the field: arrows, Home, End, Page Up and Page Down move, typing
- * finds an option by its first letters, Enter or Space picks, Escape closes. The option whose value is "" is the empty
- * choice and shows muted, like a placeholder.
+ * A select drawn like TextField (44px, 12px radius, #737373 border, 15px text, a chevron) whose list grows out of the
+ * field in a panel of its own instead of the system menu. One highlight slides between the rows; the chosen row is
+ * tinted with a check that draws in; options with counts show a bar for their share that grows in as the list opens.
+ * Focus stays on the field: arrows, Home, End, Page Up and Page Down move, typing finds an option by its first letters,
+ * Enter or Space picks, Escape closes. The option whose value is "" is the empty choice and shows muted, like a placeholder.
  */
 export function Select({
   value,
@@ -45,6 +64,11 @@ export function Select({
   prefix,
   placeholder,
   name,
+  heading,
+  emptyText = "No choices",
+  formatCount,
+  countLabel = defaultCountLabel,
+  waiting = false,
   className,
   disabled,
   still = false,
@@ -70,9 +94,14 @@ export function Select({
   const chosen = options.find((option) => option.value === value);
   const empty = !chosen || value === "";
   const shown = chosen?.label ?? placeholder ?? options.find((option) => option.value === "")?.label ?? "";
-  const enabled = options.filter((option) => !option.disabled);
+  // An option at 0 cannot be picked, unless it is the current choice.
+  const usable = (option: SelectOption) => !option.disabled && (option.count !== 0 || option.value === value);
+  const enabled = options.filter(usable);
+  const counted = options.some((option) => option.count !== undefined);
+  // Bars are shares of the largest real choice; the empty choice ("Any") shows its count with no bar.
+  const most = Math.max(0, ...options.map((option) => (option.value === "" ? 0 : (option.count ?? 0))));
   const indexOf = (v: string | null) => enabled.findIndex((option) => option.value === v);
-  const start = chosen && !chosen.disabled ? chosen.value : (enabled[0]?.value ?? null);
+  const start = chosen && usable(chosen) ? chosen.value : (enabled[0]?.value ?? null);
   const current = still ? (active ?? start) : active;
 
   const reveal = (v: string) => {
@@ -189,6 +218,7 @@ export function Select({
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-activedescendant={open && current !== null ? optionId(current) : undefined}
+        data-waiting={waiting || undefined}
         disabled={disabled}
         tabIndex={still ? -1 : undefined}
         onKeyDown={(event) => {
@@ -213,7 +243,7 @@ export function Select({
           "relative flex h-11 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-transparent pr-9 pl-3 text-left",
           "font-[inherit] text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] outline-none [-webkit-tap-highlight-color:transparent]",
           "transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none disabled:cursor-default",
-          "hover:border-[var(--fu-control-hover,#A3A3A3)]",
+          "hover:border-[var(--fu-control-hover,#A3A3A3)] data-[waiting]:not-focus-visible:not-aria-expanded:border-[var(--fu-line,#404040)] data-[waiting]:not-focus-visible:not-aria-expanded:hover:border-[var(--fu-control-border,#737373)]",
           "focus-visible:border-[var(--fu-accent-soft,#8FAAFF)] focus-visible:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)] focus-visible:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
           "aria-expanded:border-[var(--fu-accent-soft,#8FAAFF)] aria-expanded:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)] aria-expanded:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
         )}
@@ -226,7 +256,10 @@ export function Select({
         )}
         <TextSwap
           data-empty={empty || undefined}
-          className="min-w-0 flex-1 grid-cols-[minmax(0,1fr)] tabular-nums data-[empty]:text-[var(--fu-mute,#BDBDBD)] [&>span]:truncate"
+          className={cn(
+            "min-w-0 flex-1 grid-cols-[minmax(0,1fr)] tabular-nums transition-[color] duration-[480ms] [&>span]:truncate",
+            waiting ? "text-[var(--fu-dim,#8C8C8C)]" : "data-[empty]:text-[var(--fu-mute,#BDBDBD)]",
+          )}
         >
           {shown}
         </TextSwap>
@@ -234,8 +267,8 @@ export function Select({
           size={16}
           className={cn(
             "pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[var(--fu-mute,#BDBDBD)]",
-            "transition-[rotate] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            open && "rotate-180",
+            "transition-[rotate,color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            open && "rotate-180 text-[var(--fu-accent-soft,#8FAAFF)]",
           )}
         />
       </button>
@@ -256,42 +289,49 @@ export function Select({
         className={LIST_PANEL}
       >
         <RowHighlight activeId={open && current !== null ? optionId(current) : null} open={open} />
-        {options.length === 0 && (
-          <div role="presentation" className="flex min-h-9 items-center px-2 text-[15px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
-            No choices
+        {heading != null && (
+          <div aria-hidden="true" className="px-2.5 pt-1.5 pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#8C8C8C)]">
+            {heading}
           </div>
         )}
-        {options.map((option) => {
+        {options.length === 0 && (
+          <div role="presentation" className="flex min-h-10 items-center px-2.5 text-[14px] leading-5 text-[var(--fu-dim,#8C8C8C)]">
+            {emptyText}
+          </div>
+        )}
+        {options.map((option, order) => {
           const selected = option.value === value;
+          const off = !usable(option);
           return (
             <div
               key={option.value}
               id={optionId(option.value)}
               role="option"
               aria-selected={selected}
-              aria-disabled={option.disabled || undefined}
+              aria-disabled={off || undefined}
+              aria-label={option.count === undefined ? undefined : `${option.label}, ${countLabel(option.count)}`}
               data-active={option.value === current || undefined}
               onPointerMove={() => {
-                if (option.disabled || option.value === active) return;
+                if (off || option.value === active) return;
                 keyed.current = false;
                 setActive(option.value);
               }}
               onClick={() => {
-                if (!option.disabled) choose(option.value);
+                if (!off) choose(option.value);
               }}
               className={cn(
-                "relative flex min-h-9 cursor-pointer items-center gap-2 rounded-[8px] px-2 py-2 text-[15px] leading-5 tabular-nums select-none pointer-coarse:min-h-11",
-                selected && "font-medium",
-                option.disabled && "cursor-default opacity-40",
+                "group/row relative flex min-h-10 cursor-pointer items-center gap-3 rounded-[9px] py-2 pr-2 pl-2.5 text-[14px] leading-5 tabular-nums select-none pointer-coarse:min-h-11",
+                "transition-[background-color,color] duration-200 motion-reduce:transition-none",
+                selected
+                  ? "bg-[var(--fu-selected,#1F2747)] font-medium text-[var(--fu-accent-pale,#D1DDFF)]"
+                  : option.value === "" && "text-[var(--fu-mute,#BDBDBD)]",
+                off && "cursor-default opacity-40",
                 "forced-colors:data-[active]:bg-[Highlight] forced-colors:data-[active]:text-[HighlightText]",
               )}
             >
               <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{option.label}</span>
-              <CheckIcon
-                size={16}
-                strokeWidth={2.5}
-                className={cn("shrink-0 text-[var(--fu-accent-soft,#8FAAFF)]", !selected && "invisible")}
-              />
+              {counted && <ListCount count={option.count ?? 0} max={most} order={order} on={selected} bar={option.value !== ""} format={formatCount} />}
+              <ListCheck on={selected} />
             </div>
           );
         })}

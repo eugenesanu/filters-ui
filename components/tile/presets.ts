@@ -15,6 +15,12 @@ export const PRESETS: Record<string, Preset> = {
   "searchable-list": { facet: "make", filters: { makes: [{ make: "Toyota", models: [] }] } },
 };
 
+/** The filter panel's tile and stage, as in the designer's picture: price under $45k, Make and model open on Toyota RAV4. */
+export const PANEL_PRESET: { filters: CarFilters; open: CarFacet[] } = {
+  filters: { ...EMPTY_CAR_FILTERS, priceMax: 45000, makes: [{ make: "Toyota", models: ["RAV4"] }] },
+  open: ["make"],
+};
+
 /** The sentence the sentence search's tile and stage open with, already read into tokens. */
 export const SENTENCE_PRESET = "white awd suv";
 

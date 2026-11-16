@@ -5,6 +5,7 @@ import {
   CAR_FACET_COLUMNS,
   CAR_FACET_TITLES,
   EMPTY_CAR_FILTERS,
+  formatCarCount,
   matchingCars,
   summaryOf,
   type CarFacet,
@@ -13,17 +14,21 @@ import {
 import { FilterCard } from "@/registry/ui/filter-card";
 import { FiltersHead } from "@/registry/ui/filters-head";
 import { CarFilterBody } from "@/components/stage/car-filter";
+import { CAR_RULE_FIELDS } from "@/components/stage/rules-stage";
+import { RECENT, SAVED } from "@/components/stage/recent-searches-stage";
 import { exampleOf } from "@/components/stage/example-of";
-import { PRESETS, SENTENCE_PRESET } from "@/components/tile/presets";
-import { CARS } from "@/registry/demo/cars";
+import { DropdownTilePreview, SelectTilePreview } from "@/components/tile/basics-previews";
+import { PANEL_PRESET, PRESETS, SENTENCE_PRESET } from "@/components/tile/presets";
+import { CARS, type Car } from "@/registry/demo/cars";
+import { FilterPanel } from "@/registry/blocks/filter-panel";
 import { carVocabulary } from "@/registry/demo/cars-vocabulary";
 import { readSentence } from "@/registry/lib/sentence";
+import { RecentSearches } from "@/registry/filters/recent-searches";
+import { Rules, type RuleSet } from "@/registry/filters/rules";
 import { SentenceSearch } from "@/registry/filters/sentence-search";
 import { Button, IconButton } from "@/registry/ui/button";
-import { DropdownMenu } from "@/registry/ui/dropdown-menu";
 import { CopyIcon } from "@/registry/ui/icons";
 import { TextLink } from "@/registry/ui/link";
-import { Select } from "@/registry/ui/select";
 
 // Previews are inert, so nothing ever calls these.
 const still = () => {};
@@ -57,49 +62,39 @@ function SentencePreview() {
   );
 }
 
-const SORTS = [
-  { value: "newest", label: "Newest listings" },
-  { value: "price-low", label: "Price low to high" },
-  { value: "price-high", label: "Price high to low" },
-  { value: "km-low", label: "Lowest kilometres" },
-  { value: "year-new", label: "Newest model year" },
-];
+const TILE_RULES: RuleSet = {
+  join: "and",
+  items: [
+    { id: "price", field: "price", op: "atMost", value: 45000 },
+    { id: "fuel", field: "fuel", op: "anyOf", value: ["Hybrid"] },
+    { id: "year", field: "year", op: "atLeast", value: 2022 },
+  ],
+};
 
-const SORTED_CARS = [
-  { name: "Honda Civic", detail: "2019", price: "$17,900" },
-  { name: "Ford Escape", detail: "2020", price: "$21,500" },
-  { name: "Mazda CX-5", detail: "2021", price: "$26,200" },
-  { name: "Toyota RAV4", detail: "2022", price: "$31,400" },
-];
-
-/** The Dropdown page's sorted list, with its sort menu open over it. */
-function DropdownPreview() {
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3 pr-[7px] pl-[21px]">
-        <p className="text-[14px] leading-5 text-dim">5 cars</p>
-        <DropdownMenu still variant="quiet" label="Sort by" prefix="Sort by" align="end" value="price-low" onChange={still} options={SORTS} />
-      </div>
-      <ul className="mt-2 rounded-[24px] border border-card-border bg-card p-2">
-        {SORTED_CARS.map((car) => (
-          <li key={car.name} className="flex h-14 items-center gap-3 px-3 tabular-nums">
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15px] font-medium leading-5 text-text">{car.name}</span>
-              <span className="block text-[13px] leading-5 text-mute">{car.detail}</span>
-            </span>
-            <span className="shrink-0 text-[15px] font-medium leading-5 text-accent-soft">{car.price}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+/** Three rules short enough to keep each value on one line at tile width, so the falling counts read as a funnel. */
+function RulesPreview() {
+  return <Rules fields={CAR_RULE_FIELDS} items={CARS} value={TILE_RULES} onChange={still} label="Car rules" countLabel={formatCarCount} />;
 }
 
-const YEAR_OPTIONS = [{ value: "", label: "Any" }, ...[2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018].map((y) => ({ value: String(y), label: String(y) }))];
-
-/** A year field with its list open on the chosen year. */
-function SelectPreview() {
-  return <Select still label="From year" prefix="From" value="2025" onChange={still} options={YEAR_OPTIONS} />;
+/** The search with its list open and the first saved search highlighted, trying its filters on in the box. */
+function RecentPreview() {
+  return (
+    <RecentSearches<Car, CarFilters>
+      vocabulary={carVocabulary}
+      items={CARS}
+      value={carVocabulary.empty}
+      onChange={still}
+      recent={RECENT}
+      saved={SAVED}
+      onSearch={still}
+      onSave={still}
+      onForget={still}
+      label="Describe the car you want"
+      countLabel={formatCarCount}
+      defaultOpen
+      defaultHighlight={0}
+    />
+  );
 }
 
 /** One row of buttons and a sentence with a link, centred in the tile. */
@@ -126,11 +121,27 @@ function ButtonsPreview() {
   );
 }
 
+/** The panel as in the designer's picture. Its Filters head is left out here so the open Make and model reaches the tile. */
+function PanelPreview() {
+  return (
+    <FilterPanel
+      glow
+      headingLevel={3}
+      defaultFilters={PANEL_PRESET.filters}
+      defaultOpen={PANEL_PRESET.open}
+      className="[&_[data-panel-head]]:hidden"
+    />
+  );
+}
+
 export function TilePreview({ slug }: { slug: string }) {
   if (slug === "sentence-search") return <SentencePreview />;
-  if (slug === "dropdown") return <DropdownPreview />;
-  if (slug === "select") return <SelectPreview />;
+  if (slug === "filter-panel") return <PanelPreview />;
+  if (slug === "dropdown") return <DropdownTilePreview />;
+  if (slug === "select") return <SelectTilePreview />;
   if (slug === "buttons") return <ButtonsPreview />;
+  if (slug === "rules") return <RulesPreview />;
+  if (slug === "recent-searches") return <RecentPreview />;
   const preset = PRESETS[slug];
   if (!preset) return createElement(exampleOf(slug));
   return <PresetCard facet={preset.facet} filters={{ ...EMPTY_CAR_FILTERS, ...preset.filters }} />;

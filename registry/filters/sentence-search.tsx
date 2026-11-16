@@ -1,10 +1,37 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { countOf, ghostOf, matchIn, readSentence, suggest, wholeWord, type Correction, type Suggestion, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
 import { SearchIcon, XIcon } from "../ui/icons";
+
+/** A row of your own in the list while the box is empty, such as a saved search. */
+export type OwnRow<State> = {
+  /** Unique on the page: the row element's id. */
+  id: string;
+  /** Enter, or a press. */
+  onSelect: () => void;
+  /** Picking it closes the list. */
+  closes?: boolean;
+  /** Delete or Backspace while it is highlighted. */
+  onRemove?: () => void;
+  /** The value it sets: its tokens show faintly in the box, and its count at the foot, while it is highlighted. */
+  preview?: State;
+};
+
+/** Spread on a row's element: its id, role, highlight and press. */
+export type OwnRowProps = { id: string; role: "option"; "aria-selected": boolean; onPointerMove: () => void; onClick: () => void };
+
+export type OwnRows<State> = {
+  rows: readonly OwnRow<State>[];
+  /** Draws the rows; spread option(row.id) on each row's element. Keep the elements out of positioned wrappers, so the highlight can find them. */
+  render: (option: (id: string) => OwnRowProps) => ReactNode;
+  /** Shown in place of the suggestions; otherwise above them. */
+  replace?: boolean;
+  /** Key hints for the foot of the list while these rows show. */
+  keys?: readonly { key: string; label: string }[];
+};
 
 export type SentenceSearchProps<Item, State> = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
   /** The words it knows: names, phrases and how each one changes the value. */
@@ -28,8 +55,15 @@ export type SentenceSearchProps<Item, State> = Omit<HTMLAttributes<HTMLDivElemen
   defaultText?: string;
   /** Suggestions open on first render. */
   defaultOpen?: boolean;
+  /** The row highlighted on first render, by position, e.g. for a still picture of an open list. */
+  defaultHighlight?: number;
   /** Focus the field on first render. */
   autoFocus?: boolean;
+  /** Controlled open state of the list, with onOpenChange. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Rows of your own while the box is empty, such as recent searches: in place of the suggestions, or above them. */
+  emptyRows?: OwnRows<State>;
 };
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
@@ -78,7 +112,11 @@ export function SentenceSearch<Item, State>({
   countLabel = defaultCountLabel,
   defaultText = "",
   defaultOpen = false,
+  defaultHighlight,
   autoFocus = false,
+  open: openProp,
+  onOpenChange,
+  emptyRows,
   className,
   onFocus,
   onBlur,
@@ -88,9 +126,14 @@ export function SentenceSearch<Item, State>({
   const listId = `${id}-list`;
   const optionId = (index: number) => `${id}-option-${index}`;
   const [text, setText] = useState(defaultText);
-  const [open, setOpen] = useState(defaultOpen);
+  const [openState, setOpenState] = useState(defaultOpen);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean) => {
+    setOpenState(next);
+    if (next !== open) onOpenChange?.(next);
+  };
   // Where the arrow keys or the pointer left the highlight. Until then the best match leads.
-  const [moved, setMoved] = useState<number | null>(null);
+  const [moved, setMoved] = useState<number | null>(defaultHighlight ?? null);
   const [order, setOrder] = useState<string[]>([]);
   const [unused, setUnused] = useState<string[]>([]);
   const [fixes, setFixes] = useState<Correction[]>([]);
@@ -104,18 +147,29 @@ export function SentenceSearch<Item, State>({
   if (kept.join("\n") !== order.join("\n")) setOrder(kept);
   const tokens = kept.flatMap((key) => applied.filter((token) => token.key === key));
 
-  const groups = useMemo(() => suggest(vocabulary, items, text, value), [vocabulary, items, text, value]);
-  const rows = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
+  const suggested = useMemo(() => suggest(vocabulary, items, text, value), [vocabulary, items, text, value]);
   const count = useMemo(() => countOf(vocabulary, items, value), [vocabulary, items, value]);
   const typing = text.trim().length > 0;
-  const active = moved ?? (typing && rows.length ? 0 : -1);
-  const shown = open && rows.length > 0;
-  const ghost = shown ? ghostOf(text, rows[active]) : "";
+  // Own rows come first; the suggestions follow them, or step aside for them.
+  const own = typing ? undefined : emptyRows;
+  const ownRows = own?.rows ?? [];
+  const lead = ownRows.length;
+  const replaced = own?.replace === true;
+  const groups = useMemo(() => (replaced ? [] : suggested), [replaced, suggested]);
+  const rows = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
+  const total = lead + rows.length;
+  const active = Math.min(moved ?? (typing && rows.length ? 0 : -1), total - 1);
+  const shown = open && (own !== undefined || rows.length > 0);
+  const idAt = (index: number) => (index < lead ? ownRows[index].id : optionId(index - lead));
+  const ghost = shown ? ghostOf(text, rows[active - lead]) : "";
+  const preview = shown && active >= 0 && active < lead ? ownRows[active].preview : undefined;
+  const previewTokens = preview !== undefined ? vocabulary.tokens(preview) : [];
+  const previewId = preview !== undefined ? ownRows[active].id : "";
 
   const [mark, setMark] = useState<{ top: number; height: number; slide: boolean } | null>(null);
   const marked = useRef(-1);
   useLayoutEffect(() => {
-    const node = shown && active >= 0 ? document.getElementById(optionId(active)) : null;
+    const node = shown && active >= 0 ? document.getElementById(idAt(active)) : null;
     if (!node) {
       marked.current = -1;
       setMark(null);
@@ -124,7 +178,7 @@ export function SentenceSearch<Item, State>({
     const next = { top: node.offsetTop, height: node.offsetHeight, slide: marked.current >= 0 };
     marked.current = active;
     setMark((was) => (was && was.top === next.top && was.height === next.height ? was : next));
-  }, [shown, active, rows]);
+  }, [shown, active, rows, ownRows]);
 
   useEffect(() => {
     if (!autoFocus) return;
@@ -179,25 +233,36 @@ export function SentenceSearch<Item, State>({
 
   const move = (index: number) => {
     setMoved(index);
-    document.getElementById(optionId(index))?.scrollIntoView({ block: "nearest" });
+    document.getElementById(idAt(index))?.scrollIntoView({ block: "nearest" });
+  };
+
+  const choose = (row: OwnRow<State>) => {
+    setMoved(null);
+    if (row.closes) setOpen(false);
+    row.onSelect();
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.nativeEvent.isComposing) return;
+    const mine = shown && active >= 0 && active < lead ? ownRows[active] : undefined;
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
       setOpen(true);
-      if (!rows.length) return;
+      if (!total) return;
       const step = event.key === "ArrowDown" ? 1 : -1;
       const from = shown ? active : -1;
-      move((Math.max(from, step > 0 ? -1 : 0) + step + rows.length) % rows.length);
+      move((Math.max(from, step > 0 ? -1 : 0) + step + total) % total);
     } else if (event.key === "Enter") {
       event.preventDefault();
-      if (shown && rows[active]) pick(rows[active]);
+      if (mine) choose(mine);
+      else if (shown && rows[active - lead]) pick(rows[active - lead]);
       else submit();
     } else if (event.key === "Tab" && !event.shiftKey && shown && typing && rows[active]) {
       event.preventDefault();
       pick(rows[active]);
+    } else if ((event.key === "Delete" || event.key === "Backspace") && !text && mine?.onRemove) {
+      event.preventDefault();
+      mine.onRemove();
     } else if (event.key === "Escape") {
       setOpen(false);
       setMoved(null);
@@ -284,6 +349,28 @@ export function SentenceSearch<Item, State>({
             </li>
           ))}
           <li className="relative h-6 min-w-[140px] flex-1">
+            {previewTokens.length > 0 && !tokens.length && (
+              // The highlighted row's filters, tried on in the box without moving anything.
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-y-px left-0 -right-2 flex items-center gap-1.5 overflow-hidden [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]"
+              >
+                {previewTokens.map((token, i) => (
+                  <span
+                    key={`${previewId}-${token.key}-${token.label}`}
+                    style={{ transitionDelay: `${i * 45}ms` }}
+                    className={cn(
+                      "flex h-[26px] shrink-0 items-center rounded-full border border-dashed border-[var(--fu-accent-soft,#8FAAFF)] px-[11px] text-[14px] leading-5 font-medium whitespace-nowrap text-[var(--fu-accent-soft,#8FAAFF)]",
+                      "transition-[opacity,filter,translate] duration-300 motion-reduce:transition-none",
+                      SMOOTH,
+                      "starting:-translate-x-1 starting:opacity-0 starting:blur-[3px]",
+                    )}
+                  >
+                    {token.label}
+                  </span>
+                ))}
+              </span>
+            )}
             {ghost && (
               <span
                 aria-hidden="true"
@@ -300,18 +387,21 @@ export function SentenceSearch<Item, State>({
               aria-expanded={shown}
               aria-controls={listId}
               aria-autocomplete="list"
-              aria-activedescendant={shown && active >= 0 ? optionId(active) : undefined}
+              aria-activedescendant={shown && active >= 0 ? idAt(active) : undefined}
               autoComplete="off"
               autoCapitalize="off"
               spellCheck={false}
               enterKeyHint="search"
-              placeholder={tokens.length ? addPlaceholder : (placeholder ?? label)}
+              placeholder={tokens.length ? addPlaceholder : previewTokens.length ? "" : (placeholder ?? label)}
               value={text}
               onChange={(event) => type(event.target.value)}
               onFocus={() => setOpen(true)}
               onClick={() => setOpen(true)}
               onKeyDown={onKeyDown}
-              className="relative block h-6 w-full min-w-0 bg-transparent font-[inherit] text-[16px] leading-6 text-[var(--fu-text,#F8F5F1)] outline-none placeholder:text-[var(--fu-mute,#BDBDBD)]"
+              className={cn(
+                "relative block h-6 w-full min-w-0 bg-transparent font-[inherit] text-[16px] leading-6 text-[var(--fu-text,#F8F5F1)] outline-none placeholder:text-[var(--fu-mute,#BDBDBD)]",
+                previewTokens.length > 0 && !tokens.length && "caret-transparent",
+              )}
             />
           </li>
         </ul>
@@ -373,6 +463,20 @@ export function SentenceSearch<Item, State>({
             )}
             style={mark ? { translate: `0 ${mark.top}px`, height: mark.height } : undefined}
           />
+          {own?.render((rowId) => {
+            const at = ownRows.findIndex((row) => row.id === rowId);
+            return {
+              id: rowId,
+              role: "option",
+              "aria-selected": shown && at >= 0 && at === active,
+              onPointerMove: () => at >= 0 && moved !== at && setMoved(at),
+              onClick: () => {
+                if (at < 0) return;
+                field.current?.focus();
+                choose(ownRows[at]);
+              },
+            };
+          })}
           {groups.map((group) => (
             <div key={group.title ?? "matches"} role="group" aria-label={group.title ?? "Matches"}>
               {group.title && <p className="px-3 pt-2 pb-1 text-[13px] leading-[18px] text-[var(--fu-mute,#BDBDBD)]">{group.title}</p>}
@@ -384,9 +488,9 @@ export function SentenceSearch<Item, State>({
                     key={row.key}
                     id={optionId(at)}
                     role="option"
-                    aria-selected={shown && at === active}
+                    aria-selected={shown && at + lead === active}
                     aria-label={`${row.label}${row.hint ? `, ${row.hint}` : ""}, ${countLabel(row.count)}`}
-                    onPointerMove={() => moved !== at && setMoved(at)}
+                    onPointerMove={() => moved !== at + lead && setMoved(at + lead)}
                     onClick={() => {
                       pick(row);
                       field.current?.focus();
@@ -417,11 +521,21 @@ export function SentenceSearch<Item, State>({
           className="flex h-10 items-center gap-4 border-t border-[var(--fu-line,#404040)] px-3 text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]"
         >
           <span className="hidden items-center gap-4 @min-[480px]:flex">
-            <Key name="↑↓">Move</Key>
-            <Key name="Enter">Add</Key>
-            {typing ? <Key name="Tab">Complete</Key> : tokens.length > 0 && <Key name="⌫">Remove last</Key>}
+            {own?.keys ? (
+              own.keys.map((hint) => (
+                <Key key={hint.key} name={hint.key}>
+                  {hint.label}
+                </Key>
+              ))
+            ) : (
+              <>
+                <Key name="↑↓">Move</Key>
+                <Key name="Enter">Add</Key>
+                {typing ? <Key name="Tab">Complete</Key> : tokens.length > 0 && <Key name="⌫">Remove last</Key>}
+              </>
+            )}
           </span>
-          <span className="ml-auto tabular-nums">{countLabel(count)}</span>
+          <span className="ml-auto tabular-nums">{countLabel(preview !== undefined ? countOf(vocabulary, items, preview) : count)}</span>
         </div>
       </div>
       </div>

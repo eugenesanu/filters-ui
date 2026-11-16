@@ -23,6 +23,8 @@ export type RangeSelectProps<V extends number> = Omit<HTMLAttributes<HTMLDivElem
   prefixes?: { low?: string; high?: string };
   /** Accessible names of the handles and pickers. Default: the prefixes. Keep the prefix word in them. */
   labels?: { low?: string; high?: string };
+  /** Screen-reader words for a count in the pickers, e.g. "6 cars". Default "6 results". */
+  countLabel?: (n: number) => string;
   /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
   barScale?: number;
   disabled?: boolean;
@@ -32,7 +34,7 @@ const ANY = "";
 
 /**
  * A range over a few discrete values: a bar chart with two handles and From and To pickers under it, kept in step
- * both ways. Handles sit between bars, so the two may hold a single value. Picking From past To moves To along
+ * both ways. With buckets, each picker choice shows how many items picking it would give. Handles sit between bars, so the two may hold a single value. Picking From past To moves To along
  * to the same value, and picking To before From moves From back: the pick always wins.
  */
 export function RangeSelect<V extends number>({
@@ -45,6 +47,7 @@ export function RangeSelect<V extends number>({
   anyLabel = "Any",
   prefixes,
   labels,
+  countLabel,
   barScale,
   disabled,
   className,
@@ -72,11 +75,19 @@ export function RangeSelect<V extends number>({
   const fromEdges = ([low, high]: RangeValue) =>
     emit([low === null ? null : options[low], high === null ? null : options[high - 1]]);
 
-  const choices = [
-    { value: ANY, label: anyLabel },
+  // With buckets, each choice counts what picking it would give, the other end included; a choice past the other end
+  // moves it along, as the pick does.
+  const within = (low: V | null, high: V | null) =>
+    buckets ? options.reduce((sum, option, i) => ((low === null || option >= low) && (high === null || option <= high) ? sum + (buckets[i] ?? 0) : sum), 0) : undefined;
+  const choicesFor = (end: "low" | "high") => [
+    { value: ANY, label: anyLabel, count: end === "low" ? within(null, value[1]) : within(value[0], null) },
     ...(pickerOrder === "descending" ? [...options].reverse() : options).map((option) => ({
       value: String(option),
       label: format(option),
+      count:
+        end === "low"
+          ? within(option, value[1] !== null && value[1] < option ? option : value[1])
+          : within(value[0] !== null && value[0] > option ? option : value[0], option),
     })),
   ];
   const read = (text: string) => (text === ANY ? null : (options.find((option) => String(option) === text) ?? null));
@@ -100,7 +111,8 @@ export function RangeSelect<V extends number>({
         <Select
           label={lowLabel}
           prefix={lowPrefix}
-          options={choices}
+          options={choicesFor("low")}
+          countLabel={countLabel}
           value={value[0] === null ? ANY : String(value[0])}
           disabled={disabled}
           onChange={(text) => {
@@ -111,7 +123,8 @@ export function RangeSelect<V extends number>({
         <Select
           label={highLabel}
           prefix={highPrefix}
-          options={choices}
+          options={choicesFor("high")}
+          countLabel={countLabel}
           value={value[1] === null ? ANY : String(value[1])}
           disabled={disabled}
           onChange={(text) => {

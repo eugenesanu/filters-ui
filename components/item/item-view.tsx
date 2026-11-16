@@ -11,7 +11,7 @@ import { ItemTile, TileGrid } from "@/components/tile/item-tile";
 /** One item's page: head, the live stage beside the copy panel (or above it for a block), then the details. */
 export async function ItemView({ item }: { item: RegistryItem }) {
   const data = await panelDataOf(item);
-  const wide = item.kind === "block";
+  const wide = item.kind === "block" && !item.narrow;
   // Named related items first, then the next ones in order, so the row always fills three tiles.
   const named = item.related.flatMap((slug) => ITEMS.filter((i) => i.slug === slug));
   const at = ITEMS.indexOf(item);

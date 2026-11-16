@@ -13,6 +13,15 @@ import { SentenceSearch } from "@/registry/filters/sentence-search";
 import { readSentence } from "@/registry/lib/sentence";
 import { SENTENCE_PRESET } from "@/components/tile/presets";
 import { presetFilters } from "@/components/tile/presets";
+import { FilterPillsStage } from "@/components/stage/filter-pills-stage";
+import { AllFiltersStage } from "@/components/stage/all-filters-stage";
+import { ListedDemo } from "@/components/stage/listed-demo";
+import { BudgetDemo } from "@/components/stage/budget-demo";
+import { AppliedFiltersStage, NoResultsStage } from "@/components/stage/results-stages";
+import { RecentSearchesStage } from "@/components/stage/recent-searches-stage";
+import { RulesStage } from "@/components/stage/rules-stage";
+import { FilterPanel } from "@/registry/blocks/filter-panel";
+import { PANEL_PRESET } from "@/components/tile/presets";
 
 /** Which car filters demonstrate each tile; several make a quiet switch at the stage top-left. A tile with none shows its example. */
 const STAGE_FACETS: Record<string, CarFacet[]> = {
@@ -239,6 +248,51 @@ function SentenceStage() {
   );
 }
 
+function ListedStage() {
+  const [round, setRound] = useState(0);
+  return (
+    <StagePanel>
+      <ListedDemo key={round} wide reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-mr-3" />} />
+    </StagePanel>
+  );
+}
+
+function BudgetStage() {
+  const [round, setRound] = useState(0);
+  return (
+    <StagePanel>
+      <BudgetDemo key={round} reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-mr-3" />} />
+    </StagePanel>
+  );
+}
+
+function PanelStage() {
+  const [round, setRound] = useState(0);
+  const [shown, setShown] = useState<number | null>(null);
+  return (
+    <StagePanel
+      onReset={() => {
+        setRound((n) => n + 1);
+        setShown(null);
+      }}
+    >
+      <div className="flex w-full max-w-[400px] flex-col">
+        <FilterPanel
+          key={round}
+          glow
+          className="h-[min(600px,calc(100dvh-352px))] min-h-[440px]"
+          defaultFilters={PANEL_PRESET.filters}
+          defaultOpen={PANEL_PRESET.open}
+          onShow={(cars) => setShown(cars.length)}
+        />
+        <p aria-live="polite" className="mt-3 h-5 pl-5 text-[14px] leading-5 text-dim tabular-nums">
+          {shown !== null && <>{count.format(shown)} {shown === 1 ? "car" : "cars"} sent to onShow</>}
+        </p>
+      </div>
+    </StagePanel>
+  );
+}
+
 function ExampleStage({ slug }: { slug: string }) {
   const [round, setRound] = useState(0);
   return (
@@ -251,6 +305,15 @@ function ExampleStage({ slug }: { slug: string }) {
 export function FilterStage({ slug }: { slug: string }) {
   if (slug === "cars-board") return <BoardStage />;
   if (slug === "sentence-search") return <SentenceStage />;
+  if (slug === "filter-pills") return <FilterPillsStage />;
+  if (slug === "all-filters") return <AllFiltersStage />;
+  if (slug === "date-range") return <ListedStage />;
+  if (slug === "budget") return <BudgetStage />;
+  if (slug === "no-results") return <NoResultsStage />;
+  if (slug === "applied-filters") return <AppliedFiltersStage />;
+  if (slug === "recent-searches") return <RecentSearchesStage />;
+  if (slug === "rules") return <RulesStage />;
+  if (slug === "filter-panel") return <PanelStage />;
   const facets = STAGE_FACETS[slug];
   return facets ? <CarFilterStage slug={slug} facets={facets} /> : <ExampleStage slug={slug} />;
 }
