@@ -152,9 +152,9 @@ export function getItemFiles(item: RegistryItem): ItemFiles {
   // The example's own imports (the card, other filters) ship too; the example itself does not.
   for (const edge of edgesOf(item.example, packages, allowed)) visit(edge.target);
 
-  if (item.kind === "filter") {
+  if (item.kind !== "block") {
     const demo = order.filter((path) => (kindOf(path) === "demo" && !EXAMPLE_ASSETS.has(path)) || kindOf(path) === "block");
-    if (demo.length) throw new Error(`registry-files: the filter ${item.slug} reaches ${demo.join(", ")}; only blocks may use demo data`);
+    if (demo.length) throw new Error(`registry-files: the ${item.kind} ${item.slug} reaches ${demo.join(", ")}; only blocks may use demo data`);
   }
 
   const files = order.map((path) => ({ path, savePath: savePathOf(path), kind: kindOf(path), source: rewrite(path, edges.get(path)!) }));

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cn } from "@/registry/lib/cn";
 import { TextSwap } from "@/registry/ui/text-swap";
+import { buttonClasses } from "@/registry/ui/button-classes";
 
 /** Writes text to the clipboard; falls back to a hidden textarea where the async API is missing or refused. */
 export async function copyText(text: string) {
@@ -78,14 +78,7 @@ export function CopyButton({ text, label = "Copy", announce = "Copied", ariaLabe
         onClick={onClick}
         aria-label={ariaLabel}
         data-copied={copied || undefined}
-        className={cn(
-          "inline-flex shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-[10px] font-medium",
-          "transition-[background-color,color,scale] duration-200 ease-smooth active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
-          variant === "primary"
-            ? "h-11 bg-accent px-4 text-[15px] leading-5 text-white hover:bg-accent-hover"
-            : "h-8 bg-surface-3 px-3 text-[13px] leading-5 text-text hover:bg-hover",
-          className,
-        )}
+        className={buttonClasses(variant === "primary" ? { size: "lg", className } : { variant: "secondary", size: "sm", className })}
       >
         {/* The longest label sets the width, so the button never jumps as its words swap. */}
         <span className="inline-grid justify-items-center">

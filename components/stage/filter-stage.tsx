@@ -145,7 +145,12 @@ function BoardStage() {
 
   const [shown, setShown] = useState<number | null>(null);
   return (
-    <div ref={frame} data-away={away || undefined} className="h-full sm:[&_[data-state].fixed]:hidden data-[away]:[&_[data-state].fixed]:hidden">
+    // Menus carry data-state and .fixed too, but they are popovers.
+    <div
+      ref={frame}
+      data-away={away || undefined}
+      className="h-full sm:[&_.fixed[data-state]:not([popover])]:hidden data-[away]:[&_.fixed[data-state]:not([popover])]:hidden"
+    >
     <StagePanel
       wide
       onReset={() => {

@@ -14,11 +14,18 @@ const WHERE: Record<PromptTarget, string> = {
   other: "my project",
 };
 
-const what = (item: RegistryItem) => (item.kind === "block" ? "the full filter set" : `the "${item.title}" filter`);
+// A basic named "X and Y" holds several components.
+const what = (item: RegistryItem) =>
+  item.kind === "block"
+    ? "the full filter set"
+    : item.kind === "basic"
+      ? `the "${item.title}" ${/ and /.test(item.title) ? "components" : "component"}`
+      : `the "${item.title}" filter`;
 const FIRST = (target: PromptTarget, item: RegistryItem) => `Add ${what(item)} from FiltersUI to ${WHERE[target]}.`;
 
 function LAST(target: PromptTarget, item: RegistryItem) {
-  const change = item.kind === "block" ? "the result count changing as I use the filters" : "the value changing as I use the filter";
+  const change =
+    item.kind === "block" ? "the result count changing as I use the filters" : item.kind === "basic" ? "it working" : "the value changing as I use the filter";
   if (target === "claude-code") return `When done, run the app, tell me which page to open, and show me ${change}.`;
   if (target === "cursor") return `When done, tell me which page to open and show me ${change}.`;
   if (target === "v0" || target === "lovable") return `When done, show it in the preview with ${change}.`;
@@ -109,7 +116,7 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
     "",
     "## Usage",
     "",
-    `A working example with a few made-up cars. Imports assume @/ points at the project root; change ${INSTALL_ALIAS} if this project uses another alias.`,
+    `${item.kind === "basic" && !/\bCARS\b/.test(example) ? "A working example." : "A working example with a few made-up cars."} Imports assume @/ points at the project root; change ${INSTALL_ALIAS} if this project uses another alias.`,
     "",
     fence(example, "tsx"),
   );

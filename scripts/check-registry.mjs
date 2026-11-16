@@ -46,7 +46,15 @@ for (const item of ITEMS) {
   }
 }
 
-// Every item's file set resolves: nothing outside registry/, no demo in a filter, one fallback per variable.
+// A basic is a plain control from registry/ui with its own prompt text and its own tile preview.
+const previews = readFileSync(join(ROOT, "components/tile/previews.tsx"), "utf8");
+for (const item of ITEMS.filter((i) => i.kind === "basic")) {
+  if (!item.entry.startsWith("registry/ui/")) fail(`${item.slug}: a basic's entry belongs in registry/ui`);
+  if (!item.connect) fail(`${item.slug}: a basic needs its own connect text`);
+  if (!previews.includes(`slug === "${item.slug}"`)) fail(`${item.slug}: add its tile preview to components/tile/previews.tsx`);
+}
+
+// Every item's file set resolves: nothing outside registry/, no demo in a filter or basic, one fallback per variable.
 for (const item of ITEMS) {
   try {
     const { files } = getItemFiles(item);

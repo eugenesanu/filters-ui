@@ -59,8 +59,10 @@ function needsLine(item: RegistryItem) {
     .sort((a, b) => Number(b === "card") - Number(a === "card"));
   const parts = [`Needs React 19 and Tailwind CSS 4.`];
   if (requires.length) {
-    const names = requires.map((slug) => ITEMS.find((i) => i.slug === slug)!.title);
-    parts.push(`Adds ${requires.length > 3 ? `all ${requires.length} filters` : listOf(names)} first.`);
+    const needed = requires.map((slug) => ITEMS.find((i) => i.slug === slug)!);
+    const filters = needed.filter((i) => i.kind === "filter");
+    const others = needed.filter((i) => i.kind !== "filter").map((i) => `the ${i.title}`);
+    parts.push(`Adds ${filters.length > 3 ? listOf([`all ${filters.length} filters`, ...others]) : listOf(needed.map((i) => i.title))} first.`);
   }
   if (brings.length) parts.push(`Also brings the ${listOf(brings)}.`);
   return parts.join(" ");

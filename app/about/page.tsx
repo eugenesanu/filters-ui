@@ -2,15 +2,13 @@ import type { Metadata } from "next";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { site } from "@/lib/site";
+import { buttonClasses } from "@/registry/ui/button-classes";
 
 export const metadata: Metadata = {
   title: "About · FiltersUI",
   description: "FiltersUI is made by Eugen Eşanu, a product designer and design engineer.",
   alternates: { canonical: "/about" },
 };
-
-const BUTTON =
-  "inline-flex h-11 items-center whitespace-nowrap rounded-[10px] px-4 text-[15px] font-medium leading-5 transition-[background-color] duration-200 ease-smooth";
 
 export default function About() {
   return (
@@ -33,7 +31,8 @@ export default function About() {
             <p>
               For 12+ years I’ve designed and shipped products, since 2020 mostly with US startups: 47 shipped, 3
               acquired (Clearbit by HubSpot, Qualibrate by Copado, and AlphaUX). I led design for the last five years,
-              Apollo.io among them. The products I’ve designed have reached over 2 million users.
+              Apollo.io among them.
+              The products I’ve designed have reached over 2 million users.
             </p>
             <p>
               I start with the problem, not the screen, and put the most care into the parts nobody puts in a
@@ -51,17 +50,19 @@ export default function About() {
               href={site.author.url}
               target="_blank"
               rel="noopener"
-              className={`${BUTTON} bg-accent text-white hover:bg-accent-hover`}
+              className={buttonClasses({ size: "lg" })}
             >
               Visit eugenesanu.com
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
             <a
               href={`${site.author.url}/contact/`}
               target="_blank"
               rel="noopener"
-              className={`${BUTTON} bg-surface-3 text-text hover:bg-hover`}
+              className={buttonClasses({ variant: "secondary", size: "lg" })}
             >
               Get in touch
+              <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </div>
         </section>

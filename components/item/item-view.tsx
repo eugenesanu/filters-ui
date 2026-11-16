@@ -15,7 +15,10 @@ export async function ItemView({ item }: { item: RegistryItem }) {
   // Named related items first, then the next ones in order, so the row always fills three tiles.
   const named = item.related.flatMap((slug) => ITEMS.filter((i) => i.slug === slug));
   const at = ITEMS.indexOf(item);
-  const after = [...ITEMS.slice(at + 1), ...ITEMS.slice(0, at)].filter((i) => i.kind === "filter" && !named.includes(i));
+  // A basic's row takes the other basics first, then filters; a filter's row takes filters only.
+  const after = [...ITEMS.slice(at + 1), ...ITEMS.slice(0, at)]
+    .filter((i) => !named.includes(i) && (i.kind === "filter" || (item.kind === "basic" && i.kind === "basic")))
+    .sort((a, b) => Number(b.kind === item.kind) - Number(a.kind === item.kind));
   const related = [...named, ...after].slice(0, 3);
 
   return (
@@ -47,7 +50,7 @@ export async function ItemView({ item }: { item: RegistryItem }) {
         {related.length > 0 && (
           <section aria-labelledby="more-heading" className="mt-12 border-t border-card pt-8">
             <h2 id="more-heading" className="mb-6 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">
-              More filters
+              {item.kind === "basic" ? "Related" : "More filters"}
             </h2>
             <TileGrid>
               {related.map((other) => (

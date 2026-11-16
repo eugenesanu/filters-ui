@@ -186,6 +186,13 @@ export function RangeChart({
   }, [tipText]);
 
   const tallest = Math.max(1, ...(buckets ?? []));
+  // While a handle is dragged, the bars it passes rise a little, in a soft wave centred on the handle.
+  const bumpAt = dragging && drag && buckets?.length ? drag.fraction * buckets.length - 0.5 : null;
+  const bumpOf = (i: number) => {
+    if (bumpAt === null) return 1;
+    const near = Math.max(0, 1 - Math.abs(i - bumpAt) / 2.4);
+    return 1 + 0.22 * near * near;
+  };
   const lowShown = single ? 0 : shown.low;
   const handles: Handle[] = single ? ["high"] : ["low", "high"];
 
@@ -224,15 +231,17 @@ export function RangeChart({
                 className={cn(
                   "min-w-0 rounded-t-[3px]",
                   narrow ? "flex-none" : "flex-1",
-                  "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                  "group-data-[dragging]/range:duration-[420ms,0ms]",
+                  "origin-bottom [scale:1_var(--bump,1)] motion-reduce:[scale:none]",
+                  "transition-[height,background-color,scale] duration-[420ms,200ms,360ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                  "group-data-[dragging]/range:duration-[420ms,0ms,140ms]",
                 )}
                 style={{
+                  "--bump": bumpOf(i),
                   height: `${Math.max(count ? 8 : 3, (count / tallest) * 100)}%`,
                   backgroundColor: `color-mix(in srgb, var(--fu-accent-soft,#8FAAFF) ${lit}%, var(--fu-rail,#4A4A4A))`,
                   // The bar a denser chart would draw: its slot plus one 2px gap, scaled, less the gap.
                   width: narrow ? `calc((100% + 2px) * ${barScale} - 2px)` : undefined,
-                }}
+                } as CSSProperties}
               />
             );
             return narrow ? (

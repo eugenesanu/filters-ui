@@ -1,51 +1,71 @@
+import { HeroBackdrop } from "@/components/hero-backdrop";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { BoardTile, ItemTile, TileGrid } from "@/components/tile/item-tile";
 import { HERO } from "@/lib/home-copy";
 import { site } from "@/lib/site";
 import { ITEMS } from "@/registry/items";
-
-const BUTTON =
-  "inline-flex h-11 items-center whitespace-nowrap rounded-[10px] px-4 text-[15px] font-medium leading-5 transition-[background-color] duration-200 ease-smooth";
+import { buttonClasses } from "@/registry/ui/button-classes";
 
 export default function Home() {
   const filters = ITEMS.filter((item) => item.kind === "filter");
+  const basics = ITEMS.filter((item) => item.kind === "basic");
   const block = ITEMS.find((item) => item.kind === "block");
 
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 sm:px-8">
-        <section className="pb-12 pt-14 sm:pb-14 sm:pt-16">
-          <h1 className="max-w-[760px] text-[clamp(36px,5vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em] text-balance text-text">
-            {HERO.title}
-          </h1>
-          <p className="mt-4 max-w-[560px] text-[17px] leading-[1.5] text-pretty text-mute sm:text-[18px]">{HERO.subtitle}</p>
-          {site.isPublic && (
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <a href={site.repoUrl} target="_blank" rel="noopener" className={`${BUTTON} bg-surface-3 text-text hover:bg-hover`}>
-                View on GitHub
-              </a>
+      <main className="flex-1">
+        {/* Pulled up under the sticky header so the backdrop runs behind it; the bottom padding is room for its bars
+            and keeps its handles about 40px above the Filters heading. */}
+        <div className="relative isolate -mt-16 pb-[76px] pt-16 lg:pb-12">
+          <HeroBackdrop />
+          <section className="mx-auto max-w-[1200px] px-4 pb-12 pt-14 sm:px-8 sm:pb-14 sm:pt-16">
+            <h1 className="max-w-[760px] text-[clamp(36px,5vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em] text-balance text-text">
+              {HERO.title}
+            </h1>
+            <p className="mt-4 max-w-[560px] text-[17px] leading-[1.5] text-pretty text-mute sm:text-[18px]">{HERO.subtitle}</p>
+            {site.isPublic && (
+              <div className="mt-7 flex flex-wrap items-center gap-3">
+                <a href={site.repoUrl} target="_blank" rel="noopener" className={buttonClasses({ variant: "secondary", size: "lg" })}>
+                  View on GitHub
+                </a>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-8">
+          <section id="filters" aria-labelledby="filters-heading" className="scroll-mt-24">
+            <h2 id="filters-heading" className="mb-5 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">
+              Filters
+            </h2>
+            <TileGrid>
+              {filters.map((item) => (
+                <ItemTile key={item.slug} item={item} />
+              ))}
+            </TileGrid>
+          </section>
+
+          {basics.length > 0 && (
+            <section id="basics" aria-labelledby="basics-heading" className="scroll-mt-24 pt-14 sm:pt-16">
+              <h2 id="basics-heading" className="mb-5 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">
+                Basics
+              </h2>
+              <TileGrid>
+                {basics.map((item) => (
+                  <ItemTile key={item.slug} item={item} />
+                ))}
+              </TileGrid>
+            </section>
+          )}
+
+          {block && (
+            <div className="pb-24 pt-14 sm:pb-28 sm:pt-16">
+              <BoardTile item={block} />
             </div>
           )}
-        </section>
-
-        <section id="filters" aria-labelledby="filters-heading" className="scroll-mt-24">
-          <h2 id="filters-heading" className="mb-5 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">
-            Filters
-          </h2>
-          <TileGrid>
-            {filters.map((item) => (
-              <ItemTile key={item.slug} item={item} />
-            ))}
-          </TileGrid>
-        </section>
-
-        {block && (
-          <div className="pb-24 pt-14 sm:pb-28 sm:pt-16">
-            <BoardTile item={block} />
-          </div>
-        )}
+        </div>
       </main>
       <SiteFooter />
     </div>

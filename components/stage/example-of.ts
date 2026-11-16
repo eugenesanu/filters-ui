@@ -15,6 +15,9 @@ const EXAMPLES: Record<string, ComponentType> = {
   "icon-tiles": dynamic(() => import("@/registry/examples/icon-tiles")),
   "color-swatches": dynamic(() => import("@/registry/examples/color-swatches")),
   "searchable-list": dynamic(() => import("@/registry/examples/searchable-list")),
+  dropdown: dynamic(() => import("@/registry/examples/dropdown")),
+  select: dynamic(() => import("@/registry/examples/select")),
+  buttons: dynamic(() => import("@/registry/examples/buttons")),
   "cars-board": dynamic(() => import("@/registry/examples/cars-board")),
 };
 

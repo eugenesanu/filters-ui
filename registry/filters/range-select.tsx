@@ -3,7 +3,7 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
 import { RangeChart, type RangeValue } from "../ui/range-chart";
-import { SelectField } from "../ui/select-field";
+import { Select } from "../ui/select";
 
 export type RangeSelectProps<V extends number> = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
   /** The values to pick from, in ascending order, e.g. model years. One bar each. */
@@ -97,7 +97,7 @@ export function RangeSelect<V extends number>({
         disabled={disabled}
       />
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <SelectField
+        <Select
           label={lowLabel}
           prefix={lowPrefix}
           options={choices}
@@ -108,7 +108,7 @@ export function RangeSelect<V extends number>({
             emit([low, low !== null && value[1] !== null && value[1] < low ? low : value[1]]);
           }}
         />
-        <SelectField
+        <Select
           label={highLabel}
           prefix={highPrefix}
           options={choices}

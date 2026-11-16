@@ -33,7 +33,7 @@ function itemJson(item) {
   return {
     $schema: ITEM_SCHEMA,
     name: item.slug,
-    type: item.kind === "block" ? "registry:block" : "registry:component",
+    type: item.kind === "block" ? "registry:block" : item.kind === "basic" ? "registry:ui" : "registry:component",
     title: item.title,
     description: item.description,
     author: `${site.author.name} <${site.author.url}>`,

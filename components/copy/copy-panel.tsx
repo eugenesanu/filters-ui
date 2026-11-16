@@ -3,7 +3,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/registry/lib/cn";
 import { Segmented } from "@/registry/ui/segmented";
-import { SelectField } from "@/registry/ui/select-field";
+import { Select } from "@/registry/ui/select";
 import { CopyButton } from "@/components/copy/copy-button";
 import { useStored } from "@/components/copy/use-stored";
 import { TARGETS, type CodeFile, type PanelData, type Target } from "@/components/copy/panel-types";
@@ -81,7 +81,7 @@ function ShortToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) =>
 }
 
 function PromptTab({ data, wide }: { data: PanelData; wide: boolean }) {
-  const [target, setTarget] = useStored<Target>("fu:target", "claude-code", TARGETS);
+  const [target, setTarget, stored] = useStored<Target>("fu:target", "claude-code", TARGETS);
   // A block's full prompt carries every file and is too long for many chat inputs.
   const [length, setLength] = useStored("fu:length", wide ? "short" : "full", LENGTHS);
   const text = promptOf(data, target, length);
@@ -89,7 +89,9 @@ function PromptTab({ data, wide }: { data: PanelData; wide: boolean }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className={cn("flex gap-2", wide && "sm:max-w-[560px]")}>
-        <SelectField
+        <Select
+          // Mounted afresh once the stored choice is read, so a returning visitor sees it without a swap.
+          key={stored ? "stored" : "default"}
           prefix="For"
           label="Prompt for"
           className="min-w-0 flex-1"
@@ -118,7 +120,7 @@ function PromptTab({ data, wide }: { data: PanelData; wide: boolean }) {
 function CodeTab({ data }: { data: PanelData }) {
   const [index, setIndex] = useState(0);
   const file = data.files[index];
-  const manyFiles = data.files.length > 7;
+  const manyFiles = data.files.length > 8;
   const id = useId();
 
   return (
@@ -140,7 +142,7 @@ function CodeTab({ data }: { data: PanelData }) {
           {data.files.length === 1 ? "1 file" : `${data.files.length} files`}
         </Label>
         {manyFiles ? (
-          <SelectField
+          <Select
             label="File"
             value={String(index)}
             onChange={(value) => setIndex(Number(value))}

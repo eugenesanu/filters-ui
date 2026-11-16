@@ -2,10 +2,9 @@ import Link from "next/link";
 import type { RegistryItem } from "@/registry/items";
 import { ITEMS } from "@/registry/items";
 import { itemPath } from "@/lib/site";
-import { ChevronDownIcon } from "@/registry/ui/icons";
+import { LinkArrow, linkClasses } from "@/registry/ui/link";
 
-const QUIET_LINK =
-  "inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-[10px] text-[14px] leading-5 text-dim transition-[color] duration-200 ease-smooth hover:text-text";
+const QUIET_LINK = linkClasses({ variant: "quiet", tone: "dim" });
 
 export function PageHead({ item }: { item: RegistryItem }) {
   const at = ITEMS.findIndex((i) => i.slug === item.slug);
@@ -15,22 +14,22 @@ export function PageHead({ item }: { item: RegistryItem }) {
   return (
     <div className="pt-5 sm:pt-6">
       <div className="flex items-center justify-between gap-4">
-        <Link href="/#filters" className={`${QUIET_LINK} -ml-1 pr-2`}>
-          <ChevronDownIcon size={16} className="rotate-90" />
-          Filters
+        <Link href={item.kind === "basic" ? "/#basics" : "/#filters"} className={`${QUIET_LINK} -ml-1 pr-2`}>
+          <LinkArrow direction="back" />
+          {item.kind === "basic" ? "Basics" : "Filters"}
         </Link>
         {(previous || next) && (
           <nav aria-label="Previous and next" className="flex items-center gap-6 max-lg:hidden">
             {previous && (
               <Link href={itemPath(previous.slug)} className={QUIET_LINK}>
-                <ChevronDownIcon size={16} className="rotate-90" />
+                <LinkArrow direction="back" />
                 {previous.title}
               </Link>
             )}
             {next && (
               <Link href={itemPath(next.slug)} className={QUIET_LINK}>
                 {next.title}
-                <ChevronDownIcon size={16} className="-rotate-90" />
+                <LinkArrow />
               </Link>
             )}
           </nav>
