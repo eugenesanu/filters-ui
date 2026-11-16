@@ -61,7 +61,7 @@ export function ItemTile({ item, heading = "h3" }: { item: RegistryItem; heading
       {/* Every card starts on the same top line; a tall one fades out at the bottom. */}
       <div className="flex h-full flex-col items-center px-8 pt-8">
         {/* Natural size; zoomed down only where the stage is narrower than the card. */}
-        <div className="w-[320px] shrink-0 [zoom:min(1,tan(atan2(100cqw-64px,320px)))] transition-[translate] duration-300 ease-smooth group-hover/tile:-translate-y-0.5">
+        <div className="w-[320px] shrink-0 [zoom:min(1,tan(atan2(100cqw-64px,320px)))]">
           <TilePreview slug={item.slug} />
         </div>
       </div>
@@ -74,7 +74,7 @@ export function BoardTile({ item }: { item: RegistryItem }) {
   return (
     <Tile item={item} heading="h2" stageClassName="h-[clamp(300px,42vw,500px)] [container-type:inline-size]">
       <div className="absolute left-1/2 top-[clamp(20px,4cqw,44px)] origin-top -translate-x-1/2 [scale:min(1,tan(atan2(100cqw-40px,929px)))]">
-        <div className="transition-[translate] duration-300 ease-smooth group-hover/tile:-translate-y-0.5">
+        <div>
           <BoardPreview />
         </div>
       </div>

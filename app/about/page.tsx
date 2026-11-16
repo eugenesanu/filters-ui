@@ -5,7 +5,7 @@ import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "About · FiltersUI",
-  description: "FiltersUI is made by Eugen Eşanu, a product designer and design engineer in Lisbon.",
+  description: "FiltersUI is made by Eugen Eşanu, a product designer and design engineer.",
   alternates: { canonical: "/about" },
 };
 
@@ -22,7 +22,7 @@ export default function About() {
             {site.author.name}
           </h1>
           <p className="mt-3 text-[16px] leading-[1.55] text-mute sm:text-[17px]">
-            Product designer and design engineer in Lisbon
+            Product designer and design engineer
           </p>
 
           <div className="mt-10 space-y-5 text-[16px] leading-[1.65] text-pretty text-mute sm:text-[17px]">
