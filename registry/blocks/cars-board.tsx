@@ -3,48 +3,76 @@
 import { useEffect, useRef, useState, useSyncExternalStore, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { BodyIcon } from "../demo/body-icons";
-import { BODIES, CARS, COLORS, COLOR_PAINTS, type Car } from "../demo/cars";
+import { BODIES, CARS, COLORS, COLOR_PAINTS, DRIVES, FUELS, type Car, type Condition, type Transmission } from "../demo/cars";
 import {
   CAR_FACET_COLUMNS,
   CAR_FACET_TITLES,
   EMPTY_CAR_FILTERS,
+  KM_BARS,
+  KM_MAX,
+  KM_STEP,
+  PRICE_BARS,
   PRICE_MAX,
   PRICE_MIN,
   PRICE_STEP,
   bodyCounts,
   clearFacet,
   colorCounts,
+  conditionOptions,
+  driveCounts,
+  fuelCounts,
+  transmissionOptions,
+  YEARS,
   formatCarCount,
+  formatKm,
   formatMoney,
+  kmBuckets,
+  makeOptions,
+  MAKES_UP_FRONT,
   matchingCars,
   priceBuckets,
   seatOptions,
   summaryOf,
+  yearBuckets,
   type CarFacet,
   type CarFilters,
 } from "../demo/cars-facets";
+import { ChipGroup } from "../filters/chip-group";
 import { ColorSwatches } from "../filters/color-swatches";
 import { IconTiles } from "../filters/icon-tiles";
 import { RangeHistogram } from "../filters/range-histogram";
+import { RangeSelect } from "../filters/range-select";
+import { SearchableList } from "../filters/searchable-list";
 import { SegmentedChoice } from "../filters/segmented-choice";
+import { UpperLimit } from "../filters/upper-limit";
 import { FilterCard } from "../ui/filter-card";
 import { FiltersBar, FiltersHead } from "../ui/filters-head";
 
 const NOUN = { one: "car", other: "cars" };
 
-// Two columns keep the open Price, Seats and Colour cards against Body style, so both run about as long.
+// Balanced for both extremes: all open, the columns end within about 40px; all closed, six cards against five.
 const TWO_COLUMNS: CarFacet[][] = [
-  ["price", "seats", "color", "year", "km", "condition"],
-  ["body", "drive", "fuel", "make", "transmission"],
+  ["price", "seats", "color", "year", "km", "fuel"],
+  ["body", "drive", "make", "condition", "transmission"],
 ];
-const ONE_COLUMN: CarFacet[][] = [CAR_FACET_COLUMNS.flat()];
+// Phones read top to bottom, so the filters people reach for first come first.
+const ONE_COLUMN: CarFacet[][] = [
+  ["price", "body", "make", "year", "km", "condition", "seats", "fuel", "drive", "transmission", "color"],
+];
 
 // The design sets each open card's height by hand, so the space under the content varies per card.
 const BODY_FIT: Partial<Record<CarFacet, string>> = {
   price: "pb-[18px]",
+  year: "pb-[18px]",
+  km: "pb-[18px]",
   seats: "pb-2.5",
   body: "pb-1.5",
   color: "pb-3.5",
+  condition: "pb-2.5",
+  transmission: "pb-2.5",
+  fuel: "pb-2",
+  drive: "pb-2",
+  make: "pb-3.5",
 };
 
 const THREE_QUERY = "(min-width: 1000px)";
@@ -100,7 +128,6 @@ export function CarsBoard({
   const show = onShow && (() => onShow(matches));
   const set = (patch: Partial<CarFilters>) => setFilters((f) => ({ ...f, ...patch }));
 
-  // A facet with no body yet renders as a closed, disabled card; add its case here to switch it on.
   const bodyOf = (facet: CarFacet): ReactNode => {
     switch (facet) {
       case "price":
@@ -114,6 +141,32 @@ export function CarsBoard({
             buckets={priceBuckets(filters, cars)}
             format={formatMoney}
             labels={{ low: "Lowest price", high: "Highest price" }}
+          />
+        );
+      case "year":
+        return (
+          <RangeSelect
+            options={YEARS}
+            value={[filters.yearMin, filters.yearMax]}
+            onChange={([yearMin, yearMax]) => set({ yearMin, yearMax })}
+            buckets={yearBuckets(filters, cars)}
+            pickerOrder="descending"
+            barScale={YEARS.length / PRICE_BARS}
+            labels={{ low: "From year", high: "To year" }}
+          />
+        );
+      case "km":
+        return (
+          <UpperLimit
+            min={0}
+            max={KM_MAX}
+            step={KM_STEP}
+            value={filters.kmMax}
+            onChange={(kmMax) => set({ kmMax })}
+            buckets={kmBuckets(filters, cars)}
+            barScale={KM_BARS / PRICE_BARS}
+            format={formatKm}
+            label="Maximum kilometres"
           />
         );
       case "seats":
@@ -150,15 +203,71 @@ export function CarsBoard({
           />
         );
       }
-      default:
-        return null;
+      case "condition":
+        return (
+          <SegmentedChoice<Condition | null>
+            label="New or used"
+            options={conditionOptions(filters, cars)}
+            value={filters.condition}
+            onChange={(condition) => set({ condition })}
+            countLabel={formatCarCount}
+          />
+        );
+      case "transmission":
+        return (
+          <SegmentedChoice<Transmission | null>
+            label="Transmission"
+            fit="content"
+            options={transmissionOptions(filters, cars)}
+            value={filters.transmission}
+            onChange={(transmission) => set({ transmission })}
+            countLabel={formatCarCount}
+          />
+        );
+      case "fuel": {
+        const counts = fuelCounts(filters, cars);
+        return (
+          <ChipGroup
+            label="Fuel"
+            options={FUELS.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
+            value={filters.fuels}
+            onChange={(fuels) => set({ fuels })}
+            countLabel={formatCarCount}
+          />
+        );
+      }
+      case "drive": {
+        const counts = driveCounts(filters, cars);
+        return (
+          <ChipGroup
+            label="Drivetrain"
+            options={DRIVES.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
+            value={filters.drives}
+            onChange={(drives) => set({ drives })}
+            countLabel={formatCarCount}
+          />
+        );
+      }
+      case "make":
+        return (
+          <SearchableList
+            label="Make and model"
+            noun="makes"
+            collapsedCount={MAKES_UP_FRONT}
+            options={makeOptions(filters, cars)}
+            value={filters.makes.map((p) => ({ value: p.make, children: p.models }))}
+            onChange={(picks) => set({ makes: picks.map((p) => ({ make: p.value, models: p.children })) })}
+            countLabel={formatCarCount}
+          />
+        );
     }
   };
 
   const layout = columns === 3 ? CAR_FACET_COLUMNS : columns === 2 ? TWO_COLUMNS : ONE_COLUMN;
 
   return (
-    <div className={cn("w-full", className)} {...props}>
+    // On phones the bottom padding keeps the last card clear of the floating bar.
+    <div className={cn("w-full", phone && "pb-24", className)} {...props}>
       <div ref={head}>
         <FiltersHead
           count={matches.length}
@@ -175,24 +284,21 @@ export function CarsBoard({
       >
         {layout.map((column, i) => (
           <div key={`${layout.length}-${i}`} className="flex min-w-0 flex-col gap-4">
-            {column.map((facet) => {
-              const content = bodyOf(facet);
-              return (
+            {column.map((facet) => (
                 <FilterCard
                   key={facet}
+                  data-facet={facet}
                   title={CAR_FACET_TITLES[facet]}
                   summary={summaryOf(filters, facet)}
                   onClear={() => setFilters((f) => clearFacet(f, facet))}
-                  disabled={content === null}
                   open={open.includes(facet)}
                   onOpenChange={(next) => setOpen((list) => (next ? [...list, facet] : list.filter((f) => f !== facet)))}
                   headingLevel={headingLevel === 1 ? 2 : 3}
                   bodyClassName={BODY_FIT[facet]}
                 >
-                  {content}
+                  {bodyOf(facet)}
                 </FilterCard>
-              );
-            })}
+            ))}
           </div>
         ))}
       </div>

@@ -16,12 +16,16 @@ export type RangeChartProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
   onChange: (value: RangeValue) => void;
   /** Item count per bar, spread evenly from min to max. Leave out for a plain slider. */
   buckets?: readonly number[];
-  /** Tooltip and screen-reader text for a value. */
-  format?: (value: number) => string;
-  /** One handle, for an upper limit only. The low end of `value` is ignored. */
+  /** Tooltip and screen-reader text for a value. Gets the handle too, for scales where the high handle reads one step back. */
+  format?: (value: number, handle: "low" | "high") => string;
+  /** Tooltip text while the high end is open. Default: the top value and a plus ("$100,000+"). */
+  openLabel?: string;
+  /** One handle, for an upper limit only. The low end of `value` is ignored; the handle stops one step above min. */
   single?: boolean;
   /** Accessible names of the handles. */
   labels?: { low?: string; high?: string };
+  /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
+  barScale?: number;
   disabled?: boolean;
 };
 
@@ -49,8 +53,10 @@ export function RangeChart({
   onChange,
   buckets,
   format = defaultFormat,
+  openLabel,
   single = false,
   labels,
+  barScale = 1,
   disabled = false,
   className,
   ...props
@@ -66,7 +72,7 @@ export function RangeChart({
   const span = max - min || 1;
   const snap = (v: number) => clamp(min + Math.round((v - min) / step) * step, min, max);
   const low = single ? min : clamp(value[0] ?? min, min, max);
-  const high = clamp(value[1] ?? max, Math.min(low + (single ? 0 : step), max), max);
+  const high = clamp(value[1] ?? max, Math.min(low + step, max), max);
   const values = { low, high };
   const fractionOf = (v: number) => (v - min) / span;
   const stepFraction = step / span;
@@ -83,7 +89,7 @@ export function RangeChart({
       emit(next, high);
       return next;
     }
-    const next = Math.max(snap(v), single ? min : low + step);
+    const next = Math.max(snap(v), low + step);
     emit(low, next);
     return next;
   };
@@ -157,7 +163,7 @@ export function RangeChart({
       }
     }
     const [floor, ceiling] =
-      g.handle === "low" ? [0, fractionOf(high) - stepFraction] : [single ? 0 : fractionOf(low) + stepFraction, 1];
+      g.handle === "low" ? [0, fractionOf(high) - stepFraction] : [fractionOf(low) + stepFraction, 1];
     const fraction = clamp(fractionAt(event.clientX, g.box) + g.shift, floor, ceiling);
     setDrag({ handle: g.handle, fraction, moving: true });
     moveTo(g.handle, min + fraction * span);
@@ -172,7 +178,7 @@ export function RangeChart({
   const tipHandle = drag?.handle ?? lastHeld;
   // An open end is no limit, so it does not read as the end value.
   const textOf = (handle: Handle) =>
-    handle === "high" && value[1] === null ? `${format(max)}+` : format(values[handle]);
+    handle === "high" && value[1] === null ? (openLabel ?? `${format(max, "high")}+`) : format(values[handle], handle);
   const tipText = textOf(tipHandle);
 
   useLayoutEffect(() => {
@@ -211,19 +217,30 @@ export function RangeChart({
             const end = (i + 1) / buckets.length;
             const cover = clamp((Math.min(end, shown.high) - Math.max(start, lowShown)) / (end - start), 0, 1);
             const lit = cover > 0 ? Math.round((0.35 + 0.65 * cover) * 100) : 0;
-            return (
+            const narrow = barScale !== 1;
+            const bar = (
               <span
                 key={i}
                 className={cn(
-                  "min-w-0 flex-1 rounded-t-[3px]",
+                  "min-w-0 rounded-t-[3px]",
+                  narrow ? "flex-none" : "flex-1",
                   "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                   "group-data-[dragging]/range:duration-[420ms,0ms]",
                 )}
                 style={{
                   height: `${Math.max(count ? 8 : 3, (count / tallest) * 100)}%`,
                   backgroundColor: `color-mix(in srgb, var(--fu-accent-soft,#8FAAFF) ${lit}%, var(--fu-rail,#4A4A4A))`,
+                  // The bar a denser chart would draw: its slot plus one 2px gap, scaled, less the gap.
+                  width: narrow ? `calc((100% + 2px) * ${barScale} - 2px)` : undefined,
                 }}
               />
+            );
+            return narrow ? (
+              <span key={i} className="flex h-full min-w-0 flex-1 items-end justify-center">
+                {bar}
+              </span>
+            ) : (
+              bar
             );
           })}
         </div>
@@ -250,9 +267,9 @@ export function RangeChart({
                 data-for={handle}
                 aria-label={label}
                 aria-valuetext={
-                  handle === "high" && value[1] === null ? "No maximum" : handle === "low" && value[0] === null ? "No minimum" : format(values[handle])
+                  handle === "high" && value[1] === null ? "No maximum" : handle === "low" && value[0] === null ? "No minimum" : format(values[handle], handle)
                 }
-                min={min}
+                min={single ? min + step : min}
                 max={max}
                 step={step}
                 value={values[handle]}

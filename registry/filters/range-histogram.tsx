@@ -17,19 +17,23 @@ export type RangeHistogramProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   format?: (value: number) => string;
   /** Reads a typed value. Default: the first number in the text, with an optional k or m suffix, or null when there is none. */
   parse?: (text: string) => number | null;
+  /** Tooltip text while the high end is open. Default: the top value and a plus. */
+  openLabel?: string;
   /** One handle and one field, for an upper limit only. */
   single?: boolean;
   /** Field placeholders. Default "Minimum" and "Maximum". */
   placeholders?: { low?: string; high?: string };
   /** Accessible names of the handles and fields, e.g. "Lowest price". Default: the placeholders. */
   labels?: { low?: string; high?: string };
+  /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
+  barScale?: number;
   disabled?: boolean;
 };
 
 const defaultFormat = (value: number) => new Intl.NumberFormat("en-US").format(value);
-// "45000", "45,000", "$45k", "45.5k" and "1.2m" all read as numbers; text with no number reads as empty.
+// "45000", "45,000", "$45k", "45.5k" and "1.2m" all read as numbers; a unit such as "km" or "miles" is not a suffix.
 const defaultParse = (text: string) => {
-  const match = text.replace(/[\s,]/g, "").match(/(\d*\.?\d+)([km])?/i);
+  const match = text.replace(/[\s,]/g, "").match(/(\d*\.?\d+)([km](?![a-z]))?/i);
   if (!match) return null;
   const scale = match[2] ? (match[2].toLowerCase() === "k" ? 1e3 : 1e6) : 1;
   return Number(match[1]) * scale;
@@ -45,9 +49,11 @@ export function RangeHistogram({
   buckets,
   format = defaultFormat,
   parse = defaultParse,
+  openLabel,
   single = false,
   placeholders,
   labels,
+  barScale,
   disabled,
   className,
   ...props
@@ -57,18 +63,19 @@ export function RangeHistogram({
   const lowLabel = labels?.low ?? lowPlaceholder;
   const highLabel = labels?.high ?? highPlaceholder;
 
-  // A typed number snaps to the step and stays inside the range, one step clear of the other end.
+  // A typed number snaps outwards to the step, so nothing typed is left out, and stays inside the range, one step clear of the other end.
   // An empty field, or a value at the very end, leaves that end open.
   const commit = (end: 0 | 1, typed: number | null) => {
     const next: RangeValue = [single ? null : value[0], value[1]];
     if (typed === null) next[end] = null;
     else {
-      const snapped = Math.min(max, Math.max(min, min + Math.round((typed - min) / step) * step));
+      const round = end === 0 ? Math.floor : Math.ceil;
+      const snapped = Math.min(max, Math.max(min, min + round((typed - min) / step) * step));
       if (end === 0) {
         const ceiling = (value[1] ?? max) - step;
         next[0] = snapped <= min ? null : Math.min(snapped, ceiling);
       } else {
-        const floor = single ? min : (value[0] ?? min) + step;
+        const floor = (single ? min : (value[0] ?? min)) + step;
         next[1] = snapped >= max ? null : Math.max(snapped, floor);
       }
     }
@@ -85,8 +92,10 @@ export function RangeHistogram({
         onChange={onChange}
         buckets={buckets}
         format={format}
+        openLabel={openLabel}
         single={single}
         labels={{ low: lowLabel, high: highLabel }}
+        barScale={barScale}
         disabled={disabled}
       />
       <div className={cn("mt-3 grid gap-2", single ? "grid-cols-1" : "grid-cols-2")}>
@@ -133,7 +142,10 @@ function RangeField({ value, format, parse, label, placeholder, onCommit, disabl
   const commit = () => {
     if (draft === null) return;
     setDraft(null);
-    onCommit(parse(draft));
+    const typed = draft.trim() ? parse(draft) : null;
+    // Text that reads as no number puts the field back rather than dropping the limit.
+    if (draft.trim() && (typed === null || !Number.isFinite(typed))) return;
+    onCommit(typed);
   };
 
   return (

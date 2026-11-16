@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { CountPill } from "./count-pill";
 
@@ -24,6 +24,8 @@ export type SegmentedProps<V extends SegmentedValue> = Omit<HTMLAttributes<HTMLD
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
   disabled?: boolean;
+  /** "equal": every option takes the same width. "content": the same, except an option whose words need more keeps its own width and the others share the rest. */
+  fit?: "equal" | "content";
 };
 
 const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
@@ -40,6 +42,7 @@ export function Segmented<V extends SegmentedValue>({
   formatCount,
   countLabel = defaultCountLabel,
   disabled = false,
+  fit = "equal",
   className,
   style,
   ...props
@@ -47,7 +50,20 @@ export function Segmented<V extends SegmentedValue>({
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const index = options.findIndex((option) => Object.is(option.value, value));
   const usable = (i: number) => !disabled && !options[i].disabled;
+  const [box, setBox] = useState<{ left: number; width: number } | null>(null);
   const tabStop = index >= 0 ? index : options.findIndex((_, i) => usable(i));
+
+  // Content widths differ per option, so the pill takes the chosen button's measured box instead of a share of the track.
+  useLayoutEffect(() => {
+    const button = fit === "content" && index >= 0 ? buttons.current[index] : null;
+    if (!button) return;
+    const measure = () => setBox({ left: button.offsetLeft, width: button.offsetWidth });
+    measure();
+    const observer = new ResizeObserver(measure);
+    buttons.current.forEach((b) => b && observer.observe(b));
+    return () => observer.disconnect();
+  }, [fit, index, options.length]);
+  const measured = fit === "content" ? box : null;
 
   const pick = (i: number) => {
     buttons.current[i]?.focus();
@@ -98,10 +114,15 @@ export function Segmented<V extends SegmentedValue>({
         aria-hidden="true"
         className={cn(
           "pointer-events-none absolute top-1 bottom-1 left-1 rounded-[9px] bg-[var(--fu-line,#404040)]",
-          "transition-[translate,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-          index < 0 && "opacity-0",
+          fit === "content" ? "transition-[left,width,opacity]" : "transition-[translate,opacity]",
+          "duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+          (index < 0 || (fit === "content" && !measured)) && "opacity-0",
         )}
-        style={{ width: `calc((100% - 8px) / ${options.length})`, translate: `${Math.max(index, 0) * 100}% 0` }}
+        style={
+          fit === "content"
+            ? { left: measured?.left, width: measured?.width }
+            : { width: `calc((100% - 8px) / ${options.length})`, translate: `${Math.max(index, 0) * 100}% 0` }
+        }
       />
       {options.map((option, i) => {
         const on = i === index;
@@ -120,6 +141,7 @@ export function Segmented<V extends SegmentedValue>({
             onClick={() => pick(i)}
             className={cn(
               "relative flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] px-1 text-sm leading-5 font-medium",
+              fit === "content" && "min-w-fit",
               "transition-[color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               on ? "text-[var(--fu-text,#F8F5F1)]" : "text-[var(--fu-mute,#BDBDBD)] enabled:hover:text-[var(--fu-text,#F8F5F1)]",
