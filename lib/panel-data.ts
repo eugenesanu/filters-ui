@@ -12,6 +12,8 @@ const NAMES: Record<string, string> = {
   segmented: "segmented control",
   cn: "class helper",
   facets: "facet counter",
+  "body-icons": "car silhouettes",
+  sentence: "sentence reader",
 };
 const words = (path: string) => {
   const name = baseName(path).replace(/\.tsx?$/, "");
@@ -52,7 +54,7 @@ function needsLine(item: RegistryItem) {
   const shipped = new Set(requires.flatMap((slug) => getItemFiles(ITEMS.find((i) => i.slug === slug)!).files.map((f) => f.path)));
   const brings = files
     .slice(1)
-    .filter((f) => !shipped.has(f.path) && (f.kind === "ui" || f.kind === "lib"))
+    .filter((f) => !shipped.has(f.path) && (f.kind === "ui" || f.kind === "lib" || (item.kind === "filter" && f.kind === "demo")))
     .map((f) => words(f.path))
     .sort((a, b) => Number(b === "card") - Number(a === "card"));
   const parts = [`Needs React 19 and Tailwind CSS 4.`];

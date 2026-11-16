@@ -5,47 +5,50 @@ import { RangeHistogram } from "../filters/range-histogram";
 import type { RangeValue } from "../ui/range-chart";
 import { FilterCard } from "../ui/filter-card";
 
-type Product = { name: string; price: number };
+type Car = { name: string; price: number };
 
-const PRODUCTS: Product[] = [
-  { name: "Oak side table", price: 140 },
-  { name: "Linen armchair", price: 620 },
-  { name: "Wool rug", price: 380 },
-  { name: "Floor lamp", price: 95 },
-  { name: "Walnut desk", price: 840 },
-  { name: "Cane chair", price: 210 },
-  { name: "Bookshelf", price: 330 },
-  { name: "Two-seat sofa", price: 960 },
-  { name: "Bedside lamp", price: 60 },
-  { name: "Dining bench", price: 270 },
-  { name: "Wall mirror", price: 180 },
-  { name: "Storage chest", price: 450 },
+const CARS: Car[] = [
+  { name: "Toyota Corolla", price: 21900 },
+  { name: "Honda Civic", price: 24500 },
+  { name: "Mazda CX-5", price: 27400 },
+  { name: "Toyota RAV4", price: 29900 },
+  { name: "Hyundai Tucson", price: 31200 },
+  { name: "Subaru Outback", price: 33800 },
+  { name: "Tesla Model 3", price: 38700 },
+  { name: "Ford Mustang", price: 41500 },
+  { name: "Kia Telluride", price: 46500 },
+  { name: "Ford F-150", price: 52900 },
+  { name: "BMW X3", price: 54800 },
+  { name: "Chevrolet Corvette", price: 89900 },
 ];
 
 const MIN = 0;
-const MAX = 1000;
-const STEP = 25;
+const MAX = 100000;
+const STEP = 2500;
 const BARS = 20;
 
-const money = (value: number) => `$${value.toLocaleString("en-US")}`;
+const whole = new Intl.NumberFormat("en-US");
+const tenths = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+const money = (value: number) => `$${whole.format(value)}`;
+const short = (value: number) => (value >= 1000 ? `$${tenths.format(value / 1000)}k` : money(value));
 
-// How many products fall in each bar, from MIN to MAX.
+// How many cars fall in each bar; a dearer car counts in the last one.
 const buckets = Array.from({ length: BARS }, () => 0);
-for (const { price } of PRODUCTS) {
+for (const { price } of CARS) {
   buckets[Math.min(BARS - 1, Math.floor(((price - MIN) / (MAX - MIN)) * BARS))] += 1;
 }
 
 function summaryOf([low, high]: RangeValue) {
-  if (low !== null && high !== null) return `${money(low)} to ${money(high)}`;
-  if (high !== null) return `Under ${money(high)}`;
-  if (low !== null) return `Over ${money(low)}`;
+  if (low !== null && high !== null) return `${short(low)} to ${short(high)}`;
+  if (high !== null) return `Under ${short(high)}`;
+  if (low !== null) return `Over ${short(low)}`;
   return null;
 }
 
-export default function PriceRangeExample() {
+export default function PriceExample() {
   const [price, setPrice] = useState<RangeValue>([null, null]);
   const [low, high] = price;
-  const results = PRODUCTS.filter((p) => (low === null || p.price >= low) && (high === null || p.price <= high));
+  const results = CARS.filter((car) => (low === null || car.price >= low) && (high === null || car.price <= high));
 
   return (
     <div className="w-full max-w-[320px]">
@@ -67,8 +70,8 @@ export default function PriceRangeExample() {
           labels={{ low: "Lowest price", high: "Highest price" }}
         />
       </FilterCard>
-      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)] tabular-nums">
-        {results.length === 1 ? "1 result" : `${results.length} results`}
+      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
+        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">of {CARS.length} cars</span>
       </p>
     </div>
   );

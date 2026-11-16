@@ -2,7 +2,8 @@
 // whose relative imports use double quotes. Then add the slug to components/stage/example-of.ts (registry:check
 // says so if you forget). Optional: a car preset in components/tile/previews.tsx and components/stage/filter-stage.tsx,
 // the slug in other items' related lists, a new npm package in package.json dependencies, and for a block its
-// own page under app/sets plus SET_PATHS in lib/site.ts. "New" shows on items whose addedIn is above 1.0.0.
+// own page under app/sets plus SET_PATHS in lib/site.ts. A filter that does not sit in FilterCard sets card: false
+// (and usually its own connect text). "New" shows on items whose addedIn is above 1.0.0.
 // Paths are from the repo root. The props tables are written by hand from the components: keep them in step.
 
 export type ItemKind = "filter" | "block";
@@ -37,6 +38,10 @@ export type RegistryItem = {
   /** What a rewrite must keep for screen readers and keyboards. */
   accessibility: string[];
   related: string[];
+  /** False for a filter that does not sit in FilterCard; its page and prompt then leave the card out. */
+  card?: false;
+  /** The prompt's "Connect it to my data" paragraph, when the usual one does not fit. */
+  connect?: string;
 };
 
 const RANGE_DATA: PropRow[] = [
@@ -53,7 +58,7 @@ const RANGE_TAIL: PropRow[] = [
 const CHOICE_SHARED: PropRow[] = [
   { name: "label", type: "string", required: true, meaning: "Accessible name of the group." },
   { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text in each count pill." },
-  { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count." },
+  { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
 ];
 
 /** The card every filter sits in. Shipped with each filter item. */
@@ -67,6 +72,53 @@ export const FILTER_CARD_PROPS: PropRow[] = [
 ];
 
 export const ITEMS: RegistryItem[] = [
+  {
+    slug: "sentence-search",
+    title: "Sentence search",
+    kind: "filter",
+    card: false,
+    description: "Type a sentence, such as \"blue suv under 30k\", and it turns into filters.",
+    component: "SentenceSearch",
+    entry: "registry/filters/sentence-search.tsx",
+    example: "registry/examples/sentence-search.tsx",
+    addedIn: "1.0.0",
+    updatedIn: "1.0.0",
+    value: "State: your own filters object. The vocabulary says how each word changes it, and which tokens it shows.",
+    props: [
+      { name: "vocabulary", type: "Vocabulary<Item, State>", required: true, meaning: "The words it knows: names (terms), phrases with numbers or meaning (rules), how to merge two values and the tokens a value shows." },
+      { name: "items", type: "readonly Item[]", required: true, meaning: "Every item, for the result count and the count on each suggestion." },
+      { name: "value", type: "State", required: true, meaning: "The filters that are set." },
+      { name: "onChange", type: "(value: State) => void", required: true, meaning: "Called with the new filters when a token is added or removed." },
+      { name: "label", type: "string", default: "\"Describe what you want\"", meaning: "Accessible name of the field, and the placeholder while nothing is set." },
+      { name: "placeholder", type: "string", default: "the label", meaning: "Placeholder while nothing is set." },
+      { name: "addPlaceholder", type: "string", default: "\"Add another filter\"", meaning: "Placeholder once a token is in the box." },
+      { name: "submitLabel", type: "string", default: "\"Search\"", meaning: "The button that reads the whole sentence. It shows when the box is 480px or wider." },
+      { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text in each suggestion's count pill." },
+      { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Words for a count, e.g. \"6 cars\": the result count under the suggestions, and each count read aloud." },
+      { name: "defaultText / defaultOpen / autoFocus", type: "string / boolean / boolean", default: "\"\" / false / false", meaning: "Text in the field, open suggestions and focus on first render." },
+    ],
+    does: [
+      "Reads a typed sentence into removable tokens: \"blue suv under 30k\" gives Blue, SUV and Under $30k.",
+      "A word typed in full turns into a token on the space after it.",
+      "Suggestions finish a half-typed name, offer the next filter, and show how many items each would leave.",
+      "Fixes misspelt names: \"telsa\" is read as Tesla.",
+      "When nothing matches, the first suggestion is the closest search that finds something.",
+    ],
+    keyboard: [
+      "Up and Down move through the suggestions; Enter takes the highlighted one, or reads the whole sentence when the list is closed.",
+      "Tab completes the highlighted suggestion while typing; Escape closes the list.",
+      "Backspace in an empty field removes the last token; Shift+Tab reaches each token's remove button.",
+    ],
+    accessibility: [
+      "The field is a combobox with a listbox popup: aria-expanded, aria-controls and aria-activedescendant follow the highlight, and every option has an id.",
+      "Each token is a button named \"Remove SUV\".",
+      "The result count is announced politely as it changes, as are the words it did not use.",
+      "Focus is always visible; motion is skipped when reduced motion is asked for.",
+    ],
+    related: ["searchable-list", "chip-group", "icon-tiles"],
+    connect:
+      "The words live in a Vocabulary object: terms are the names it knows (each with a key, label, group, other names and how it adds itself to the value), rules are phrases with numbers or meaning (a RegExp and how it changes the value, read in order before any name), tokens(value) lists the removable tokens, merge adds one value to another, and matches(item, value) says whether an item passes. Ask me which fields my items have and where they come from. Then replace the example's vocabulary with my own: one term list per field, rules for my number phrases (prices, dates, sizes), the tokens and the matches test. Each term key must equal the key of the token it adds; the order of tokens and the suggestion rows rely on it. Optional parts: facets with firstUp and nextUp give the suggestions shown while the box is empty, numbers suggests for a typed number, filler lists words not worth reporting as unused, stopNames words that are never a name alone, and notTypos everyday words never fixed into a name. Keep components/filters-ui/lib/sentence.ts as it is: it knows no field names. Counts come from items and matches, so pass every item, not only the ones on screen.",
+  },
   {
     slug: "range-histogram",
     title: "Price range",
@@ -114,7 +166,7 @@ export const ITEMS: RegistryItem[] = [
     slug: "range-select",
     title: "Year range",
     kind: "filter",
-    description: "Pick a range from a few set values, such as years.",
+    description: "Pick a range from a few set values, such as model years.",
     component: "RangeSelect",
     entry: "registry/filters/range-select.tsx",
     example: "registry/examples/range-select.tsx",
@@ -155,7 +207,7 @@ export const ITEMS: RegistryItem[] = [
     slug: "upper-limit",
     title: "Upper limit",
     kind: "filter",
-    description: "Set a top limit, such as distance or time.",
+    description: "Set a top limit, such as kilometres driven.",
     component: "UpperLimit",
     entry: "registry/filters/upper-limit.tsx",
     example: "registry/examples/upper-limit.tsx",
@@ -195,7 +247,7 @@ export const ITEMS: RegistryItem[] = [
     slug: "segmented-choice",
     title: "Segmented choice",
     kind: "filter",
-    description: "Pick one option, or Any, with a count on each.",
+    description: "Pick one option, or Any, with a count on each, such as 7+ seats.",
     component: "SegmentedChoice",
     entry: "registry/filters/segmented-choice.tsx",
     example: "registry/examples/segmented-choice.tsx",
@@ -213,7 +265,7 @@ export const ITEMS: RegistryItem[] = [
     does: [
       "Options share the width and one pill slides to the chosen one.",
       "An option whose count is 0 is dimmed and cannot be picked, unless it is the current choice.",
-      "Works for \"at least\" scales (2+, 3+) and plain either-or choices (New or used, Manual or automatic).",
+      "Works for \"at least\" scales (6+, 7+, 8+) and plain either-or choices (New or used, Manual or automatic).",
     ],
     keyboard: [
       "The group is one tab stop.",
@@ -221,7 +273,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     accessibility: [
       "It is a radiogroup of radio buttons with aria-checked.",
-      "Each count is read with its option (\"3+, 5 results\"); the pill itself is hidden from screen readers.",
+      "Each count is read with its option (\"7+, 5 cars\"); the pill itself is hidden from screen readers.",
     ],
     related: ["chip-group", "icon-tiles"],
   },
@@ -229,7 +281,7 @@ export const ITEMS: RegistryItem[] = [
     slug: "chip-group",
     title: "Chips",
     kind: "filter",
-    description: "Turn on one or more chips, each with a count.",
+    description: "Turn on one or more chips, each with a count, such as fuel types.",
     component: "ChipGroup",
     entry: "registry/filters/chip-group.tsx",
     example: "registry/examples/chip-group.tsx",
@@ -253,7 +305,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     accessibility: [
       "Chips are toggle buttons with aria-pressed, inside a named group.",
-      "Each chip is read as its name and its count.",
+      "Each chip is read as its name and its count (\"Hybrid, 3 cars\").",
     ],
     related: ["icon-tiles", "color-swatches", "segmented-choice"],
   },
@@ -261,7 +313,7 @@ export const ITEMS: RegistryItem[] = [
     slug: "icon-tiles",
     title: "Icon tiles",
     kind: "filter",
-    description: "Pick one or more types by icon.",
+    description: "Pick one or more types by icon, such as body styles.",
     component: "IconTiles",
     entry: "registry/filters/icon-tiles.tsx",
     example: "registry/examples/icon-tiles.tsx",
@@ -285,7 +337,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     accessibility: [
       "Tiles are toggle buttons with aria-pressed, inside a named group.",
-      "Each tile is read as its name and count; the icon is hidden from screen readers.",
+      "Each tile is read as its name and count (\"SUV, 3 cars\"); the icon is hidden from screen readers.",
     ],
     related: ["chip-group", "color-swatches"],
   },
@@ -305,7 +357,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "value", type: "readonly V[]", required: true, meaning: "The values that are on." },
       { name: "onChange", type: "(value: V[]) => void", required: true, meaning: "Called with the new list." },
       { name: "label", type: "string", required: true, meaning: "Accessible name of the group." },
-      { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count. Counts are not shown on screen." },
+      { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\". Counts are not shown on screen." },
     ],
     does: [
       "Each swatch toggles on or off; several can be on.",
@@ -326,7 +378,7 @@ export const ITEMS: RegistryItem[] = [
     slug: "searchable-list",
     title: "Searchable list",
     kind: "filter",
-    description: "Search a long list and tick items and their sub-items.",
+    description: "Search a long list and tick items and their sub-items, such as makes and models.",
     component: "SearchableList",
     entry: "registry/filters/searchable-list.tsx",
     example: "registry/examples/searchable-list.tsx",
@@ -341,13 +393,13 @@ export const ITEMS: RegistryItem[] = [
       { name: "noun", type: "string", default: "\"items\"", meaning: "Plural word for the options: \"Search makes\", \"All 21 makes\", \"No makes match\"." },
       { name: "collapsedCount", type: "number", default: "8", meaning: "How many options the short list shows." },
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text in each count pill." },
-      { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count." },
+      { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
     ],
     does: [
       "Typing filters options and sub-options at once and marks the matching letters.",
       "Ticking an option opens its sub-options; ticking a sub-option narrows the option to it.",
       "The short list grows with what is ticked; \"All N\" shows the rest in a scroll area.",
-      "A typo with no match offers the nearest name (\"Did you mean …?\").",
+      "A typo with no match offers the nearest name: \"Toyta\" gives \"Did you mean Toyota?\".",
       "A row with a count of 0 is dimmed and cannot be ticked.",
     ],
     keyboard: [
@@ -359,7 +411,7 @@ export const ITEMS: RegistryItem[] = [
       "Sub-options sit in their own list named after their option.",
       "\"No match\" and the suggestion are announced through a status region; \"All N\" has aria-expanded.",
     ],
-    related: ["chip-group", "icon-tiles"],
+    related: ["sentence-search", "chip-group", "icon-tiles"],
   },
   {
     slug: "cars-board",

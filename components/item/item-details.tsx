@@ -70,7 +70,7 @@ export function ItemDetails({ item }: { item: RegistryItem }) {
           <span className="text-text">Value.</span> {item.value}
         </p>
         <Props rows={item.props} caption={`${item.component} props`} />
-        {item.kind === "filter" && (
+        {item.kind === "filter" && item.card !== false && (
           <div className="mt-10">
             <h3 className="mb-4 text-[16px] font-semibold leading-6 text-text">
               The card: <code className="font-mono text-[15px] font-normal">FilterCard</code>

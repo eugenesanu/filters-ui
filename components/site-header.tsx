@@ -23,7 +23,12 @@ export function SiteHeader() {
           >
             Filters
           </Link>
-          {/* About goes here once its page exists. */}
+          <Link
+            href="/about"
+            className="inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
+          >
+            About
+          </Link>
           {site.isPublic && (
             <a
               href={site.repoUrl}
@@ -34,14 +39,6 @@ export function SiteHeader() {
               GitHub
             </a>
           )}
-          <a
-            href="https://eugenesanu.com"
-            target="_blank"
-            rel="noopener"
-            className="inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-dim transition-[color] duration-200 ease-smooth hover:text-text"
-          >
-            By Eugen Eşanu
-          </a>
         </nav>
       </div>
     </HeaderFrame>

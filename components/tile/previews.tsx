@@ -14,7 +14,11 @@ import { FilterCard } from "@/registry/ui/filter-card";
 import { FiltersHead } from "@/registry/ui/filters-head";
 import { BODY_FIT, CarFilterBody } from "@/components/stage/car-filter";
 import { exampleOf } from "@/components/stage/example-of";
-import { PRESETS } from "@/components/tile/presets";
+import { PRESETS, SENTENCE_PRESET } from "@/components/tile/presets";
+import { CARS } from "@/registry/demo/cars";
+import { carVocabulary } from "@/registry/demo/cars-vocabulary";
+import { readSentence } from "@/registry/lib/sentence";
+import { SentenceSearch } from "@/registry/filters/sentence-search";
 
 // Previews are inert, so nothing ever calls these.
 const still = () => {};
@@ -33,7 +37,24 @@ function PresetCard({ facet, filters, headingLevel = 3 }: { facet: CarFacet; fil
   );
 }
 
+const SENTENCE_VALUE = readSentence(carVocabulary, CARS, SENTENCE_PRESET).value;
+
+/** The box with three tokens and its suggestions open under it. */
+function SentencePreview() {
+  return (
+    <SentenceSearch
+      vocabulary={carVocabulary}
+      items={CARS}
+      value={SENTENCE_VALUE}
+      onChange={still}
+      label="Describe the car you want"
+      defaultOpen
+    />
+  );
+}
+
 export function TilePreview({ slug }: { slug: string }) {
+  if (slug === "sentence-search") return <SentencePreview />;
   const preset = PRESETS[slug];
   if (!preset) return createElement(exampleOf(slug));
   return <PresetCard facet={preset.facet} filters={{ ...EMPTY_CAR_FILTERS, ...preset.filters }} />;

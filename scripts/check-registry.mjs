@@ -2,7 +2,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ITEMS } from "../registry/items.ts";
-import { cssVariablesOf, getItemFiles, specifiersOf, varUses } from "../lib/registry-files.ts";
+import { cssVariablesOf, EXAMPLE_ASSETS, getItemFiles, specifiersOf, varUses } from "../lib/registry-files.ts";
 
 const ROOT = process.cwd();
 const problems = [];
@@ -61,6 +61,12 @@ for (const path of registryFiles.filter((p) => /^registry\/(filters|ui|lib)\//.t
   for (const specifier of specifiersOf(readFileSync(join(ROOT, path), "utf8"))) {
     if (/(^|\/)demo(\/|$)/.test(specifier) || /(^|\/)blocks(\/|$)/.test(specifier)) fail(`${path}: imports ${specifier}`);
   }
+}
+
+// A filter's example may ship an asset from demo/; it must stand alone, or it would pull the demo data in with it.
+for (const path of EXAMPLE_ASSETS) {
+  if (!existsSync(join(ROOT, path))) fail(`${path}: in EXAMPLE_ASSETS but does not exist`);
+  else if (specifiersOf(readFileSync(join(ROOT, path), "utf8")).some((s) => s.startsWith("."))) fail(`${path}: an example asset imports another registry file`);
 }
 
 // Registry files stay portable: no site code, no theme classes, every colour variable with a literal fallback.

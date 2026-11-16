@@ -4,44 +4,45 @@ import { useState } from "react";
 import { UpperLimit } from "../filters/upper-limit";
 import { FilterCard } from "../ui/filter-card";
 
-type Flat = { street: string; commute: number };
+type Car = { name: string; km: number };
 
-const FLATS: Flat[] = [
-  { street: "Mill Lane", commute: 8 },
-  { street: "Harbour Road", commute: 12 },
-  { street: "Elm Street", commute: 15 },
-  { street: "Park Row", commute: 18 },
-  { street: "Station Hill", commute: 21 },
-  { street: "Canal Walk", commute: 24 },
-  { street: "Orchard Close", commute: 27 },
-  { street: "King Street", commute: 31 },
-  { street: "Bridge End", commute: 35 },
-  { street: "Meadow View", commute: 42 },
-  { street: "Church Lane", commute: 48 },
-  { street: "Forest Road", commute: 55 },
+const CARS: Car[] = [
+  { name: "Kia EV6", km: 4200 },
+  { name: "Honda CR-V", km: 12800 },
+  { name: "Tesla Model Y", km: 23500 },
+  { name: "Kia Sportage", km: 31900 },
+  { name: "Hyundai Tucson", km: 44100 },
+  { name: "Toyota Camry", km: 52600 },
+  { name: "Toyota RAV4", km: 58200 },
+  { name: "Subaru Outback", km: 67400 },
+  { name: "Mazda CX-5", km: 81300 },
+  { name: "Ford Escape", km: 96700 },
+  { name: "Honda Civic", km: 118400 },
+  { name: "Ford F-150", km: 164000 },
 ];
 
-const MAX = 60;
-const STEP = 5;
-const BARS = 20;
+const MAX = 150000;
+const STEP = 5000;
+const BARS = 15;
 
-const minutes = (value: number) => `${value} min`;
+const whole = new Intl.NumberFormat("en-US");
+const km = (value: number) => `${whole.format(value)} km`;
 
-// How many flats fall in each bar, from 0 to MAX minutes.
+// How many cars fall in each bar; one past MAX counts in the last.
 const buckets = Array.from({ length: BARS }, () => 0);
-for (const { commute } of FLATS) {
-  buckets[Math.min(BARS - 1, Math.floor((commute / MAX) * BARS))] += 1;
+for (const car of CARS) {
+  buckets[Math.min(BARS - 1, Math.floor((car.km / MAX) * BARS))] += 1;
 }
 
-export default function UpperLimitExample() {
+export default function KilometresExample() {
   const [limit, setLimit] = useState<number | null>(null);
-  const results = FLATS.filter((flat) => limit === null || flat.commute <= limit);
+  const results = CARS.filter((car) => limit === null || car.km <= limit);
 
   return (
     <div className="w-full max-w-[320px]">
       <FilterCard
-        title="Commute"
-        summary={limit === null ? null : `Under ${minutes(limit)}`}
+        title="Kilometres"
+        summary={limit === null ? null : `Under ${km(limit)}`}
         onClear={() => setLimit(null)}
         defaultOpen
         bodyClassName="pb-[18px]"
@@ -53,12 +54,13 @@ export default function UpperLimitExample() {
           value={limit}
           onChange={setLimit}
           buckets={buckets}
-          format={minutes}
-          label="Longest commute"
+          barScale={0.75}
+          format={km}
+          label="Maximum kilometres"
         />
       </FilterCard>
-      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)] tabular-nums">
-        {results.length === 1 ? "1 result" : `${results.length} results`}
+      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
+        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">of {CARS.length} cars</span>
       </p>
     </div>
   );

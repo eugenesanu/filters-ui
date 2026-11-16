@@ -4,27 +4,27 @@ import { useState } from "react";
 import { RangeSelect } from "../filters/range-select";
 import { FilterCard } from "../ui/filter-card";
 
-type Bike = { name: string; year: number };
+type Car = { name: string; year: number };
 
-const BIKES: Bike[] = [
-  { name: "City 3", year: 2017 },
-  { name: "Gravel One", year: 2019 },
-  { name: "Trail 2", year: 2020 },
-  { name: "Commuter", year: 2020 },
-  { name: "Road Pro", year: 2021 },
-  { name: "Cargo Long", year: 2022 },
-  { name: "Gravel Two", year: 2022 },
-  { name: "Folding S", year: 2023 },
-  { name: "City 5", year: 2023 },
-  { name: "Trail 4", year: 2024 },
-  { name: "Road Air", year: 2025 },
-  { name: "Cargo Short", year: 2025 },
+const CARS: Car[] = [
+  { name: "Honda Civic", year: 2017 },
+  { name: "Ford Escape", year: 2018 },
+  { name: "Toyota RAV4", year: 2019 },
+  { name: "Mazda CX-5", year: 2019 },
+  { name: "Subaru Outback", year: 2020 },
+  { name: "Hyundai Tucson", year: 2021 },
+  { name: "Toyota Camry", year: 2021 },
+  { name: "Kia Sportage", year: 2022 },
+  { name: "Tesla Model Y", year: 2023 },
+  { name: "Honda CR-V", year: 2024 },
+  { name: "Kia EV6", year: 2025 },
+  { name: "Ford F-150", year: 2026 },
 ];
 
-const YEARS = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
+const YEARS = [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
 
 // One bar per year, in the order of YEARS.
-const buckets = YEARS.map((year) => BIKES.filter((bike) => bike.year === year).length);
+const buckets = YEARS.map((year) => CARS.filter((car) => car.year === year).length);
 
 type YearRange = [number | null, number | null];
 
@@ -36,10 +36,10 @@ function summaryOf([from, to]: YearRange) {
   return null;
 }
 
-export default function YearRangeExample() {
+export default function YearExample() {
   const [years, setYears] = useState<YearRange>([null, null]);
   const [from, to] = years;
-  const results = BIKES.filter((bike) => (from === null || bike.year >= from) && (to === null || bike.year <= to));
+  const results = CARS.filter((car) => (from === null || car.year >= from) && (to === null || car.year <= to));
 
   return (
     <div className="w-full max-w-[320px]">
@@ -60,8 +60,8 @@ export default function YearRangeExample() {
           labels={{ low: "From year", high: "To year" }}
         />
       </FilterCard>
-      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)] tabular-nums">
-        {results.length === 1 ? "1 result" : `${results.length} results`}
+      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
+        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">of {CARS.length} cars</span>
       </p>
     </div>
   );

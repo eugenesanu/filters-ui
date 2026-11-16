@@ -1,8 +1,7 @@
 import type { SVGProps } from "react";
-import type { Body } from "./cars";
 
 // Side profiles, one per body style: the outline, then the x of each wheel centre.
-const PROFILES: Record<Body, [string, [number, number]]> = {
+const PROFILES = {
   SUV: [
     "M16 100c0-13 4-22 18-26l46-10 26-30c4-5 9-7 15-7h104c8 0 14 2 19 8l26 34 26 6c6 2 8 6 8 13v24c0 4-3 6-7 6h-16a29 29 0 0 0-56 0H106a29 29 0 0 0-56 0H24c-5 0-8-4-8-12z",
     [78, 253],
@@ -35,10 +34,12 @@ const PROFILES: Record<Body, [string, [number, number]]> = {
     "M18 100c0-11 5-19 18-23l58-10 18-22 8 1-14 21h116l42 8c11 2 22 8 22 21v10c0 7-3 10-8 10h-22a29 29 0 0 0-56 0H104a29 29 0 0 0-56 0H26c-5 0-8-4-8-16z",
     [76, 228],
   ],
-};
+} satisfies Record<string, [string, [number, number]]>;
+
+export type BodyStyle = keyof typeof PROFILES;
 
 /** A car's side profile in currentColor. The wheels are ringed in var(--tile-bg) so they read as cut out of the body. */
-export function BodyIcon({ body, ...props }: SVGProps<SVGSVGElement> & { body: Body }) {
+export function BodyIcon({ body, ...props }: SVGProps<SVGSVGElement> & { body: BodyStyle }) {
   const [outline, wheels] = PROFILES[body];
   return (
     <svg viewBox="0 0 320 140" height={28} aria-hidden="true" focusable="false" {...props}>

@@ -2,12 +2,16 @@
 
 import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { CARS } from "@/registry/demo/cars";
-import { CAR_FACET_TITLES, clearFacet, matchingCars, summaryOf, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
+import { CAR_FACET_TITLES, clearFacet, formatCarCount, matchingCars, summaryOf, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
 import { CarsBoard } from "@/registry/blocks/cars-board";
 import { FilterCard } from "@/registry/ui/filter-card";
 import { TextSwap } from "@/registry/ui/text-swap";
 import { BODY_FIT, CarFilterBody } from "@/components/stage/car-filter";
 import { exampleOf } from "@/components/stage/example-of";
+import { carVocabulary } from "@/registry/demo/cars-vocabulary";
+import { SentenceSearch } from "@/registry/filters/sentence-search";
+import { readSentence } from "@/registry/lib/sentence";
+import { SENTENCE_PRESET } from "@/components/tile/presets";
 import { presetFilters } from "@/components/tile/presets";
 
 /** Which car filters demonstrate each tile; several make a quiet switch at the stage top-left. A tile with none shows its example. */
@@ -129,7 +133,9 @@ function BoardStage() {
   const [away, setAway] = useState(false);
   const frame = useRef<HTMLDivElement>(null);
 
-  // The board pins its Show bar to the window once its head scrolls away; past the stage it would float over the page.
+  // The board pins its Show bar to the window on phones, and on wider screens once its head scrolls away. Here the copy
+  // panel sits under the stage, so the bar shows on phones only (below 640px, where the head hides its buttons) and
+  // never once the stage is out of view.
   useEffect(() => {
     const node = frame.current;
     if (!node) return;
@@ -140,7 +146,7 @@ function BoardStage() {
 
   const [shown, setShown] = useState<number | null>(null);
   return (
-    <div ref={frame} data-away={away || undefined} className="h-full data-[away]:[&_[data-state].fixed]:hidden">
+    <div ref={frame} data-away={away || undefined} className="h-full sm:[&_[data-state].fixed]:hidden data-[away]:[&_[data-state].fixed]:hidden">
     <StagePanel
       wide
       onReset={() => {
@@ -162,6 +168,73 @@ function BoardStage() {
   );
 }
 
+/** Sentences a visitor can try; none needs a place. The last one is misspelt on purpose. */
+const SENTENCES = ["blue suv under 30k", "hybrid with 7 seats", "rav4 2020 or newer", "cheap truck", "telsa"];
+
+const presetSentence = () => readSentence(carVocabulary, CARS, SENTENCE_PRESET).value;
+
+function SentenceStage() {
+  const [filters, setFilters] = useState<CarFilters>(presetSentence);
+  const [round, setRound] = useState(0);
+  const [typed, setTyped] = useState<string | null>(null);
+  const matches = matchingCars(filters).length;
+
+  const reset = () => {
+    setFilters(presetSentence());
+    setTyped(null);
+    setRound((n) => n + 1);
+  };
+
+  return (
+    <StagePanel
+      wide
+      toolbar={
+        <div role="group" aria-label="Try a sentence" className="flex min-w-0 items-start gap-x-1 pl-2 text-[14px] leading-5">
+          <span className="mr-1 flex h-9 shrink-0 items-center text-dim">Try:</span>
+          <span className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-2">
+            {SENTENCES.map((sentence) => (
+              <button
+                key={sentence}
+                type="button"
+                onClick={() => {
+                  setFilters(carVocabulary.empty);
+                  setTyped(sentence);
+                  setRound((n) => n + 1);
+                }}
+                className="relative inline-flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[10px] px-2 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-white/[0.06] hover:text-text pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1"
+              >
+                {sentence}
+              </button>
+            ))}
+          </span>
+        </div>
+      }
+    >
+      {/* On phones the open list sits in the flow, so it grows the stage instead of covering the copy panel below. */}
+      <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 sm:pt-[clamp(8px,6vh,72px)] max-sm:[&_[data-state=open]:has(>[role=listbox])]:static">
+        <SentenceSearch
+          key={round}
+          vocabulary={carVocabulary}
+          items={CARS}
+          value={filters}
+          onChange={setFilters}
+          label="Describe the car you want"
+          countLabel={formatCarCount}
+          defaultText={typed ?? ""}
+          defaultOpen={typed !== null}
+          autoFocus={typed !== null}
+        />
+        <div className="mt-3 flex items-center justify-between gap-3 pl-4">
+          <p className="text-[14px] leading-5 text-dim tabular-nums">
+            <TextSwap className="font-medium text-text">{count.format(matches)}</TextSwap> of {count.format(CARS.length)} cars
+          </p>
+          <ResetButton onReset={reset} className="-mr-3" />
+        </div>
+      </div>
+    </StagePanel>
+  );
+}
+
 function ExampleStage({ slug }: { slug: string }) {
   const [round, setRound] = useState(0);
   return (
@@ -173,6 +246,7 @@ function ExampleStage({ slug }: { slug: string }) {
 
 export function FilterStage({ slug }: { slug: string }) {
   if (slug === "cars-board") return <BoardStage />;
+  if (slug === "sentence-search") return <SentenceStage />;
   const facets = STAGE_FACETS[slug];
   return facets ? <CarFilterStage slug={slug} facets={facets} /> : <ExampleStage slug={slug} />;
 }

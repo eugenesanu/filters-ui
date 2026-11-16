@@ -15,6 +15,9 @@ export const PRESETS: Record<string, Preset> = {
   "searchable-list": { facet: "make", filters: { makes: [{ make: "Toyota", models: [] }] } },
 };
 
+/** The sentence the sentence search's tile and stage open with, already read into tokens. */
+export const SENTENCE_PRESET = "white awd suv";
+
 /** The filters a tile shows for one facet, so a stage can open in the same state. */
 export function presetFilters(slug: string, facet: CarFacet): CarFilters {
   const preset = PRESETS[slug];

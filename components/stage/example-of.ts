@@ -6,6 +6,7 @@ import type { ComponentType } from "react";
 // A tile with no car preset shows its own example. next/dynamic needs literal paths at module top level,
 // so every example is listed here; scripts/check-registry.mjs fails when an item's example is missing.
 const EXAMPLES: Record<string, ComponentType> = {
+  "sentence-search": dynamic(() => import("@/registry/examples/sentence-search")),
   "range-histogram": dynamic(() => import("@/registry/examples/range-histogram")),
   "range-select": dynamic(() => import("@/registry/examples/range-select")),
   "upper-limit": dynamic(() => import("@/registry/examples/upper-limit")),

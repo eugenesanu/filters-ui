@@ -17,6 +17,8 @@ const PEERS = new Set(["react", "react-dom"]);
 /** Dependencies of the site itself, never of a registry file. */
 const SITE_ONLY = new Set(["next", "shiki"]);
 const EXTENSIONS = ["", ".ts", ".tsx", "/index.ts", "/index.tsx"];
+/** Demo files a filter's example may ship: drawings that import nothing from the registry, never data. */
+export const EXAMPLE_ASSETS = new Set(["registry/demo/body-icons.tsx"]);
 
 export type RegistryFileKind = "ui" | "filter" | "block" | "lib" | "demo";
 
@@ -151,7 +153,7 @@ export function getItemFiles(item: RegistryItem): ItemFiles {
   for (const edge of edgesOf(item.example, packages, allowed)) visit(edge.target);
 
   if (item.kind === "filter") {
-    const demo = order.filter((path) => kindOf(path) === "demo" || kindOf(path) === "block");
+    const demo = order.filter((path) => (kindOf(path) === "demo" && !EXAMPLE_ASSETS.has(path)) || kindOf(path) === "block");
     if (demo.length) throw new Error(`registry-files: the filter ${item.slug} reaches ${demo.join(", ")}; only blocks may use demo data`);
   }
 

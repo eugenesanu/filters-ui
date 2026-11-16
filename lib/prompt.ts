@@ -96,7 +96,7 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
     "",
     ...propLines(item.props),
   );
-  if (hasCard && item.kind === "filter") {
+  if (hasCard && item.kind === "filter" && item.card !== false) {
     add(
       "",
       `It sits inside FilterCard (${INSTALL_DIR}/ui/filter-card.tsx), the card with the title, the value in words and a Clear button:`,
@@ -109,7 +109,7 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
     "",
     "## Usage",
     "",
-    `A working example with made-up data. Imports assume @/ points at the project root; change ${INSTALL_ALIAS} if this project uses another alias.`,
+    `A working example with a few made-up cars. Imports assume @/ points at the project root; change ${INSTALL_ALIAS} if this project uses another alias.`,
     "",
     fence(example, "tsx"),
   );
@@ -118,9 +118,10 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
     "",
     "## Connect it to my data",
     "",
-    item.kind === "block"
+    item.connect ??
+    (item.kind === "block"
       ? `The board filters a list of Car records (${INSTALL_DIR}/demo/cars.ts) and counts every option itself in ${INSTALL_DIR}/demo/cars-facets.ts. Ask me where my records come from and which of my fields match each card. Then map my records onto the Car type, or change Car and the facet tests in cars-facets.ts to my fields, and remove the cards I have no field for. Keep the counting as it is: each option is counted with every other filter applied and its own left out.`
-      : "Ask me which field it filters and where the list of items comes from. Counts are numbers I pass in: work them out from my items, and when there are other filters on the page, count each option with every other filter applied but this one left out, so a count says how many results picking it would give.",
+      : "Ask me which field it filters and where the list of items comes from. Counts are numbers I pass in: work them out from my items, and when there are other filters on the page, count each option with every other filter applied but this one left out, so a count says how many results picking it would give."),
   );
 
   add(

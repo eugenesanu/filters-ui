@@ -4,52 +4,54 @@ import { useState } from "react";
 import { SegmentedChoice } from "../filters/segmented-choice";
 import { FilterCard } from "../ui/filter-card";
 
-type Home = { street: string; bedrooms: number };
+type Car = { name: string; seats: number };
 
-const HOMES: Home[] = [
-  { street: "Mill Lane", bedrooms: 1 },
-  { street: "Harbour Road", bedrooms: 2 },
-  { street: "Elm Street", bedrooms: 3 },
-  { street: "Park Row", bedrooms: 1 },
-  { street: "Station Hill", bedrooms: 2 },
-  { street: "Canal Walk", bedrooms: 4 },
-  { street: "Orchard Close", bedrooms: 2 },
-  { street: "King Street", bedrooms: 1 },
-  { street: "Bridge End", bedrooms: 3 },
-  { street: "Meadow View", bedrooms: 2 },
-  { street: "Church Lane", bedrooms: 5 },
-  { street: "Forest Road", bedrooms: 3 },
+const CARS: Car[] = [
+  { name: "Mazda MX-5", seats: 2 },
+  { name: "Chevrolet Corvette", seats: 2 },
+  { name: "Ford Mustang", seats: 4 },
+  { name: "Honda Civic", seats: 5 },
+  { name: "Toyota RAV4", seats: 5 },
+  { name: "Tesla Model Y", seats: 5 },
+  { name: "Ford F-150", seats: 6 },
+  { name: "Volkswagen Tiguan", seats: 7 },
+  { name: "Chrysler Pacifica", seats: 7 },
+  { name: "Toyota Highlander", seats: 8 },
+  { name: "Kia Telluride", seats: 8 },
+  { name: "Toyota Sienna", seats: 8 },
 ];
 
-const MINIMUMS = [2, 3, 4];
+const MINIMUMS = [6, 7, 8];
 
-// "Any" has no count; each "at least" option counts the homes it would show.
+const carCount = (n: number) => (n === 1 ? "1 car" : `${n} cars`);
+
+// "Any" has no count; each "at least" option counts the cars it would show.
 const options = [
   { value: null, label: "Any" },
   ...MINIMUMS.map((min) => ({
     value: min,
     label: `${min}+`,
-    count: HOMES.filter((home) => home.bedrooms >= min).length,
+    count: CARS.filter((car) => car.seats >= min).length,
   })),
 ];
 
-export default function SegmentedChoiceExample() {
-  const [bedrooms, setBedrooms] = useState<number | null>(null);
-  const results = HOMES.filter((home) => bedrooms === null || home.bedrooms >= bedrooms);
+export default function SeatsExample() {
+  const [seats, setSeats] = useState<number | null>(null);
+  const results = CARS.filter((car) => seats === null || car.seats >= seats);
 
   return (
     <div className="w-full max-w-[320px]">
       <FilterCard
-        title="Bedrooms"
-        summary={bedrooms === null ? null : `${bedrooms}+`}
-        onClear={() => setBedrooms(null)}
+        title="Seats"
+        summary={seats === null ? null : `${seats}+`}
+        onClear={() => setSeats(null)}
         defaultOpen
         bodyClassName="pb-2.5"
       >
-        <SegmentedChoice<number | null> label="Bedrooms" options={options} value={bedrooms} onChange={setBedrooms} />
+        <SegmentedChoice<number | null> label="Seats" options={options} value={seats} onChange={setSeats} countLabel={carCount} />
       </FilterCard>
-      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)] tabular-nums">
-        {results.length === 1 ? "1 result" : `${results.length} results`}
+      <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
+        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">of {CARS.length} cars</span>
       </p>
     </div>
   );
