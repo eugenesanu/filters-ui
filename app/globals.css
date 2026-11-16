@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  --fu-page: #0a0a0a;
+  --fu-surface-1: #171717;
+  --fu-card: #1f1f1f;
+  --fu-surface-3: #2a2a2a;
+  --fu-hover: #333333;
+  --fu-line: #404040;
+  --fu-card-border: #2a2a2a;
+  --fu-control-border: #737373;
+  --fu-text: #f8f5f1;
+  --fu-mute: #bdbdbd;
+  --fu-dim: #8c8c8c;
+  --fu-accent: #3b57e6;
+  --fu-accent-hover: #3450d4;
+  --fu-accent-soft: #8faaff;
+  --fu-accent-pale: #d1ddff;
+  --fu-selected: #1f2747;
+
+  --fu-radius-card: 24px;
+  --fu-radius-panel: 28px;
+  --fu-radius-tile: 16px;
+  --fu-radius-field: 12px;
+  --fu-radius-button: 10px;
+
+  --fu-ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+
+  --color-page: var(--fu-page);
+  --color-surface-1: var(--fu-surface-1);
+  --color-card: var(--fu-card);
+  --color-surface-3: var(--fu-surface-3);
+  --color-hover: var(--fu-hover);
+  --color-line: var(--fu-line);
+  --color-card-border: var(--fu-card-border);
+  --color-control-border: var(--fu-control-border);
+  --color-text: var(--fu-text);
+  --color-mute: var(--fu-mute);
+  --color-dim: var(--fu-dim);
+  --color-accent: var(--fu-accent);
+  --color-accent-hover: var(--fu-accent-hover);
+  --color-accent-soft: var(--fu-accent-soft);
+  --color-accent-pale: var(--fu-accent-pale);
+  --color-selected: var(--fu-selected);
+
+  --radius-card: var(--fu-radius-card);
+  --radius-panel: var(--fu-radius-panel);
+  --radius-tile: var(--fu-radius-tile);
+  --radius-field: var(--fu-radius-field);
+  --radius-button: var(--fu-radius-button);
+
+  --ease-smooth: var(--fu-ease-smooth);
+}
+
+html {
+  background-color: var(--fu-page);
+}
+
+body {
+  background-color: var(--fu-page);
+  color: var(--fu-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: var(--fu-accent-pale);
+  color: #171717;
+}
+
+:focus-visible {
+  outline: 2px solid var(--fu-accent-soft);
+  outline-offset: 3px;
+}
