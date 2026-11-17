@@ -373,8 +373,8 @@ export function RowHighlight({ activeId, open, pressed = false }: { activeId: st
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 
 /**
- * The check on a chosen row. It draws itself in, from the short leg up, 140ms after its panel starts to open, and
- * stays drawn while the panel leaves. Takes its 16px place even when off, so rows line up.
+ * The check on a chosen row. It draws itself in, from the short leg up, 140ms after its panel first opens; after that
+ * it is already in place. Takes its 16px place even when off, so rows line up.
  */
 export function ListCheck({ on }: { on: boolean }) {
   return (
@@ -388,7 +388,7 @@ export function ListCheck({ on }: { on: boolean }) {
               // The path is about 23 units long; a negative offset draws it from the short leg up.
               "[&_path]:[stroke-dasharray:23] [&_path]:[stroke-dashoffset:0] [&_path]:transition-[stroke-dashoffset] [&_path]:delay-[140ms] [&_path]:duration-[420ms]",
               "[&_path]:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:[&_path]:transition-none",
-              "group-data-[state=closed]/popover:[&_path]:[stroke-dashoffset:-23] group-data-[state=closed]/popover:[&_path]:transition-none",
+              "group-data-[unseen]/popover:[&_path]:[stroke-dashoffset:-23] group-data-[unseen]/popover:[&_path]:transition-none",
             )
           : "invisible",
       )}
