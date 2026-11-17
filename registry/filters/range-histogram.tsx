@@ -35,6 +35,8 @@ export type RangeHistogramProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   labels?: { low?: string; high?: string };
   /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
   barScale?: number;
+  /** Says loading and errors out loud. Off when the chart sits inside another filter that says them once, as in Budget. Default true. */
+  announce?: boolean;
 };
 
 /** A range chart with typed Minimum and Maximum fields under it, kept in step both ways. */
@@ -58,6 +60,7 @@ export function RangeHistogram({
   errorText = "Couldn't load the counts.",
   emptyText = "No items to show.",
   disabled = false,
+  announce = true,
   className,
   ...props
 }: RangeHistogramProps) {
@@ -91,7 +94,7 @@ export function RangeHistogram({
   // The frame dims and blocks everything while disabled, so the chart and fields are not dimmed a second time.
   return (
     <div className={cn("pt-1", className)} {...props}>
-      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled}>
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled} announce={announce}>
         <RangeChart
           min={min}
           max={max}

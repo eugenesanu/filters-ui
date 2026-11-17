@@ -4,8 +4,10 @@ import { useId, useRef, useState, type CSSProperties, type HTMLAttributes, type 
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
 import { RangeHistogram } from "./range-histogram";
-import type { RangeValue } from "../ui/range-chart";
+import { hillAt, type RangeValue } from "../ui/range-chart";
 import { Segmented } from "../ui/segmented";
+import { ARRIVING, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
 import { TextSwap } from "../ui/text-swap";
 
@@ -17,7 +19,8 @@ export type BudgetValue =
   | { by: "total"; range: RangeValue }
   | { by: "monthly"; monthly: number | null; term: number; down: number };
 
-export type BudgetProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type BudgetProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  Omit<StateProps, "emptyText"> & {
   value: BudgetValue;
   onChange: (value: BudgetValue) => void;
   /** The price scale: bottom, top and the step that handles and typed prices snap to. */
@@ -65,6 +68,8 @@ type Way = "total" | "monthly";
 /**
  * Two radio cards: Total price holds a price chart with typed fields; Monthly payment takes an amount, a term and a down
  * payment and turns them into a top price, marked with a pin on the same bars. The picked card opens; the other folds.
+ * Loading, the cards keep their titles and the open card draws its bars, top price and fields as placeholders. An error
+ * shows its line and Retry in the open card in place of its fields; the cards can still be switched.
  */
 export function Budget({
   value,
@@ -79,6 +84,10 @@ export function Budget({
   currency = "USD",
   locale,
   label = "Budget",
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the prices.",
+  disabled = false,
   className,
   ...props
 }: BudgetProps) {
@@ -121,9 +130,15 @@ export function Budget({
   };
 
 
-  const bodyOf = (way: Way): ReactNode =>
+  // Each way's body has its own frame for loading and errors, so an error stands in its card and focus stays there; only
+  // the open card's frame speaks, so "Loading" is said once.
+  const bodyOf = (way: Way, on: boolean): ReactNode =>
     way === "total" ? (
       <RangeHistogram
+        status={status}
+        onRetry={onRetry}
+        errorText={errorText}
+        announce={on}
         min={min}
         max={max}
         step={step}
@@ -135,122 +150,135 @@ export function Budget({
         labels={{ low: "Lowest price", high: "Highest price" }}
       />
     ) : (
-      <MonthlyBody
-        id={id}
-        value={kept.monthly}
-        onChange={onChange}
-        ceiling={ceiling}
-        min={min}
-        max={max}
-        buckets={buckets}
-        rate={rate}
-        terms={terms}
-        format={format}
-        locale={locale}
-      />
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} announce={on}>
+        <MonthlyBody
+          id={id}
+          value={kept.monthly}
+          onChange={onChange}
+          ceiling={ceiling}
+          min={min}
+          max={max}
+          buckets={buckets}
+          rate={rate}
+          terms={terms}
+          format={format}
+          locale={locale}
+        />
+      </StatusFrame>
     );
 
+  // The outer frame holds both cards: no input while loading, and dimmed and off while disabled. It says nothing itself.
   return (
-    <div onKeyDown={onKeys} className={cn("flex flex-col gap-2 pt-0.5", className)} {...props}>
-      {/* The group owns only the two radios, not the fields inside the open card. */}
-      <div role="radiogroup" aria-label={label} aria-owns={ways.map((way) => `${id}-${way.key}-radio`).join(" ")} className="contents" />
-      {ways.map((way, i) => {
-        const on = value.by === way.key;
-        return (
+    <div onKeyDown={onKeys} className={cn("pt-0.5", className)} {...props}>
+      <StatusFrame status={status === "loading" ? "loading" : "ready"} disabled={disabled} announce={false}>
+        <div className="flex flex-col gap-2">
+          {/* The group owns only the two radios, not the fields inside the open card. */}
           <div
-            key={way.key}
-            data-state={on ? "on" : "off"}
-            className={cn(
-              "group/way rounded-[16px] border transition-[border-color,background-color] duration-[480ms] motion-reduce:transition-none",
-              SMOOTH,
-              on
-                ? "border-[var(--fu-accent-soft,#8FAAFF)] bg-[var(--fu-selected,#1F2747)] forced-colors:border-[Highlight]"
-                : "border-[var(--fu-surface-3,#2A2A2A)] hover:border-[var(--fu-line,#404040)] hover:bg-[var(--fu-item-hover,#2A2A2A)]",
-            )}
-          >
-            <button
-              ref={(node) => {
-                radios.current[i] = node;
-              }}
-              id={`${id}-${way.key}-radio`}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              aria-describedby={`${id}-${way.key}-line`}
-              tabIndex={on ? 0 : -1}
-              onClick={() => pick(way.key)}
-              className={cn(
-                "flex w-full cursor-pointer items-start gap-3 rounded-[15px] p-3 text-start",
-                "outline-none focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
-                on && "cursor-default",
-              )}
-            >
-              <span
-                aria-hidden="true"
+            role="radiogroup"
+            aria-label={label}
+            aria-owns={ways.map((way) => `${id}-${way.key}-radio`).join(" ")}
+            aria-disabled={disabled || undefined}
+            className="contents"
+          />
+          {ways.map((way, i) => {
+            const on = value.by === way.key;
+            return (
+              <div
+                key={way.key}
+                data-state={on ? "on" : "off"}
                 className={cn(
-                  "relative mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-[1.5px] transition-[border-color,background-color] duration-200 motion-reduce:transition-none",
+                  "group/way rounded-[16px] border transition-[border-color,background-color] duration-[480ms] motion-reduce:transition-none",
+                  SMOOTH,
                   on
-                    ? "border-[var(--fu-accent,#3B57E6)] bg-[var(--fu-accent,#3B57E6)]"
-                    : "border-[var(--fu-control-border,#737373)] group-hover/way:border-[var(--fu-control-hover,#A3A3A3)]",
+                    ? "border-[var(--fu-accent-soft,#8FAAFF)] bg-[var(--fu-selected,#1F2747)] forced-colors:border-[Highlight]"
+                    : "border-[var(--fu-surface-3,#2A2A2A)] hover:border-[var(--fu-line,#404040)] hover:bg-[var(--fu-item-hover,#2A2A2A)]",
                 )}
               >
-                <span
+                <button
+                  ref={(node) => {
+                    radios.current[i] = node;
+                  }}
+                  id={`${id}-${way.key}-radio`}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  aria-describedby={`${id}-${way.key}-line`}
+                  tabIndex={on ? 0 : -1}
+                  onClick={() => pick(way.key)}
                   className={cn(
-                    "size-2 rounded-full bg-[var(--fu-on-accent,#FFFFFF)] transition-[scale,opacity] duration-[320ms] motion-reduce:transition-none",
-                    "forced-colors:bg-[CanvasText] forced-colors:[forced-color-adjust:none]",
-                    SMOOTH,
-                    on ? "scale-100 opacity-100" : "scale-0 opacity-0",
-                  )}
-                />
-              </span>
-              <span className="min-w-0">
-                <span
-                  className={cn(
-                    "block text-[15px] leading-6 font-medium transition-colors duration-200",
-                    on ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-text,#F8F5F1)]",
-                  )}
-                >
-                  {way.title}
-                </span>
-                {/* The note says what a way does until it is picked; then it folds away and the way's own fields say it. */}
-                <span
-                  className={cn(
-                    "grid transition-[grid-template-rows,opacity] duration-[480ms] motion-reduce:transition-none",
-                    SMOOTH,
-                    on ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100",
+                    "flex w-full cursor-pointer items-start gap-3 rounded-[15px] p-3 text-start",
+                    "outline-none focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
+                    on && "cursor-default",
                   )}
                 >
-                  <span className="min-h-0 overflow-hidden">
-                    <span id={`${id}-${way.key}-line`} className="block text-[13px] leading-5 text-[var(--fu-dim,#929292)]">
-                      {way.line}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "relative mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border-[1.5px] transition-[border-color,background-color] duration-200 motion-reduce:transition-none",
+                      on
+                        ? "border-[var(--fu-accent,#3B57E6)] bg-[var(--fu-accent,#3B57E6)]"
+                        : "border-[var(--fu-control-border,#737373)] group-hover/way:border-[var(--fu-control-hover,#A3A3A3)]",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "size-2 rounded-full bg-[var(--fu-on-accent,#FFFFFF)] transition-[scale,opacity] duration-[320ms] motion-reduce:transition-none",
+                        "forced-colors:bg-[CanvasText] forced-colors:[forced-color-adjust:none]",
+                        SMOOTH,
+                        on ? "scale-100 opacity-100" : "scale-0 opacity-0",
+                      )}
+                    />
+                  </span>
+                  <span className="min-w-0">
+                    <span
+                      className={cn(
+                        "block text-[15px] leading-6 font-medium transition-colors duration-200",
+                        on ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-text,#F8F5F1)]",
+                      )}
+                    >
+                      {way.title}
+                    </span>
+                    {/* The note says what a way does until it is picked; then it folds away and the way's own fields say it. */}
+                    <span
+                      className={cn(
+                        "grid transition-[grid-template-rows,opacity] duration-[480ms] motion-reduce:transition-none",
+                        SMOOTH,
+                        on ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100",
+                      )}
+                    >
+                      <span className="min-h-0 overflow-hidden">
+                        <span id={`${id}-${way.key}-line`} className="block text-[13px] leading-5 text-[var(--fu-dim,#929292)]">
+                          {way.line}
+                        </span>
+                      </span>
                     </span>
                   </span>
-                </span>
-              </span>
-            </button>
-            <div
-              inert={!on}
-              className={cn(
-                "grid transition-[grid-template-rows] duration-[480ms] motion-reduce:transition-none",
-                SMOOTH,
-                on ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-              )}
-            >
-              <div className="min-h-0 overflow-hidden">
+                </button>
                 <div
+                  inert={!on}
                   className={cn(
-                    "px-3 pb-3 transition-[opacity,filter,translate] duration-[480ms] motion-reduce:transition-none",
+                    "grid transition-[grid-template-rows] duration-[480ms] motion-reduce:transition-none",
                     SMOOTH,
-                    on ? "translate-y-0 opacity-100 blur-none delay-[120ms]" : "translate-y-1.5 opacity-0 blur-[6px]",
+                    on ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
                   )}
                 >
-                  {bodyOf(way.key)}
+                  <div className="min-h-0 overflow-hidden">
+                    <div
+                      className={cn(
+                        "px-3 pb-3 transition-[opacity,filter,translate] duration-[480ms] motion-reduce:transition-none",
+                        SMOOTH,
+                        on ? "translate-y-0 opacity-100 blur-none delay-[120ms]" : "translate-y-1.5 opacity-0 blur-[6px]",
+                      )}
+                    >
+                      {bodyOf(way.key, on)}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      </StatusFrame>
     </div>
   );
 }
@@ -282,7 +310,9 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
       <p aria-live="polite" className="flex items-baseline justify-between gap-3">
         <span className="text-[13px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]">Top price</span>
         <span className="text-[20px] leading-7 font-semibold text-[var(--fu-text,#F8F5F1)] tabular-nums">
-          <TextSwap>{ceiling === null ? "–" : format(ceiling)}</TextSwap>
+          <SkeletonText>
+            <TextSwap>{ceiling === null ? "–" : format(ceiling)}</TextSwap>
+          </SkeletonText>
           {ceiling === null && <span className="sr-only">, type what you can pay each month</span>}
         </span>
       </p>
@@ -313,9 +343,25 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
 
 // The price bars, lit up to the top price and dim past it, with a pin standing at the cut. The bars are drawn twice,
 // lit and dim, each clipped at the cut, so the bar that holds the top price splits exactly there; the clips and the pin
-// glide together, so when the top price moves the light runs along the bars with it.
+// glide together, so when the top price moves the light runs along the bars with it. While loading they pulse in a soft
+// hill with no pin, as the price chart does, and the real bars fade in once when they arrive.
 function CeilingBars({ buckets, min, max, ceiling }: { buckets?: readonly number[]; min: number; max: number; ceiling: number | null }) {
-  if (!buckets?.length) return null;
+  const { loading, arriving } = useLoading();
+  if (!buckets || (buckets.length === 0 && !loading)) return null;
+
+  if (loading) {
+    const columns = buckets.length || 20;
+    return (
+      <div aria-hidden="true" className="mt-3">
+        <div className="flex h-12 items-end gap-[2px]">
+          {Array.from({ length: columns }, (_, i) => (
+            <span key={i} className={cn("min-w-0 flex-1 rounded-t-[3px]", SKELETON_FILL)} style={{ height: `${hillAt(i, columns)}%` }} />
+          ))}
+        </div>
+        <div className={cn("h-1 rounded-[2px]", SKELETON_FILL)} />
+      </div>
+    );
+  }
 
   const span = max - min || 1;
   const fraction = ceiling === null ? 0 : Math.min(1, Math.max(0, (ceiling - min) / span));
@@ -351,7 +397,7 @@ function CeilingBars({ buckets, min, max, ceiling }: { buckets?: readonly number
   return (
     <div
       aria-hidden="true"
-      className="relative mt-3"
+      className={cn("relative mt-3", arriving && ARRIVING)}
       style={
         {
           "--upto": `calc(${fraction * 100}% + ${gap}px)`,

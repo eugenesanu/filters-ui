@@ -24,6 +24,8 @@ import { FilterPanel } from "@/registry/blocks/filter-panel";
 import { PANEL_PRESET } from "@/components/tile/presets";
 import { StageControlRow, StageControlsProvider, useStage, useStageFrame, useStageProps, useStageStatus } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
+import { CascadingDropdownStateStage } from "@/components/stage/cascading-dropdown-stage";
+import { BarListStateStage } from "@/components/stage/bar-list-stage";
 import { formatsFor } from "@/registry/lib/format";
 import type { ItemState } from "@/registry/items";
 
@@ -309,17 +311,29 @@ function PanelStage() {
 /**
  * An item drawn by its own example shows Ready as the example; every other state of its State switch is drawn by a
  * state stage of its own, listed here (additions only). A state stage reads useStageStatus() and draws the real
- * component with the example's kind of data, or data from components/stage/state-data.ts.
+ * component with the example's kind of data, or data from components/stage/state-data.ts. Once shown, the state stage
+ * also draws Ready until Reset, so Retry's return to Ready keeps the same component, its focus and its fade-in; it
+ * must therefore draw Ready as the example does.
  */
-const STATE_STAGES: Record<string, ComponentType> = {};
+const STATE_STAGES: Record<string, ComponentType> = {
+  "cascading-dropdown": CascadingDropdownStateStage,
+  "bar-list": BarListStateStage,
+};
 
 function ExampleStage({ slug }: { slug: string }) {
   const [round, setRound] = useState(0);
   const props = useStageProps();
   const { state } = useStage();
-  const stateStage = state === "ready" ? undefined : STATE_STAGES[slug];
+  const [shown, setShown] = useState(false);
+  if (state !== "ready" && !shown) setShown(true);
+  const stateStage = state === "ready" && !shown ? undefined : STATE_STAGES[slug];
   return (
-    <StagePanel onReset={() => setRound((n) => n + 1)}>
+    <StagePanel
+      onReset={() => {
+        setRound((n) => n + 1);
+        setShown(false);
+      }}
+    >
       {stateStage ? createElement(stateStage, { key: round }) : createElement(exampleOf(slug), { key: round, ...props })}
     </StagePanel>
   );
