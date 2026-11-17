@@ -242,7 +242,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         onPointerLeave={() => setPressed(false)}
         onClick={() => pick(index)}
         className={cn(
-          "group/item relative flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[9px] py-2 pr-2 pl-2.5 text-[14px] leading-5 outline-none select-none pointer-coarse:min-h-11",
+          "group/item relative flex min-h-10 cursor-pointer items-center gap-2.5 rounded-[9px] py-2 pe-2 ps-2.5 text-[14px] leading-5 outline-none select-none pointer-coarse:min-h-11",
           "transition-[background-color,color] duration-200 motion-reduce:transition-none",
           entry.kind === "radio" && checked && "bg-[var(--fu-selected,#1F2747)] font-medium text-[var(--fu-accent-pale,#D1DDFF)]",
           entry.disabled && "cursor-default opacity-40",
@@ -288,7 +288,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         {entry.hint && (
           <span
             className={cn(
-              "shrink-0 pl-2 text-[13px] leading-5 font-normal tabular-nums",
+              "shrink-0 ps-2 text-[13px] leading-5 font-normal tabular-nums",
               entry.kind !== "action" && checked ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]",
             )}
           >
@@ -334,7 +334,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
           else show("menu");
         }}
         className={cn(
-          "relative inline-flex h-9 max-w-full min-w-0 cursor-pointer items-center gap-1 rounded-[10px] pr-2.5 pl-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
+          "relative inline-flex h-9 max-w-full min-w-0 cursor-pointer items-center gap-1 rounded-[10px] pe-2.5 ps-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
           "[-webkit-tap-highlight-color:transparent] pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
           "transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 aria-expanded:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100",
           "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
@@ -347,7 +347,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         <TextSwap data-swap="" className="min-w-0 grid-cols-[minmax(0,1fr)] font-medium text-[var(--fu-text,#F8F5F1)] [&>span]:truncate">{shown}</TextSwap>
         <ChevronDownIcon
           size={16}
-          className={cn("ml-0.5 shrink-0 text-[var(--fu-mute,#BDBDBD)] transition-[rotate,color] duration-[480ms] motion-reduce:transition-none", SMOOTH, open && "rotate-180 text-[var(--fu-accent-soft,#8FAAFF)]")}
+          className={cn("ms-0.5 shrink-0 text-[var(--fu-mute,#BDBDBD)] transition-[rotate,color] duration-[480ms] motion-reduce:transition-none", SMOOTH, open && "rotate-180 text-[var(--fu-accent-soft,#8FAAFF)]")}
         />
       </button>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor, resultsLabel } from "../lib/format";
 import { Button, IconButton } from "../ui/button";
 import { DropdownMenu } from "../ui/dropdown-menu";
 import { ListTreeIcon, PlusIcon, XIcon } from "../ui/icons";
@@ -49,23 +50,33 @@ export type RulesProps<Item> = {
   /** Caption over the column of counts, e.g. "Cars left". */
   leftLabel?: string;
   formatCount?: (n: number) => string;
+  /** Formats counts and typed numbers and reads them back ("45.000" in de-DE), e.g. "de-DE". Default "en-US". */
+  locale?: string;
   className?: string;
 };
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const integer = new Intl.NumberFormat("en-US");
-const defaultFormat = (n: number) => integer.format(n);
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${integer.format(n)} results`);
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 let made = 0;
 const newId = () => `rule-${Date.now().toString(36)}-${(made += 1)}`;
 
+/** Reads a typed number in en-US: "45000", "$45,000", "45k" or "1.2m". */
 export const defaultParse = (text: string) => {
   const typed = text.trim().toLowerCase().replace(/[$,\s]/g, "").replace(/[a-z]+$/, (unit) => (unit === "k" || unit === "m" ? unit : ""));
   const match = typed.match(/^(\d+(?:\.\d+)?)(k|m)?$/);
   if (!match) return null;
   return Math.round(Number(match[1]) * (match[2] === "k" ? 1e3 : match[2] === "m" ? 1e6 : 1));
+};
+
+/** The default reader for a locale: en-US keeps defaultParse; others read their own marks, so "45.000" is 45000 in de-DE. */
+const parseFor = (locale?: string) => {
+  const f = formatsFor(locale);
+  if (f.locale === "en-US") return defaultParse;
+  return (text: string) => {
+    const n = f.readNumber(text);
+    return n === null ? null : Math.round(n);
+  };
 };
 
 const OPS: Record<RuleField<unknown>["kind"], RuleOp[]> = {
@@ -222,12 +233,14 @@ function NamesPills({
   options,
   counts,
   label,
+  format,
 }: {
   value: readonly string[];
   onValue: (value: string[]) => void;
   options: readonly string[];
   counts: ReadonlyMap<string, number>;
   label: string;
+  format: (n: number) => string;
 }) {
   return (
     <>
@@ -238,7 +251,7 @@ function NamesPills({
           aria-label={`Remove ${name}`}
           onClick={() => onValue(value.filter((v) => v !== name))}
           className={cn(
-            "relative flex h-[26px] max-w-full cursor-pointer items-center gap-1 rounded-full border border-[var(--fu-selected,#1F2747)] bg-[var(--fu-selected,#1F2747)] pr-[7px] pl-[10px]",
+            "relative flex h-[26px] max-w-full cursor-pointer items-center gap-1 rounded-full border border-[var(--fu-selected,#1F2747)] bg-[var(--fu-selected,#1F2747)] pe-[7px] ps-[10px]",
             "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-accent-pale,#D1DDFF)]",
             "transition-[background-color,color,border-color,opacity,filter,scale] duration-300 motion-reduce:transition-none",
             SMOOTH,
@@ -262,7 +275,7 @@ function NamesPills({
         options={options.map((name) => ({
           value: name,
           label: name,
-          hint: integer.format(counts.get(name) ?? 0),
+          hint: format(counts.get(name) ?? 0),
           disabled: !counts.get(name) && !value.includes(name),
         }))}
       />
@@ -276,20 +289,20 @@ function NamesPills({
  */
 function Rail({ at, of, join, onToggle, nested = false }: { at: number; of: number; join: Join; onToggle: () => void; nested?: boolean }) {
   const line = "pointer-events-none absolute border-[var(--fu-line,#404040)]";
-  const x = nested ? "left-[17px]" : "left-[21px]";
+  const x = nested ? "inset-s-[17px]" : "inset-s-[21px]";
   const mid = nested ? "top-[18px]" : "top-6";
   const word = join === "and" ? "And" : "Or";
   return (
     <div className={cn("relative shrink-0 self-stretch", nested ? "w-[38px]" : "w-11")}>
-      {of > 1 && at === 0 && <span aria-hidden="true" className={cn(line, x, mid, "right-0 -bottom-2.5 rounded-tl-[10px] border-t border-l")} />}
+      {of > 1 && at === 0 && <span aria-hidden="true" className={cn(line, x, mid, "inset-e-0 -bottom-2.5 rounded-ss-[10px] border-t border-s")} />}
       {of > 1 && at > 0 && at < of - 1 && (
         <>
-          <span aria-hidden="true" className={cn(line, x, "-top-px -bottom-2.5 border-l")} />
-          <span aria-hidden="true" className={cn(line, x, mid, "right-0 border-t")} />
+          <span aria-hidden="true" className={cn(line, x, "-top-px -bottom-2.5 border-s")} />
+          <span aria-hidden="true" className={cn(line, x, mid, "inset-e-0 border-t")} />
         </>
       )}
       {of > 1 && at === of - 1 && (
-        <span aria-hidden="true" className={cn(line, x, "-top-px right-0 rounded-bl-[10px] border-b border-l", nested ? "h-[19px]" : "h-[25px]")} />
+        <span aria-hidden="true" className={cn(line, x, "-top-px inset-e-0 rounded-es-[10px] border-b border-s", nested ? "h-[19px]" : "h-[25px]")} />
       )}
       {at > 0 && (
         <button
@@ -297,9 +310,9 @@ function Rail({ at, of, join, onToggle, nested = false }: { at: number; of: numb
           onClick={onToggle}
           aria-label={`${word}, switch to ${join === "and" ? "Or" : "And"}`}
           className={cn(
-            "absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full px-2 font-[inherit] text-[12px] leading-[22px] font-medium",
+            "absolute -translate-x-1/2 rtl:translate-x-1/2 -translate-y-1/2 cursor-pointer rounded-full px-2 font-[inherit] text-[12px] leading-[22px] font-medium",
             mid,
-            nested ? "left-[17.5px]" : "left-[21.5px]",
+            nested ? "inset-s-[17.5px]" : "inset-s-[21.5px]",
             "bg-[var(--fu-selected,#1F2747)] text-[var(--fu-accent-pale,#D1DDFF)]",
             "transition-[box-shadow] duration-200 motion-reduce:transition-none hover:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
             "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
@@ -327,7 +340,7 @@ function Left({ count, total, format, className }: { count: number; total: numbe
     <div aria-hidden="true" className={cn("flex w-12 shrink-0 flex-col items-end gap-1.5", className)}>
       <span className="relative order-2 h-[3px] w-10 overflow-hidden rounded-full bg-[var(--fu-hover,#333333)]">
         <span
-          className={cn("absolute inset-y-0 left-0 rounded-full bg-[var(--fu-accent-soft,#8FAAFF)] transition-[width] duration-[480ms] motion-reduce:transition-none", SMOOTH)}
+          className={cn("absolute inset-y-0 inset-s-0 rounded-full bg-[var(--fu-accent-soft,#8FAAFF)] transition-[width] duration-[480ms] motion-reduce:transition-none", SMOOTH)}
           style={{ width: `${share > 0 ? Math.max(6, share * 100) : 0}%` }}
         />
       </span>
@@ -357,11 +370,15 @@ export function Rules<Item>({
   value,
   onChange,
   label = "Rules",
-  countLabel = defaultCountLabel,
+  countLabel: countLabelProp,
   leftLabel = "Left",
-  formatCount = defaultFormat,
+  formatCount: formatCountProp,
+  locale,
   className,
 }: RulesProps<Item>) {
+  const numbers = formatsFor(locale);
+  const formatCount = formatCountProp ?? numbers.number;
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const box = useRef<HTMLDivElement>(null);
   const [focusNext, setFocusNext] = useState<string | null>(null);
   const fieldOf = (key: string) => fields.find((field) => field.key === key) ?? fields[0];
@@ -449,11 +466,11 @@ export function Rules<Item>({
         if (has !== null) counts.set(has, (counts.get(has) ?? 0) + 1);
       }
       return (
-        <NamesPills value={rule.value as readonly string[]} onValue={(next) => update(rule.id, (r) => ({ ...r, value: next }))} options={field.options} counts={counts} label={said} />
+        <NamesPills value={rule.value as readonly string[]} onValue={(next) => update(rule.id, (r) => ({ ...r, value: next }))} options={field.options} counts={counts} label={said} format={numbers.number} />
       );
     }
     if (field.kind === "step") {
-      const format = field.format ?? String;
+      const format = field.format ?? numbers.plain;
       return (
         <DropdownMenu
           label={said}
@@ -463,7 +480,7 @@ export function Rules<Item>({
         />
       );
     }
-    const number = { format: field.format ?? defaultFormat, parse: field.parse ?? defaultParse, ...(field.prefix && { prefix: field.prefix }) };
+    const number = { format: field.format ?? numbers.number, parse: field.parse ?? parseFor(locale), ...(field.prefix && { prefix: field.prefix }) };
     if (rule.op === "between") {
       const [low, high] = rule.value as readonly [number | null, number | null];
       return (
@@ -536,7 +553,7 @@ export function Rules<Item>({
 
   return (
     <div ref={box} role="group" aria-label={label} className={cn("@container/rules w-full", className)}>
-      <p aria-hidden="true" className="hidden pr-[44px] pb-2 text-right text-[12px] leading-4 text-[var(--fu-dim,#929292)] @min-[484px]/rules:block">
+      <p aria-hidden="true" className="hidden pe-[44px] pb-2 text-end text-[12px] leading-4 text-[var(--fu-dim,#929292)] @min-[484px]/rules:block">
         {leftLabel}
       </p>
       <ol className="flex flex-col gap-2.5">
@@ -547,7 +564,7 @@ export function Rules<Item>({
             return (
               <li key={item.id} data-flip={item.id} className={cn("flex", ENTER)}>
                 {rail}
-                <div role="group" aria-label={`Rule ${i + 1}: ${spoken(item)}. ${leftWords}`} data-rule={item.id} className={cn("@container/well min-w-0 flex-1 p-1.5 @min-[440px]/well:pl-2", WELL)}>
+                <div role="group" aria-label={`Rule ${i + 1}: ${spoken(item)}. ${leftWords}`} data-rule={item.id} className={cn("@container/well min-w-0 flex-1 p-1.5 @min-[440px]/well:ps-2", WELL)}>
                   {sentence(
                     item,
                     <>
@@ -566,8 +583,8 @@ export function Rules<Item>({
             <li key={item.id} data-flip={item.id} className={cn("flex", ENTER)}>
               {rail}
               <div role="group" aria-label={`Group ${i + 1}, ${word.toLowerCase()}. ${leftWords}`} className={cn("@container/well min-w-0 flex-1 p-1.5", WELL)}>
-                <div className="flex min-h-9 items-center gap-2 pl-2.5">
-                  <TextSwap className="mr-auto text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{word}</TextSwap>
+                <div className="flex min-h-9 items-center gap-2 ps-2.5">
+                  <TextSwap className="me-auto text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{word}</TextSwap>
                   <Left count={after[i]} total={items.length} format={formatCount} />
                   <IconButton size="sm" label={`Remove group ${i + 1}`} onClick={() => remove(item.id)} className="h-9 w-8">
                     <XIcon size={16} />
@@ -597,7 +614,7 @@ export function Rules<Item>({
                     const rule = newRule(fields, used);
                     add(rule, value.items.map((other) => (other.id === item.id && isGroup(other) ? { ...other, rules: [...other.rules, rule] } : other)));
                   }}
-                  className="mt-1.5 ml-7"
+                  className="mt-1.5 ms-7"
                 >
                   Add condition
                 </Button>
@@ -606,7 +623,7 @@ export function Rules<Item>({
           );
         })}
       </ol>
-      <div className="mt-3 flex flex-wrap items-center gap-1 pl-11">
+      <div className="mt-3 flex flex-wrap items-center gap-1 ps-11">
         <Button
           data-add=""
           variant="secondary"
@@ -622,7 +639,7 @@ export function Rules<Item>({
         <Button
           variant="quiet"
           size="sm"
-          before={<ListTreeIcon />}
+          before={<ListTreeIcon className="rtl:-scale-x-100" />}
           onClick={() => {
             const rule = newRule(fields, used);
             add(rule, [...value.items, { id: newId(), join: value.join === "and" ? "or" : "and", rules: [rule] }]);

@@ -2,6 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { resultsLabel } from "../lib/format";
 import { ChevronDownIcon } from "./icons";
 import { typesCharacter, keepRowInView, LIST_PANEL, ListCheck, ListCount, PopoverPanel, RowHighlight, useTypeAhead } from "./popover";
 import { TextSwap } from "./text-swap";
@@ -37,6 +38,8 @@ export type SelectProps = Omit<
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count, read after the option's name. Default "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their spoken words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
   /** A quieter field (--fu-line border, dim text) while it waits on another choice, such as Model before a make. It still opens. */
   waiting?: boolean;
   /** Classes for the outer wrapper, e.g. its width. */
@@ -46,8 +49,6 @@ export type SelectProps = Omit<
 };
 
 const PAGE = 10;
-
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 /**
  * A select drawn like TextField (44px, 12px radius, --fu-control-border border, 15px text, a chevron) whose list grows out of the
@@ -67,7 +68,8 @@ export function Select({
   heading,
   emptyText = "No choices",
   formatCount,
-  countLabel = defaultCountLabel,
+  countLabel: countLabelProp,
+  locale,
   waiting = false,
   className,
   disabled,
@@ -77,6 +79,7 @@ export function Select({
   ...props
 }: SelectProps) {
   const id = useId();
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const labelId = `${id}-label`;
   const listId = `${id}-list`;
   const optionId = (v: string) => `${id}-option-${encodeURIComponent(v).replaceAll("%", "_")}`;
@@ -240,7 +243,7 @@ export function Select({
           else openAt(start);
         }}
         className={cn(
-          "relative flex h-11 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-transparent pr-9 pl-3 text-left",
+          "relative flex h-11 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-transparent pe-9 ps-3 text-start",
           "font-[inherit] text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] outline-none [-webkit-tap-highlight-color:transparent]",
           "transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none disabled:cursor-default",
           "hover:border-[var(--fu-control-hover,#A3A3A3)] data-[waiting]:not-focus-visible:not-aria-expanded:border-[var(--fu-line,#404040)] data-[waiting]:not-focus-visible:not-aria-expanded:hover:border-[var(--fu-control-border,#737373)]",
@@ -266,7 +269,7 @@ export function Select({
         <ChevronDownIcon
           size={16}
           className={cn(
-            "pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[var(--fu-mute,#BDBDBD)]",
+            "pointer-events-none absolute top-1/2 inset-e-3 -translate-y-1/2 text-[var(--fu-mute,#BDBDBD)]",
             "transition-[rotate,color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
             open && "rotate-180 text-[var(--fu-accent-soft,#8FAAFF)]",
           )}
@@ -320,7 +323,7 @@ export function Select({
                 if (!off) choose(option.value);
               }}
               className={cn(
-                "group/row relative flex min-h-10 cursor-pointer items-center gap-3 rounded-[9px] py-2 pr-2 pl-2.5 text-[14px] leading-5 tabular-nums select-none pointer-coarse:min-h-11",
+                "group/row relative flex min-h-10 cursor-pointer items-center gap-3 rounded-[9px] py-2 pe-2 ps-2.5 text-[14px] leading-5 tabular-nums select-none pointer-coarse:min-h-11",
                 "transition-[background-color,color] duration-200 motion-reduce:transition-none",
                 selected
                   ? "bg-[var(--fu-selected,#1F2747)] font-medium text-[var(--fu-accent-pale,#D1DDFF)]"
@@ -330,7 +333,7 @@ export function Select({
               )}
             >
               <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{option.label}</span>{" "}
-              {counted && <ListCount count={option.count ?? 0} max={most} order={order} on={selected} bar={option.value !== ""} format={formatCount} />}
+              {counted && <ListCount count={option.count ?? 0} max={most} order={order} on={selected} bar={option.value !== ""} format={formatCount} locale={locale} />}
               <ListCheck on={selected} />
             </div>
           );

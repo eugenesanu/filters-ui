@@ -57,7 +57,7 @@ export default function RulesExample() {
   return (
     <div className="w-full max-w-[640px]">
       <Rules fields={FIELDS} items={CARS} value={rules} onChange={setRules} label="Car rules" countLabel={carCount} leftLabel="Cars left" />
-      <p className="mt-4 pl-11 text-[14px] leading-5 tabular-nums">
+      <p className="mt-4 ps-11 text-[14px] leading-5 tabular-nums">
         <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#929292)]">of {CARS.length} cars</span>
       </p>
     </div>

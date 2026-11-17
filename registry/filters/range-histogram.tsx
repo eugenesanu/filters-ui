@@ -2,6 +2,7 @@
 
 import { useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 import { RangeChart, type RangeValue } from "../ui/range-chart";
 import { TextField } from "../ui/text-field";
 
@@ -13,10 +14,15 @@ export type RangeHistogramProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   onChange: (value: RangeValue) => void;
   /** Item count per bar, spread evenly from min to max. */
   buckets?: readonly number[];
-  /** Field, tooltip and screen-reader text for a value, e.g. "$45,000". */
+  /** Field, tooltip and screen-reader text for a value, e.g. "$45,000". Default: the number in the locale. */
   format?: (value: number) => string;
-  /** Reads a typed value. Default: the first number in the text, with an optional k or m suffix, or null when there is none. */
+  /**
+   * Reads a typed value. Default: the first number in the text, read with the locale's marks ("45.000" is 45000 in
+   * de-DE), with an optional k or m suffix, or null when there is none.
+   */
   parse?: (text: string) => number | null;
+  /** Formats and reads numbers by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
   /** Tooltip text while the high end is open. Default: the top value and a plus. */
   openLabel?: string;
   /** One handle and one field, for an upper limit only. */
@@ -30,15 +36,6 @@ export type RangeHistogramProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   disabled?: boolean;
 };
 
-const defaultFormat = (value: number) => new Intl.NumberFormat("en-US").format(value);
-// "45000", "45,000", "$45k", "45.5k" and "1.2m" all read as numbers; a unit such as "km" or "miles" is not a suffix.
-const defaultParse = (text: string) => {
-  const match = text.replace(/[\s,]/g, "").match(/(\d*\.?\d+)([km](?![a-z]))?/i);
-  if (!match) return null;
-  const scale = match[2] ? (match[2].toLowerCase() === "k" ? 1e3 : 1e6) : 1;
-  return Number(match[1]) * scale;
-};
-
 /** A range chart with typed Minimum and Maximum fields under it, kept in step both ways. */
 export function RangeHistogram({
   min,
@@ -47,8 +44,9 @@ export function RangeHistogram({
   value,
   onChange,
   buckets,
-  format = defaultFormat,
-  parse = defaultParse,
+  format: formatProp,
+  parse: parseProp,
+  locale,
   openLabel,
   single = false,
   placeholders,
@@ -58,6 +56,9 @@ export function RangeHistogram({
   className,
   ...props
 }: RangeHistogramProps) {
+  const formats = formatsFor(locale);
+  const format = formatProp ?? formats.number;
+  const parse = parseProp ?? formats.readNumber;
   const lowPlaceholder = placeholders?.low ?? "Minimum";
   const highPlaceholder = placeholders?.high ?? "Maximum";
   const lowLabel = labels?.low ?? lowPlaceholder;
@@ -96,6 +97,7 @@ export function RangeHistogram({
         single={single}
         labels={{ low: lowLabel, high: highLabel }}
         barScale={barScale}
+        locale={locale}
         disabled={disabled}
       />
       <div className={cn("mt-3 grid gap-2", single ? "grid-cols-1" : "grid-cols-2")}>

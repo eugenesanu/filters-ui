@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 import { BodyIcon } from "../demo/body-icons";
 import { BODIES, CARS, COLORS, COLOR_PAINTS, DRIVES, FUELS, type Car, type Condition, type Transmission } from "../demo/cars";
 import {
@@ -19,9 +20,7 @@ import {
   colorCounts,
   conditionOptions,
   driveCounts,
-  formatCarCount,
-  formatKm,
-  formatMoney,
+  carFormats,
   fuelCounts,
   kmBuckets,
   makeOptions,
@@ -88,7 +87,9 @@ function Edge({ glow }: { glow: boolean }) {
       {glow && (
         <>
           <span className="absolute inset-x-0 top-0 h-14" style={{ backgroundImage: EDGE_LIGHT.top, maskImage: MASK_DOWN }} />
+          {/* physical: the glow is lighting, not reading order, so its colours stay on the same sides in RTL. */}
           <span className="absolute inset-y-0 left-0 w-12" style={{ backgroundImage: EDGE_LIGHT.left, maskImage: MASK_RIGHT }} />
+          {/* physical: as above. */}
           <span className="absolute inset-y-0 right-0 w-12" style={{ backgroundImage: EDGE_LIGHT.right, maskImage: MASK_LEFT }} />
         </>
       )}
@@ -146,7 +147,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
             onClick={() => row.current && onToggle(row.current)}
             onKeyDown={onHeadKeyDown}
             className={cn(
-              "flex w-full cursor-pointer items-center gap-4 rounded-[16px] px-5 text-left font-[inherit] text-inherit [-webkit-tap-highlight-color:transparent]",
+              "flex w-full cursor-pointer items-center gap-4 rounded-[16px] px-5 text-start font-[inherit] text-inherit [-webkit-tap-highlight-color:transparent]",
               FOCUS,
               "focus-visible:-outline-offset-4",
             )}
@@ -156,7 +157,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
             {set && <span className="sr-only">, {summary}</span>}
             {set && (
               // Half the head's width, as the visible slot: 50% here would be half the button's box, 40px narrower.
-              <span aria-hidden="true" className="invisible ml-auto min-w-0 max-w-[calc((100%+40px)*0.5)] shrink-0 truncate text-[17px] font-normal">
+              <span aria-hidden="true" className="invisible ms-auto min-w-0 max-w-[calc((100%+40px)*0.5)] shrink-0 truncate text-[17px] font-normal">
                 {summary}
               </span>
             )}
@@ -165,7 +166,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
               className={cn(
                 "shrink-0 text-[var(--fu-mute,#BDBDBD)] transition-[rotate,color] duration-[480ms] motion-reduce:transition-none",
                 SMOOTH,
-                !set && "ml-auto",
+                !set && "ms-auto",
                 open && "rotate-180",
                 "[@media(hover:hover)]:group-hover/head:text-[var(--fu-text,#F8F5F1)]",
               )}
@@ -175,7 +176,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
 
         <div
           inert={!set}
-          className="group/slot pointer-events-none absolute top-0 right-[58px] grid max-w-[50%] items-center justify-items-end text-[17px] leading-6 text-[var(--fu-accent-soft,#8FAAFF)]"
+          className="group/slot pointer-events-none absolute top-0 inset-e-[58px] grid max-w-[50%] items-center justify-items-end text-[17px] leading-6 text-[var(--fu-accent-soft,#8FAAFF)]"
           style={{ height: HEAD }}
         >
           <span
@@ -256,6 +257,8 @@ export type FilterPanelProps = Omit<HTMLAttributes<HTMLElement>, "onChange"> & {
   headingLevel?: 2 | 3 | 4;
   /** A faint coloured light along the panel's edges. Default false. */
   glow?: boolean;
+  /** Numbers, prices and distances follow it, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
 
 /**
@@ -270,6 +273,7 @@ export function FilterPanel({
   onShow,
   headingLevel = 2,
   glow = false,
+  locale,
   className,
   ...props
 }: FilterPanelProps) {
@@ -284,8 +288,9 @@ export function FilterPanel({
   const held = useRef<HTMLElement | null>(null);
   const follow = useRef(0);
 
+  const f = carFormats(locale);
   const matches = matchingCars(filters, cars);
-  const setCount = FILTER_PANEL_FACETS.filter((facet) => summaryOf(filters, facet) !== null).length;
+  const setCount = FILTER_PANEL_FACETS.filter((facet) => summaryOf(filters, facet, locale) !== null).length;
   const [lastSetCount, setLastSetCount] = useState(setCount || 1);
   if (setCount > 0 && setCount !== lastSetCount) setLastSetCount(setCount);
 
@@ -380,19 +385,21 @@ export function FilterPanel({
       case "price":
         return (
           <RangeHistogram
+            locale={locale}
             min={PRICE_MIN}
             max={PRICE_MAX}
             step={PRICE_STEP}
             value={[filters.priceMin, filters.priceMax]}
             onChange={([priceMin, priceMax]) => set({ priceMin, priceMax })}
             buckets={priceBuckets(filters, cars)}
-            format={formatMoney}
+            format={f.money}
             labels={{ low: "Lowest price", high: "Highest price" }}
           />
         );
       case "make":
         return (
           <SearchableList
+            locale={locale}
             variant="panel"
             label="Make and model"
             noun="makes"
@@ -400,24 +407,26 @@ export function FilterPanel({
             options={makeOptions(filters, cars)}
             value={filters.makes.map((p) => ({ value: p.make, children: p.models }))}
             onChange={(picks) => set({ makes: picks.map((p) => ({ make: p.value, models: p.children })) })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       case "body": {
         const counts = bodyCounts(filters, cars);
         return (
           <IconTiles
+            locale={locale}
             label="Body style"
             options={BODIES.map((b) => ({ value: b, label: b, icon: <BodyIcon body={b} />, count: counts.get(b) ?? 0 }))}
             value={filters.bodies}
             onChange={(bodies) => set({ bodies })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
       case "year":
         return (
           <RangeSelect
+            locale={locale}
             options={YEARS}
             value={[filters.yearMin, filters.yearMax]}
             onChange={([yearMin, yearMax]) => set({ yearMin, yearMax })}
@@ -429,13 +438,14 @@ export function FilterPanel({
       case "km":
         return (
           <UpperLimit
+            locale={locale}
             min={0}
             max={KM_MAX}
             step={KM_STEP}
             value={filters.kmMax}
             onChange={(kmMax) => set({ kmMax })}
             buckets={kmBuckets(filters, cars)}
-            format={formatKm}
+            format={f.km}
             label="Maximum kilometres"
           />
         );
@@ -443,66 +453,72 @@ export function FilterPanel({
         const counts = fuelCounts(filters, cars);
         return (
           <ChipGroup
+            locale={locale}
             label="Fuel"
             options={FUELS.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
             value={filters.fuels}
             onChange={(fuels) => set({ fuels })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
       case "seats":
         return (
           <SegmentedChoice<number | null>
+            locale={locale}
             label="Seats"
             options={seatOptions(filters, cars)}
             value={filters.seatsMin}
             onChange={(seatsMin) => set({ seatsMin })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       case "transmission":
         return (
           <SegmentedChoice<Transmission | null>
+            locale={locale}
             label="Transmission"
             fit="content"
             options={transmissionOptions(filters, cars)}
             value={filters.transmission}
             onChange={(transmission) => set({ transmission })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       case "drive": {
         const counts = driveCounts(filters, cars);
         return (
           <ChipGroup
+            locale={locale}
             label="Drivetrain"
             options={DRIVES.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
             value={filters.drives}
             onChange={(drives) => set({ drives })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
       case "condition":
         return (
           <SegmentedChoice<Condition | null>
+            locale={locale}
             label="New or used"
             options={conditionOptions(filters, cars)}
             value={filters.condition}
             onChange={(condition) => set({ condition })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       case "color": {
         const counts = colorCounts(filters, cars);
         return (
           <ColorSwatches
+            locale={locale}
             label="Colour"
             options={COLORS.map((c) => ({ value: c, label: c, color: COLOR_PAINTS[c], count: counts.get(c) ?? 0 }))}
             value={filters.colors}
             onChange={(colors) => set({ colors })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
@@ -522,26 +538,26 @@ export function FilterPanel({
       )}
       {...props}
     >
-      <div data-panel-head="" className="flex h-[60px] shrink-0 items-center gap-3 border-b border-[var(--fu-line,#404040)] pr-3 pl-5">
+      <div data-panel-head="" className="flex h-[60px] shrink-0 items-center gap-3 border-b border-[var(--fu-line,#404040)] pe-3 ps-5">
         <Heading id={titleId} className="m-0 flex min-w-0 items-baseline gap-2 text-[20px] font-semibold leading-7 text-[var(--fu-text,#F8F5F1)]">
           Filters
           <span
             aria-hidden="true"
             className={cn("font-normal tabular-nums text-[var(--fu-dim,#929292)]", SWAP, anySet ? SHOWN : GONE_DOWN)}
           >
-            <TextSwap>{String(anySet ? setCount : lastSetCount)}</TextSwap>
+            <TextSwap>{formatsFor(locale).number(anySet ? setCount : lastSetCount)}</TextSwap>
           </span>
-          {anySet && <span className="sr-only">, {setCount} set</span>}
+          {anySet && <span className="sr-only">, {formatsFor(locale).number(setCount)} set</span>}
         </Heading>
         <span className="sr-only" aria-live="polite" aria-atomic="true">
-          {formatCarCount(matches.length)}
+          {f.carCount(matches.length)}
         </span>
         <button
           type="button"
           inert={!anySet}
           onClick={clearAll}
           className={cn(
-            "relative ml-auto inline-flex h-9 shrink-0 cursor-pointer items-center rounded-[10px] px-2.5 text-[15px] font-medium leading-5 text-[var(--fu-accent-soft,#8FAAFF)] [-webkit-tap-highlight-color:transparent]",
+            "relative ms-auto inline-flex h-9 shrink-0 cursor-pointer items-center rounded-[10px] px-2.5 text-[15px] font-medium leading-5 text-[var(--fu-accent-soft,#8FAAFF)] [-webkit-tap-highlight-color:transparent]",
             "hover:text-[var(--fu-accent-pale,#D1DDFF)] pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
             FOCUS,
             "focus-visible:outline-offset-0",
@@ -564,7 +580,7 @@ export function FilterPanel({
               <PanelRow
                 key={facet}
                 title={CAR_FACET_TITLES[facet]}
-                summary={summaryOf(filters, facet)}
+                summary={summaryOf(filters, facet, locale)}
                 onClear={() => setFilters((f) => clearFacet(f, facet))}
                 open={open.includes(facet)}
                 onToggle={(row) => toggle(facet, row)}
@@ -591,7 +607,7 @@ export function FilterPanel({
       </div>
 
       <div className="shrink-0 border-t border-[var(--fu-line,#404040)] p-4">
-        <ShowButton label={`Show ${formatCarCount(matches.length)}`} onClick={onShow && (() => onShow(matches))} className="h-11 w-full" />
+        <ShowButton label={`Show ${f.carCount(matches.length)}`} onClick={onShow && (() => onShow(matches))} className="h-11 w-full" />
       </div>
 
       <Edge glow={glow} />

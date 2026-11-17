@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { StageControlRow, useStage, useStageFrame } from "@/components/stage/stage-controls";
+import { formatsFor } from "@/registry/lib/format";
 import { CARS, type Car } from "@/registry/demo/cars";
-import { formatCarCount, matchingCars, type CarFilters } from "@/registry/demo/cars-facets";
+import { carFormats, matchingCars, type CarFilters } from "@/registry/demo/cars-facets";
 import { carVocabulary } from "@/registry/demo/cars-vocabulary";
 import { RecentSearches, remember, type SavedSearch } from "@/registry/filters/recent-searches";
 import { readSentence } from "@/registry/lib/sentence";
@@ -20,11 +22,14 @@ export const RECENT: SavedSearch<CarFilters>[] = ["blue suv under 30k", "rav4 20
   (sentence, i) => ({ id: `recent-${i}`, value: read(sentence) }),
 );
 
-const count = new Intl.NumberFormat("en-US");
 let made = 0;
 
 /** The search with Saved and Recent kept in memory for this visit; Reset puts the starting lists back. */
 export function RecentSearchesStage() {
+  const frame = useStageFrame();
+  const { locale } = useStage();
+  const f = carFormats(locale);
+  const n = formatsFor(locale).number;
   const [round, setRound] = useState(0);
   const [filters, setFilters] = useState<CarFilters>(carVocabulary.empty);
   const [recent, setRecent] = useState(RECENT);
@@ -40,7 +45,7 @@ export function RecentSearchesStage() {
 
   return (
     // From 640px the open list floats over the stage, so the stage keeps room for all of it.
-    <section aria-label="Try it" className="relative flex h-full min-h-[360px] flex-col rounded-[24px] border border-card bg-panel sm:min-h-[616px]">
+    <section aria-label="Try it" className="relative flex h-full min-h-[360px] flex-col rounded-[24px] border border-card bg-panel sm:min-h-[652px]">
       <div className="flex min-h-12 items-center justify-end gap-3 px-3 pt-3">
         <button
           type="button"
@@ -50,10 +55,11 @@ export function RecentSearchesStage() {
           Reset
         </button>
       </div>
-      <div className="flex-1 px-4 pb-10 pt-2 sm:px-8">
+      <div {...frame} className="flex-1 px-4 pb-0 pt-2 sm:px-8">
         {/* On phones the open list sits in the flow, so it grows the stage instead of covering the copy panel below. */}
         <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 max-sm:[&_[data-state=open]:has(>[role=listbox])]:static">
           <RecentSearches<Car, CarFilters>
+            locale={locale}
             key={round}
             vocabulary={carVocabulary}
             items={CARS}
@@ -68,14 +74,15 @@ export function RecentSearchesStage() {
               setSaved((list) => list.filter((entry) => entry.id !== id));
             }}
             label="Describe the car you want"
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
             defaultOpen
           />
-          <p className="mt-3 pl-4 text-[14px] leading-5 text-dim tabular-nums">
-            <TextSwap className="font-medium text-text">{count.format(matches)}</TextSwap> of {count.format(CARS.length)} cars
+          <p className="mt-3 ps-4 text-[14px] leading-5 text-dim tabular-nums">
+            <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
           </p>
         </div>
       </div>
+      <StageControlRow />
     </section>
   );
 }

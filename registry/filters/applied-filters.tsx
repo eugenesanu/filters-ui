@@ -2,6 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent } from "react";
 import { cn } from "../lib/cn";
+import { readingKey } from "../lib/direction";
 import { XIcon } from "../ui/icons";
 import { TextSwap } from "../ui/text-swap";
 
@@ -227,14 +228,15 @@ export function AppliedFilters({
     onClearAll?.();
   };
 
-  // Left and Right step between chips; Backspace or Delete removes the one in focus.
+  // Left and Right step between chips, the way they sit on screen; Backspace or Delete removes the one in focus.
   const onKeyDown = (event: KeyboardEvent<HTMLUListElement>) => {
     const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button"));
     const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
     if (at < 0) return;
-    if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+    const key = readingKey(event.key, event.currentTarget);
+    if (key === "ArrowRight" || key === "ArrowLeft") {
       event.preventDefault();
-      buttons[Math.max(0, Math.min(buttons.length - 1, at + (event.key === "ArrowRight" ? 1 : -1)))].focus();
+      buttons[Math.max(0, Math.min(buttons.length - 1, at + (key === "ArrowRight" ? 1 : -1)))].focus();
     } else if ((event.key === "Backspace" || event.key === "Delete") && at < filters.length) {
       event.preventDefault();
       remove(filters[at], at);
@@ -253,7 +255,7 @@ export function AppliedFilters({
               aria-label={`Remove ${filter.label}: ${filter.value}`}
               onClick={() => remove(filter, index)}
               className={cn(
-                "group/chip relative inline-flex h-8 max-w-full cursor-pointer items-center gap-1.5 rounded-[9px] pr-1.5 pl-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
+                "group/chip relative inline-flex h-8 max-w-full cursor-pointer items-center gap-1.5 rounded-[9px] pe-1.5 ps-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
                 "bg-[var(--fu-surface-3,#2A2A2A)] [@media(hover:hover)]:hover:bg-[var(--fu-hover,#333333)]",
                 PRESS,
                 FOCUS,
@@ -272,7 +274,7 @@ export function AppliedFilters({
               <span
                 aria-hidden="true"
                 className={cn(
-                  "ml-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--fu-dim,#929292)] transition-[color,background-color] duration-200",
+                  "ms-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--fu-dim,#929292)] transition-[color,background-color] duration-200",
                   "group-hover/chip:bg-[var(--fu-line,#404040)] group-hover/chip:text-[var(--fu-text,#F8F5F1)] group-focus-visible/chip:text-[var(--fu-text,#F8F5F1)]",
                 )}
               >

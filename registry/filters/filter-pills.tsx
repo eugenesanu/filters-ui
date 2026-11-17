@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { isRtl } from "../lib/direction";
+import { formatsFor } from "../lib/format";
 import { CountPill } from "../ui/count-pill";
 import { ClearAllButton, ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, XIcon } from "../ui/icons";
@@ -41,6 +43,8 @@ export type FilterPillsProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> 
   showLabel?: string;
   onShow?: () => void;
   formatCount?: (n: number) => string;
+  /** Formats the counts by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
 
 type Mode = "panel" | "sheet";
@@ -82,10 +86,12 @@ export function FilterPills({
   clearAllLabel = "Clear all",
   showLabel = "Done",
   onShow,
-  formatCount,
+  formatCount: formatCountProp,
+  locale,
   className,
   ...props
 }: FilterPillsProps) {
+  const formatCount = formatCountProp ?? formatsFor(locale).number;
   const id = useId();
   const groups = useRef(new Map<string, HTMLDivElement>());
   const triggers = useRef(new Map<string, HTMLButtonElement>());
@@ -216,7 +222,7 @@ export function FilterPills({
             }}
             className={cn(
               "transition-[background-color,color,scale,opacity,filter,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
-              "text-[var(--fu-accent-soft,#8FAAFF)] hover:text-[var(--fu-accent-pale,#D1DDFF)] starting:translate-x-1 starting:opacity-0 starting:blur-[2px]",
+              "text-[var(--fu-accent-soft,#8FAAFF)] hover:text-[var(--fu-accent-pale,#D1DDFF)] starting:translate-x-1 rtl:starting:-translate-x-1 starting:opacity-0 starting:blur-[2px]",
               "relative pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[3px] pointer-coarse:after:content-['']",
             )}
           >
@@ -285,7 +291,7 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, g
   const footer = (big: boolean) => (
     <>
       {pill.onClear ? (
-        <ClearAllButton onClick={pill.onClear} className={big ? "h-11" : "-ml-3 pointer-coarse:h-11"}>
+        <ClearAllButton onClick={pill.onClear} className={big ? "h-11" : "-ms-3 pointer-coarse:h-11"}>
           Clear
         </ClearAllButton>
       ) : (
@@ -355,9 +361,9 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, g
           onToggle(false);
         }}
         className={cn(
-          "relative flex h-full min-w-0 cursor-pointer items-center gap-2 rounded-[11px] pl-3.5 font-[inherit] text-[14px] leading-5 font-medium whitespace-nowrap outline-none",
+          "relative flex h-full min-w-0 cursor-pointer items-center gap-2 rounded-[11px] ps-3.5 font-[inherit] text-[14px] leading-5 font-medium whitespace-nowrap outline-none",
           "[-webkit-tap-highlight-color:transparent] pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[3px] pointer-coarse:after:content-['']",
-          clearable ? "pr-1" : "pr-2.5",
+          clearable ? "pe-1" : "pe-2.5",
           raised && "z-[32]",
         )}
       >
@@ -365,7 +371,7 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, g
           <span
             aria-hidden="true"
             className={cn(
-              "-ml-0.5 grid shrink-0 place-items-center transition-[color] duration-200",
+              "-ms-0.5 grid shrink-0 place-items-center transition-[color] duration-200",
               set ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-mute,#BDBDBD)] group-data-[state=open]/pill:text-[var(--fu-accent-soft,#8FAAFF)]",
             )}
           >
@@ -416,7 +422,7 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, g
             trigger.current?.focus({ preventScroll: true });
           }}
           className={cn(
-            "relative mr-1.5 grid size-7 shrink-0 cursor-pointer place-items-center rounded-[8px] text-[var(--fu-accent-soft,#8FAAFF)]",
+            "relative me-1.5 grid size-7 shrink-0 cursor-pointer place-items-center rounded-[8px] text-[var(--fu-accent-soft,#8FAAFF)]",
             "transition-[background-color,color,opacity,filter,translate] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
             "starting:translate-y-1 starting:opacity-0 starting:blur-[2px]",
             "hover:bg-[var(--fu-accent-soft,#8FAAFF)]/15 hover:text-[var(--fu-accent-pale,#D1DDFF)]",
@@ -499,8 +505,8 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
     return node ? { left: node.offsetLeft, top: node.offsetTop, width: node.offsetWidth, height: node.offsetHeight } : null;
   };
 
-  // Right under its own pill, also when the bar wraps, so it never reads as another row's; the left edge lines up with
-  // the pill's, kept inside the bar. On phones, where only a panel open on first render shows in place, it sits under
+  // Right under its own pill, also when the bar wraps, so it never reads as another row's; the start edge lines up with
+  // the pill's (the right edge in RTL), kept inside the bar. Offsets are physical, from the bar's left. On phones, where only a panel open on first render shows in place, it sits under
   // the whole bar instead, so the page never loads with pills hidden.
   const panelRect = (pill: Rect): Rect | null => {
     const bar = pillOf()?.parentElement;
@@ -509,7 +515,7 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
     const room = bar.clientWidth;
     const w = Math.min(width, room);
     inner.style.width = `${w - 2}px`;
-    const left = Math.max(0, Math.min(pill.left, room - w));
+    const left = Math.max(0, Math.min(isRtl(bar) ? pill.left + pill.width - w : pill.left, room - w));
     const under = window.matchMedia(PHONE).matches ? bar.offsetHeight : pill.top + pill.height;
     return { left, top: under + GAP, width: w, height: inner.offsetHeight + 2 };
   };
@@ -648,8 +654,10 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
       role="dialog"
       aria-label={label}
       inert={!open}
+      // physical: placed from offsetLeft in script, which counts from the left in any direction.
       className="absolute top-0 left-0 z-30 box-border overflow-hidden border border-solid forced-colors:border-[CanvasText]"
     >
+      {/* physical: moved by a translate measured from the left, as above. */}
       <div ref={content} tabIndex={-1} className="absolute top-0 left-0 flex flex-col text-[var(--fu-text,#F8F5F1)] outline-none will-change-[translate,opacity,filter]">
         <div className="max-h-[min(560px,70vh)] overflow-y-auto overscroll-contain p-4 [scrollbar-width:thin]">{children}</div>
         <div className="flex items-center justify-between gap-2 px-4 pt-1 pb-4">{footer}</div>
@@ -738,10 +746,10 @@ function PillSheet({ id, titleId, title, summary, open, onClose, footer, onGone,
           "group-data-[state=closed]/sheet:duration-300 group-data-[state=closed]/sheet:ease-[cubic-bezier(0.4,0,1,1)]",
         )}
       >
-        <div className="flex min-h-[60px] items-center gap-3 pr-2 pl-4">
+        <div className="flex min-h-[60px] items-center gap-3 pe-2 ps-4">
           <p id={titleId} className="m-0 min-w-0 flex-1 truncate text-[17px] leading-6 font-semibold">
             {title}
-            {summary && <span className="ml-2 text-[15px] font-normal text-[var(--fu-accent-soft,#8FAAFF)]">{summary}</span>}
+            {summary && <span className="ms-2 text-[15px] font-normal text-[var(--fu-accent-soft,#8FAAFF)] [unicode-bidi:isolate]">{summary}</span>}
           </p>
           <button
             type="button"

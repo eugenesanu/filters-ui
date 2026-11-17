@@ -1,5 +1,6 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 
 export type CountPillProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
   count: number;
@@ -8,11 +9,11 @@ export type CountPillProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> &
   /** Selected look: accent fill, --fu-on-accent text. */
   on?: boolean;
   format?: (n: number) => string;
+  /** Formats the count when no format is given, e.g. "de-DE" prints 1.234. */
+  locale?: string;
 };
 
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
-
-export function CountPill({ count, variant = "default", on = false, format = defaultFormat, className, ...props }: CountPillProps) {
+export function CountPill({ count, variant = "default", on = false, format, locale, className, ...props }: CountPillProps) {
   return (
     <span
       data-state={on ? "on" : "off"}
@@ -31,7 +32,7 @@ export function CountPill({ count, variant = "default", on = false, format = def
       )}
       {...props}
     >
-      {format(count)}
+      {(format ?? formatsFor(locale).number)(count)}
     </span>
   );
 }

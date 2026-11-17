@@ -2,6 +2,8 @@
 
 import { useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { onDirChange, readingKey, startOffset } from "../lib/direction";
+import { formatsFor, resultsLabel } from "../lib/format";
 import { CountPill } from "./count-pill";
 
 export type SegmentedValue = string | number | null;
@@ -23,16 +25,17 @@ export type SegmentedProps<V extends SegmentedValue> = Omit<HTMLAttributes<HTMLD
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts by default, e.g. "de-DE". */
+  locale?: string;
   disabled?: boolean;
   /** "equal": options with a count share the width equally. "content": the same, except an option whose words need more keeps its own width. An option without a count ("Any") hugs its words while the control is under 340px wide. */
   fit?: "equal" | "content";
 };
 
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
-
 /**
  * A segmented control: an option without a count ("Any") hugs its words while the control is under 340px wide (from 340px all share the width), the others share the rest equally, and one pill slides to the chosen one over 340ms.
- * It is a radiogroup with one tab stop; arrow keys, Home and End move and select.
+ * It is a radiogroup with one tab stop; arrow keys, Home and End move and select. Right to left, the options run from
+ * the right and Left and Right follow them.
  */
 export function Segmented<V extends SegmentedValue>({
   options,
@@ -40,7 +43,8 @@ export function Segmented<V extends SegmentedValue>({
   onChange,
   label,
   formatCount,
-  countLabel = defaultCountLabel,
+  countLabel,
+  locale,
   disabled = false,
   fit = "equal",
   className,
@@ -48,9 +52,11 @@ export function Segmented<V extends SegmentedValue>({
   ...props
 }: SegmentedProps<V>) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const words = countLabel ?? ((n: number) => resultsLabel(n, locale));
+  const count = formatCount ?? formatsFor(locale).number;
   const index = options.findIndex((option) => Object.is(option.value, value));
   const usable = (i: number) => !disabled && !options[i].disabled;
-  const [box, setBox] = useState<{ left: number; width: number } | null>(null);
+  const [box, setBox] = useState<{ start: number; width: number; rtl: boolean } | null>(null);
   const [placed, setPlaced] = useState(false);
   // "Any" hugs its words only beside options that carry counts, and only while the track is narrow; a set without counts stays equal.
   const counted = options.some((option) => option.count !== undefined);
@@ -63,14 +69,16 @@ export function Segmented<V extends SegmentedValue>({
   useLayoutEffect(() => {
     const button = measuring && index >= 0 ? buttons.current[index] : null;
     if (!button) return;
-    const measure = () => setBox({ left: button.offsetLeft, width: button.offsetWidth });
+    const measure = () => setBox({ start: startOffset(button), width: button.offsetWidth, rtl: getComputedStyle(button).direction === "rtl" });
     measure();
     const frame = requestAnimationFrame(() => setPlaced(true));
     const observer = new ResizeObserver(measure);
     buttons.current.forEach((b) => b && observer.observe(b));
+    const stop = onDirChange(measure);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      stop();
     };
   }, [measuring, index, options.length]);
   const measured = measuring ? box : null;
@@ -88,7 +96,7 @@ export function Segmented<V extends SegmentedValue>({
       return -1;
     };
     let next = -1;
-    switch (event.key) {
+    switch (readingKey(event.key, event.currentTarget)) {
       case "ArrowRight":
       case "ArrowDown":
         next = walk((from + 1) % n, 1);
@@ -123,15 +131,15 @@ export function Segmented<V extends SegmentedValue>({
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute top-1 bottom-1 left-1 rounded-[9px] bg-[var(--fu-thumb,#404040)]",
-          measuring ? placed && "transition-[left,width,opacity]" : "transition-[translate,opacity]",
+          "pointer-events-none absolute top-1 bottom-1 inset-s-1 rounded-[9px] bg-[var(--fu-thumb,#404040)] [--flip:1] rtl:[--flip:-1]",
+          measuring ? placed && "transition-[left,right,width,opacity]" : "transition-[translate,opacity]",
           "duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           (index < 0 || (measuring && !measured)) && "opacity-0",
         )}
         style={
           measuring
-            ? { left: measured?.left, width: measured?.width }
-            : { width: `calc((100% - 8px) / ${options.length})`, translate: `${Math.max(index, 0) * 100}% 0` }
+            ? { [measured?.rtl ? "right" : "left"]: measured?.start, width: measured?.width }
+            : { width: `calc((100% - 8px) / ${options.length})`, translate: `calc(var(--flip,1) * ${Math.max(index, 0) * 100}%) 0` }
         }
       />
       {options.map((option, i) => {
@@ -168,10 +176,10 @@ export function Segmented<V extends SegmentedValue>({
                 <CountPill
                   aria-hidden="true"
                   count={option.count}
-                  format={formatCount}
+                  format={count}
                   className="group-enabled/seg:group-hover/seg:bg-[var(--fu-pill-hover,rgb(255_255_255/0.16))] group-enabled/seg:group-hover/seg:text-[var(--fu-text,#F8F5F1)]"
                 />
-                <span className="sr-only">, {countLabel(option.count)}</span>
+                <span className="sr-only">, {words(option.count)}</span>
               </>
             )}
           </button>

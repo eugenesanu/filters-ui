@@ -255,12 +255,13 @@ function fade(side: keyof typeof SIDES): CSSProperties {
   return { maskImage: image, maskComposite: "intersect", WebkitMaskImage: image, WebkitMaskComposite: "source-in" };
 }
 
-/** The pattern behind the header and the hero. Fills its positioned parent and never takes a pointer. */
+/** The pattern behind the header and the hero. Fills its positioned parent and never takes a pointer. Right to left it
+ * is drawn mirrored, so it still keeps clear of the hero text, which then sits on the right. */
 export function HeroBackdrop() {
   if (BACKDROP === "none") return null;
   const { Pattern, side } = FIELDS[BACKDROP];
   return (
-    <div aria-hidden className={`pointer-events-none absolute inset-0 -z-10 select-none overflow-hidden ${GUTTER}`} style={fade(side)}>
+    <div aria-hidden className={`pointer-events-none absolute inset-0 -z-10 select-none overflow-hidden rtl:-scale-x-100 ${GUTTER}`} style={fade(side)}>
       <Pattern />
     </div>
   );

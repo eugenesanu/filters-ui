@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode, type RefObject, type CSSProperties } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 import { ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, SearchIcon, XIcon } from "../ui/icons";
 import { TextField } from "../ui/text-field";
@@ -13,7 +14,7 @@ export type FilterValue = { key: string; label: string; onRemove: () => void; /*
 export type FilterEntry = {
   id: string;
   label: string;
-  /** One short line under the title on the right, e.g. "Pick one or more." */
+  /** One short line under the title, e.g. "Pick one or more." */
   hint?: string;
   /** Other words the find box matches, e.g. ["mileage", "odometer"]. */
   keywords?: readonly string[];
@@ -21,7 +22,7 @@ export type FilterEntry = {
   values?: readonly FilterValue[];
   /** Clears this filter, from the Clear button beside its title. */
   onClear?: () => void;
-  /** The filter itself, shown on the right. */
+  /** The filter itself, shown beside the list. */
   content: ReactNode;
 };
 
@@ -46,6 +47,8 @@ export type AllFiltersProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
   findLabel?: string;
   /** Height of the two columns in px, from 520px wide; each scrolls on its own. Default 560. */
   height?: number;
+  /** Formats the "3 set" count, e.g. "ar-EG". Default "en-US". */
+  locale?: string;
 };
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
@@ -75,8 +78,8 @@ function Marked({ text, query }: { text: string; query: string }) {
 }
 
 /**
- * Every filter in one panel: a list on the left in groups, each row with its set values as chips, and the picked
- * filter open on the right. The picked row is tinted; the right side rises in from a blur.
+ * Every filter in one panel: a list at the start (left, or right in RTL) in groups, each row with its set values as
+ * chips, and the picked filter open beside it. The picked row is tinted; the filter's side rises in from a blur.
  * A find box narrows the list. Below 520px wide the list and the filter take turns: a row drills in, Back returns.
  */
 export function AllFilters({
@@ -91,6 +94,7 @@ export function AllFilters({
   onShow,
   findLabel = "Find a filter",
   height = 560,
+  locale,
   className,
   ...props
 }: AllFiltersProps) {
@@ -237,34 +241,34 @@ export function AllFilters({
       )}
       {...props}
     >
-      <div className="flex min-h-16 flex-wrap items-center gap-x-2 gap-y-2 border-b border-[var(--fu-card-border,#2A2A2A)] py-3 pr-3 pl-5">
+      <div className="flex min-h-16 flex-wrap items-center gap-x-2 gap-y-2 border-b border-[var(--fu-card-border,#2A2A2A)] py-3 pe-3 ps-5">
         <Heading id={`${id}-title`} className="m-0 text-[20px] leading-7 font-semibold">
           {title}
         </Heading>
         {onClearAll && setCount > 0 && (
           <button
             type="button"
-            aria-label={`${setCount} set, clear all`}
+            aria-label={`${formatsFor(locale).number(setCount)} set, clear all`}
             onClick={() => {
               onClearAll();
               focusFind();
             }}
             className={cn(
-              "group/clear relative inline-flex h-7 cursor-pointer items-center gap-1 rounded-full bg-[var(--fu-selected,#1F2747)] pr-1.5 pl-2.5 text-[13px] leading-4 font-medium text-[var(--fu-accent-pale,#D1DDFF)] tabular-nums",
+              "group/clear relative inline-flex h-7 cursor-pointer items-center gap-1 rounded-full bg-[var(--fu-selected,#1F2747)] pe-1.5 ps-2.5 text-[13px] leading-4 font-medium text-[var(--fu-accent-pale,#D1DDFF)] tabular-nums",
               "transition-[background-color,opacity,filter,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-[var(--fu-accent-soft,#8FAAFF)]/20",
-              "starting:-translate-x-1 starting:opacity-0 starting:blur-[2px] motion-reduce:transition-none",
+              "starting:-translate-x-1 rtl:starting:translate-x-1 starting:opacity-0 starting:blur-[2px] motion-reduce:transition-none",
               "pointer-coarse:after:absolute pointer-coarse:after:-inset-2 pointer-coarse:after:content-['']",
               FOCUS_RING,
             )}
           >
-            <TextSwap>{String(setCount)}</TextSwap> set
+            <TextSwap>{formatsFor(locale).number(setCount)}</TextSwap> set
             <XIcon size={14} className="text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 group-hover/clear:text-[var(--fu-accent-pale,#D1DDFF)]" />
           </button>
         )}
         <span className="sr-only" aria-live="polite" aria-atomic="true">
           {showLabel.replace(/^Show /, "")}
         </span>
-        <ShowButton label={showLabel} onClick={onShow} className="ml-auto" />
+        <ShowButton label={showLabel} onClick={onShow} className="ms-auto" />
       </div>
 
       <div
@@ -280,7 +284,9 @@ export function AllFilters({
           inert={listHidden}
           className={cn(
             "flex min-h-0 min-w-0 flex-col transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            "@max-[519px]:group-data-[view=detail]/body:pointer-events-none @max-[519px]:group-data-[view=detail]/body:absolute @max-[519px]:group-data-[view=detail]/body:inset-x-0 @max-[519px]:group-data-[view=detail]/body:top-0 @max-[519px]:group-data-[view=detail]/body:-translate-x-[24%] @max-[519px]:group-data-[view=detail]/body:opacity-0",
+            "@max-[519px]:group-data-[view=detail]/body:pointer-events-none @max-[519px]:group-data-[view=detail]/body:absolute @max-[519px]:group-data-[view=detail]/body:inset-x-0 @max-[519px]:group-data-[view=detail]/body:top-0 @max-[519px]:group-data-[view=detail]/body:translate-x-[calc(var(--flip,1)*-24%)] @max-[519px]:group-data-[view=detail]/body:opacity-0",
+            // Right to left, the list leaves to the right and the filter comes in from the left.
+            "[--flip:1] rtl:[--flip:-1]",
           )}
         >
           <div className="px-3 pt-3 pb-1">
@@ -365,8 +371,9 @@ export function AllFilters({
           }}
           className={cn(
             "min-h-0 min-w-0 transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            "@min-[520px]:m-2 @min-[520px]:ml-0 @min-[520px]:max-h-[calc(100%-16px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)] @min-[520px]:[scrollbar-width:thin]",
-            "@max-[519px]:group-data-[view=list]/body:pointer-events-none @max-[519px]:group-data-[view=list]/body:absolute @max-[519px]:group-data-[view=list]/body:inset-x-0 @max-[519px]:group-data-[view=list]/body:top-0 @max-[519px]:group-data-[view=list]/body:translate-x-[104%] @max-[519px]:group-data-[view=list]/body:opacity-0",
+            "@min-[520px]:m-2 @min-[520px]:ms-0 @min-[520px]:max-h-[calc(100%-16px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)] @min-[520px]:[scrollbar-width:thin]",
+            "@max-[519px]:group-data-[view=list]/body:pointer-events-none @max-[519px]:group-data-[view=list]/body:absolute @max-[519px]:group-data-[view=list]/body:inset-x-0 @max-[519px]:group-data-[view=list]/body:top-0 @max-[519px]:group-data-[view=list]/body:translate-x-[calc(var(--flip,1)*104%)] @max-[519px]:group-data-[view=list]/body:opacity-0",
+            "[--flip:1] rtl:[--flip:-1]",
           )}
         >
           <div className="px-3 pt-2 @min-[520px]:hidden">
@@ -375,11 +382,11 @@ export function AllFilters({
               type="button"
               onClick={goBack}
               className={cn(
-                "-ml-1 inline-flex h-11 cursor-pointer items-center gap-1 rounded-[10px] pr-3 pl-1.5 text-[15px] leading-5 font-medium text-[var(--fu-mute,#BDBDBD)] transition-[color,background-color] duration-200 hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))] hover:text-[var(--fu-text,#F8F5F1)]",
+                "-ms-1 inline-flex h-11 cursor-pointer items-center gap-1 rounded-[10px] pe-3 ps-1.5 text-[15px] leading-5 font-medium text-[var(--fu-mute,#BDBDBD)] transition-[color,background-color] duration-200 hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))] hover:text-[var(--fu-text,#F8F5F1)]",
                 FOCUS_RING,
               )}
             >
-              <ChevronDownIcon size={18} className="rotate-90" />
+              <ChevronDownIcon size={18} className="rotate-90 rtl:-rotate-90" />
               All filters
             </button>
           </div>
@@ -397,7 +404,7 @@ export function AllFilters({
                       onClick={current.onClear}
                       aria-label={`Clear ${current.label.toLowerCase()}`}
                       className={cn(
-                        "relative -mr-1 h-7 shrink-0 cursor-pointer rounded-[6px] px-1 text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)]",
+                        "relative -me-1 h-7 shrink-0 cursor-pointer rounded-[6px] px-1 text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)]",
                         "starting:opacity-0 motion-reduce:transition-none pointer-coarse:after:absolute pointer-coarse:after:-inset-2 pointer-coarse:after:content-['']",
                         FOCUS_RING,
                       )}
@@ -410,7 +417,11 @@ export function AllFilters({
               </>
             ) : (
               <p className="m-0 grid min-h-[240px] place-items-center text-center text-[15px] leading-6 text-[var(--fu-dim,#929292)]">
-                Pick a filter on the left.
+                {/* The list's side, in words, follows the direction. */}
+                <span>
+                  Pick a filter on the <span className="rtl:hidden">left</span>
+                  <span className="hidden rtl:inline">right</span>.
+                </span>
               </p>
             )}
           </div>
@@ -458,7 +469,7 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
         onFocus={onFocus}
         onKeyDown={onKeyDown}
         className={cn(
-          "flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-[10px] px-3 text-left pointer-coarse:min-h-11 font-[inherit] text-[15px] leading-5 outline-none",
+          "flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-[10px] px-3 text-start pointer-coarse:min-h-11 font-[inherit] text-[15px] leading-5 outline-none",
           "after:absolute after:inset-0 after:rounded-[10px] after:content-['']",
           "focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-solid focus-visible:after:outline-[var(--fu-accent-soft,#8FAAFF)]",
           "transition-[background-color] duration-200",
@@ -474,7 +485,7 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
         >
           <Marked text={entry.label} query={query} />
           {via && (
-            <span className="ml-1.5 text-[13px] font-normal text-[var(--fu-dim,#929292)]">
+            <span className="ms-1.5 text-[13px] font-normal text-[var(--fu-dim,#929292)]">
               <Marked text={via} query={query} />
             </span>
           )}
@@ -483,8 +494,10 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
         <ChevronDownIcon
           size={16}
           className={cn(
-            "shrink-0 -rotate-90 transition-[color,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            picked ? "translate-x-0.5 text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)] group-hover/row:translate-x-0.5",
+            "shrink-0 -rotate-90 rtl:rotate-90 [--flip:1] rtl:[--flip:-1] transition-[color,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            picked
+              ? "translate-x-[calc(var(--flip,1)*0.125rem)] text-[var(--fu-accent-soft,#8FAAFF)]"
+              : "text-[var(--fu-dim,#929292)] group-hover/row:translate-x-[calc(var(--flip,1)*0.125rem)]",
           )}
         />
       </button>
@@ -548,8 +561,8 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
         }
         const out = node.animate(
           [
-            { width: `${node.offsetWidth}px`, marginRight: "6px", opacity: 1, filter: "blur(0)" },
-            { width: "0px", marginRight: "0px", opacity: 0, filter: "blur(2px)" },
+            { width: `${node.offsetWidth}px`, marginInlineEnd: "6px", opacity: 1, filter: "blur(0)" },
+            { width: "0px", marginInlineEnd: "0px", opacity: 0, filter: "blur(2px)" },
           ],
           { duration: 280, easing: EASE, fill: "forwards" },
         );
@@ -557,8 +570,8 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
       } else if (before && !before.has(item.key) && !quiet) {
         node.animate(
           [
-            { width: "0px", marginRight: "0px", opacity: 0, filter: "blur(2px)" },
-            { width: `${node.offsetWidth}px`, marginRight: "6px", opacity: 1, filter: "blur(0)" },
+            { width: "0px", marginInlineEnd: "0px", opacity: 0, filter: "blur(2px)" },
+            { width: `${node.offsetWidth}px`, marginInlineEnd: "6px", opacity: 1, filter: "blur(0)" },
           ],
           { duration: 320, easing: EASE },
         );
@@ -589,12 +602,12 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
                   else nodes.current.delete(item.key);
                 }}
                 aria-hidden={more || undefined}
-                className="mr-1.5 mb-1.5 inline-flex shrink-0 overflow-hidden rounded-[7px]"
+                className="me-1.5 mb-1.5 inline-flex shrink-0 overflow-hidden rounded-[7px]"
               >
                 <span
                   className={cn(
                     "inline-flex h-6 items-center gap-1.5 rounded-[7px] text-[13px] leading-4 whitespace-nowrap tabular-nums transition-[background-color] duration-200",
-                    more ? "px-2" : "pr-0.5 pl-2",
+                    more ? "px-2" : "pe-0.5 ps-2",
                     picked
                       ? "bg-[var(--fu-accent-soft,#8FAAFF)]/15 text-[var(--fu-accent-pale,#D1DDFF)]"
                       : "bg-[var(--fu-selected,#1F2747)] text-[var(--fu-accent-pale,#D1DDFF)]",

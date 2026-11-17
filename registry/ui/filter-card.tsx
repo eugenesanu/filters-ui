@@ -114,7 +114,7 @@ export function FilterCard({
           disabled={disabled}
           onClick={() => setOpen(!open)}
           className={cn(
-            "flex h-[52px] w-full cursor-pointer items-center gap-3 rounded-[23px] px-4 text-left font-[inherit] text-inherit disabled:cursor-default",
+            "flex h-[52px] w-full cursor-pointer items-center gap-3 rounded-[23px] px-4 text-start font-[inherit] text-inherit disabled:cursor-default",
             "outline-none",
           )}
         >
@@ -128,7 +128,7 @@ export function FilterCard({
           <ChevronDownIcon
             size={20}
             className={cn(
-              "ml-auto shrink-0 text-[var(--fu-mute,#BDBDBD)] group-has-[[data-filter-card-head]:disabled]/card:opacity-40 transition-[rotate] duration-[480ms] motion-reduce:transition-none",
+              "ms-auto shrink-0 text-[var(--fu-mute,#BDBDBD)] group-has-[[data-filter-card-head]:disabled]/card:opacity-40 transition-[rotate] duration-[480ms] motion-reduce:transition-none",
               SMOOTH,
               "group-data-[state=open]/card:rotate-180",
             )}
@@ -140,7 +140,7 @@ export function FilterCard({
         <div
           inert={!set}
           data-filter-card-slot=""
-          className="group/slot pointer-events-none absolute right-[46px] top-4 grid h-5 max-w-[55%] justify-items-end text-[14px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]"
+          className="group/slot pointer-events-none absolute inset-e-[46px] top-4 grid h-5 max-w-[55%] justify-items-end text-[14px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]"
         >
           <span aria-hidden="true" className={cn("pointer-events-none max-w-full truncate font-normal [grid-area:1/1]", swap, set ? SUMMARY_HIDES_WHEN : SUMMARY_HIDDEN, set && !disabled && SUMMARY_HIDES_ON_CARD_HOVER)}>
             {summary || lastSummary}
@@ -171,7 +171,7 @@ export function FilterCard({
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute right-[46px] top-4 max-w-[55%] truncate text-[14px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]",
+            "pointer-events-none absolute inset-e-[46px] top-4 max-w-[55%] truncate text-[14px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]",
             swap,
             "group-data-[state=open]/card:opacity-0",
           )}

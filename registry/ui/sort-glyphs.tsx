@@ -23,19 +23,19 @@ function Glyph({ children, ...props }: GlyphProps & { children: ReactNode }) {
   );
 }
 
-/** Bars rising left to right: lowest first. */
+/** Bars rising in reading order, left to right or right to left in RTL: lowest first. */
 export function AscendingGlyph(props: GlyphProps) {
   return (
-    <Glyph strokeWidth={2} {...props}>
+    <Glyph strokeWidth={2} {...props} className={`rtl:-scale-x-100 ${props.className ?? ""}`}>
       <path d="M3.5 13V9.5M8 13V6.5M12.5 13V3" />
     </Glyph>
   );
 }
 
-/** Bars falling left to right: highest first. */
+/** Bars falling in reading order: highest first. */
 export function DescendingGlyph(props: GlyphProps) {
   return (
-    <Glyph strokeWidth={2} {...props}>
+    <Glyph strokeWidth={2} {...props} className={`rtl:-scale-x-100 ${props.className ?? ""}`}>
       <path d="M3.5 13V3M8 13V6.5M12.5 13V9.5" />
     </Glyph>
   );

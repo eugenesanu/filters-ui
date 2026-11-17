@@ -2,6 +2,8 @@
 
 import { useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent } from "react";
 import { cn } from "../lib/cn";
+import { isRtl, readingKey } from "../lib/direction";
+import { formatsFor } from "../lib/format";
 
 /** [low, high]. null is an open end: no lower or no upper limit. */
 export type RangeValue = [number | null, number | null];
@@ -26,6 +28,8 @@ export type RangeChartProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
   labels?: { low?: string; high?: string };
   /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
   barScale?: number;
+  /** Formats values when no format is given, e.g. "de-DE". */
+  locale?: string;
   disabled?: boolean;
 };
 
@@ -33,7 +37,6 @@ const HANDLE = 20;
 // A press on a handle becomes a drag only after it travels this far, so a click does not show the tooltip.
 const DRAG_FROM = 3;
 
-const defaultFormat = (value: number) => new Intl.NumberFormat("en-US").format(value);
 const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
 
 // A handle stops at the end of the track, so the bars, the fill and the tooltip share the handle's travel.
@@ -43,7 +46,8 @@ type Drag = { handle: Handle; fraction: number; moving: boolean };
 
 /**
  * A bar chart of how many items sit along a range, with one or two handles on a track under it.
- * Each handle is backed by a visually hidden native range input for keyboards and screen readers.
+ * Each handle is backed by a visually hidden native range input for keyboards and screen readers. Right to left, the
+ * scale runs from the right: the minimum sits at the right end and the Left arrow raises a value.
  */
 export function RangeChart({
   min,
@@ -52,15 +56,17 @@ export function RangeChart({
   value,
   onChange,
   buckets,
-  format = defaultFormat,
+  format: formatProp,
   openLabel,
   single = false,
   labels,
   barScale = 1,
+  locale,
   disabled = false,
   className,
   ...props
 }: RangeChartProps) {
+  const format: (value: number, handle: Handle) => string = formatProp ?? formatsFor(locale).number;
   const root = useRef<HTMLDivElement>(null);
   const tip = useRef<HTMLSpanElement>(null);
   const grip = useRef<{ x: number; shift: number; handle: Handle; stacked: boolean; box: DOMRect } | null>(null);
@@ -97,7 +103,8 @@ export function RangeChart({
   // A drag passes the box it measured at press, so moves do not force a layout read each event.
   const fractionAt = (clientX: number, box = root.current?.getBoundingClientRect()) => {
     if (!box) return 0;
-    return clamp((clientX - box.left - HANDLE / 2) / (box.width - HANDLE), 0, 1);
+    const fromStart = isRtl(root.current) ? box.right - clientX : clientX - box.left;
+    return clamp((fromStart - HANDLE / 2) / (box.width - HANDLE), 0, 1);
   };
 
   // Where each handle is drawn: a dragged one sits under the pointer, the other at its value.
@@ -153,7 +160,7 @@ export function RangeChart({
     if (!g || !drag) return;
     if (!drag.moving && Math.abs(event.clientX - g.x) < DRAG_FROM) return;
     if (g.stacked) {
-      const pulled: Handle = event.clientX < g.x ? "low" : "high";
+      const pulled: Handle = event.clientX < g.x !== isRtl(root.current) ? "low" : "high";
       g.stacked = false;
       if (pulled !== g.handle) {
         g.shift += fractionOf(values[pulled]) - fractionOf(values[g.handle]);
@@ -264,7 +271,7 @@ export function RangeChart({
             "transition-[left,right] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
             "group-data-[dragging]/range:transition-none",
           )}
-          style={{ left: single ? 0 : along(lowShown), right: along(1 - shown.high) }}
+          style={{ insetInlineStart: single ? 0 : along(lowShown), insetInlineEnd: along(1 - shown.high) }}
         />
         {handles.map((handle) => {
           const grabbed = drag?.handle === handle;
@@ -284,13 +291,20 @@ export function RangeChart({
                 value={values[handle]}
                 disabled={disabled}
                 onChange={(event) => moveTo(handle, Number(event.target.value))}
+                // Left and Right follow the screen in RTL too, the same in every browser.
+                onKeyDown={(event) => {
+                  const key = readingKey(event.key, event.currentTarget);
+                  if (key === event.key) return;
+                  event.preventDefault();
+                  moveTo(handle, values[handle] + (key === "ArrowRight" ? step : -step));
+                }}
                 className="peer pointer-events-none absolute inset-0 m-0 h-full w-full opacity-0"
               />
               <span
                 data-handle={handle}
                 data-grabbed={grabbed || undefined}
                 className={cn(
-                  "absolute top-[2px] -ml-[10px] size-5 cursor-grab touch-none rounded-full bg-[var(--fu-handle,#F8F5F1)]",
+                  "absolute top-[2px] -ms-[10px] size-5 cursor-grab touch-none rounded-full bg-[var(--fu-handle,#F8F5F1)]",
                   "shadow-[0_0_0_0_color-mix(in_srgb,var(--fu-accent-soft,#8FAAFF)_28%,transparent),0_0_0_1px_var(--fu-handle-edge,rgb(0_0_0/0.25)),0_2px_6px_var(--fu-shadow,rgb(0_0_0/0.5))]",
                   "transition-[left,scale,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                   "before:absolute before:-inset-[10px] before:rounded-full before:content-['']",
@@ -300,7 +314,7 @@ export function RangeChart({
                   "group-data-[dragging]/range:data-[grabbed]:transition-[scale,box-shadow]",
                   "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-solid peer-focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
                 )}
-                style={{ left: along(shown[handle]) }}
+                style={{ insetInlineStart: along(shown[handle]) }}
               />
             </span>
           );
@@ -312,14 +326,14 @@ export function RangeChart({
         aria-hidden
         data-state={dragging ? "open" : "closed"}
         className={cn(
-          "pointer-events-none absolute bottom-10 z-[2] -translate-x-1/2 rounded-[8px] px-2 py-1 whitespace-nowrap",
+          "pointer-events-none absolute bottom-10 z-[2] -translate-x-1/2 rtl:translate-x-1/2 rounded-[8px] px-2 py-1 whitespace-nowrap",
           "bg-[var(--fu-text,#F8F5F1)] text-[13px] leading-[18px] font-medium text-[var(--fu-surface-1,#171717)] tabular-nums",
           "transition-[opacity,translate] duration-150 ease-in-out motion-reduce:transition-none",
           "data-[state=closed]:translate-y-1 data-[state=closed]:opacity-0",
         )}
         style={
           {
-            left: `clamp(${tipHalf}px, ${along(shown[tipHandle])}, calc(100% - ${tipHalf}px))`,
+            insetInlineStart: `clamp(${tipHalf}px, ${along(shown[tipHandle])}, calc(100% - ${tipHalf}px))`,
           } as CSSProperties
         }
       >

@@ -2,6 +2,7 @@
 
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 import { TextSwap } from "./text-swap";
 
 export type CountNoun = { one: string; other: string };
@@ -13,6 +14,8 @@ type SharedProps = {
   noun?: CountNoun;
   /** Formats the number in the button. Default Intl en-US ("1,204"). */
   formatCount?: (n: number) => string;
+  /** Formats the count when no formatCount is given, e.g. "de-DE". Default "en-US". */
+  locale?: string;
   /** Override the whole button label. Default "Show {count} {noun}". */
   showLabel?: (count: number) => string;
   onShow?: () => void;
@@ -22,10 +25,8 @@ type SharedProps = {
   clearAllLabel?: string;
 };
 
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
-
-function labelOf({ count, noun = { one: "result", other: "results" }, formatCount = defaultFormat, showLabel }: SharedProps) {
-  return showLabel ? showLabel(count) : `Show ${formatCount(count)} ${count === 1 ? noun.one : noun.other}`;
+function labelOf({ count, noun = { one: "result", other: "results" }, formatCount, locale, showLabel }: SharedProps) {
+  return showLabel ? showLabel(count) : `Show ${(formatCount ?? formatsFor(locale).number)(count)} ${count === 1 ? noun.one : noun.other}`;
 }
 
 const PRESS =
@@ -78,13 +79,14 @@ export type FiltersHeadProps = SharedProps &
     actionsClassName?: string;
   };
 
-/** "Filters" on the left; "Clear all" and "Show N results" on the right. The count is announced politely. */
+/** "Filters" at the start; "Clear all" and "Show N results" at the end. The count is announced politely. */
 export function FiltersHead({
   title = "Filters",
   headingLevel = 2,
   count,
   noun,
   formatCount,
+  locale,
   showLabel,
   onShow,
   onClearAll,
@@ -95,10 +97,10 @@ export function FiltersHead({
   ...props
 }: FiltersHeadProps) {
   const Heading = `h${headingLevel}` as const;
-  const label = labelOf({ count, noun, formatCount, showLabel });
+  const label = labelOf({ count, noun, formatCount, locale, showLabel });
   return (
     <div className={cn("not-prose flex min-h-10 items-center gap-2", className)} {...props}>
-      <Heading className="m-0 mr-auto text-[26px] font-semibold leading-8 text-[var(--fu-text,#F8F5F1)]">{title}</Heading>
+      <Heading className="m-0 me-auto text-[26px] font-semibold leading-8 text-[var(--fu-text,#F8F5F1)]">{title}</Heading>
       <span className="sr-only" aria-live="polite" aria-atomic="true">
         {label.replace(/^Show /, "")}
       </span>
@@ -125,6 +127,7 @@ export function FiltersBar({
   count,
   noun,
   formatCount,
+  locale,
   showLabel,
   onShow,
   onClearAll,
@@ -133,7 +136,7 @@ export function FiltersBar({
   className,
   ...props
 }: FiltersBarProps) {
-  const label = labelOf({ count, noun, formatCount, showLabel });
+  const label = labelOf({ count, noun, formatCount, locale, showLabel });
   return (
     <div
       inert={!visible}

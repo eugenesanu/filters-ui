@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from "react";
+import { StageControlRow, useStage, useStageFrame } from "@/components/stage/stage-controls";
+import { formatsFor } from "@/registry/lib/format";
 import { CARS, type Car } from "@/registry/demo/cars";
 import {
   CAR_FACET_TITLES,
+  carFormats,
   EMPTY_CAR_FILTERS,
   clearFacet,
-  formatMoney,
   matchingCars,
   summaryOf,
   type CarFacet,
@@ -16,17 +18,16 @@ import { AppliedFilters, type AppliedFilter } from "@/registry/filters/applied-f
 import { NoResults } from "@/registry/filters/no-results";
 import { CheckIcon, PlusIcon } from "@/registry/ui/icons";
 import { TextSwap } from "@/registry/ui/text-swap";
-import { CAR_RELAX, carMatches } from "@/components/stage/car-relax";
+import { carMatches, carRelax } from "@/components/stage/car-relax";
 
-const count = new Intl.NumberFormat("en-US");
 const CAR_NOUN = { one: "car", other: "cars" };
 
 /** The order chips take in the row, whatever order the filters were set in. */
 const CHIP_ORDER: CarFacet[] = ["price", "year", "km", "condition", "make", "body", "fuel", "drive", "transmission", "color", "seats"];
 
-const chipsOf = (f: CarFilters): AppliedFilter[] =>
+const chipsOf = (f: CarFilters, locale?: string): AppliedFilter[] =>
   CHIP_ORDER.flatMap((facet) => {
-    const value = summaryOf(f, facet);
+    const value = summaryOf(f, facet, locale);
     return value === null ? [] : [{ key: facet, label: CAR_FACET_TITLES[facet], value }];
   });
 
@@ -36,32 +37,35 @@ const TRY =
   "relative inline-flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[10px] px-2 transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1";
 
 function Frame({ toolbar, children }: { toolbar: ReactNode; children: ReactNode }) {
+  const frame = useStageFrame();
   return (
     <section aria-label="Try it" className="relative flex h-full min-h-[360px] flex-col rounded-[24px] border border-card bg-panel">
       <div className="flex min-h-12 items-center justify-between gap-3 px-3 pt-3">{toolbar}</div>
-      <div className="flex-1 px-4 pb-10 pt-2 sm:px-8">
+      <div {...frame} className="flex-1 px-4 pb-0 pt-2 sm:px-8">
         <div className="mx-auto flex w-full max-w-[560px] flex-col pt-2 sm:pt-[clamp(8px,5vh,56px)]">{children}</div>
       </div>
+      <StageControlRow />
     </section>
   );
 }
 
 function Toolbar({ name, prefix, children }: { name: string; prefix: string; children: ReactNode }) {
   return (
-    <div role="group" aria-label={name} className="flex min-w-0 items-start gap-x-1 pl-2 text-[14px] leading-5">
-      <span className="mr-1 flex h-9 shrink-0 items-center text-dim">{prefix}</span>
+    <div role="group" aria-label={name} className="flex min-w-0 items-start gap-x-1 ps-2 text-[14px] leading-5">
+      <span className="me-1 flex h-9 shrink-0 items-center text-dim">{prefix}</span>
       <span className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-2">{children}</span>
     </div>
   );
 }
 
 function CountLine({ found, onReset }: { found: number; onReset: () => void }) {
+  const n = formatsFor(useStage().locale).number;
   return (
-    <div className="mt-3 flex items-center justify-between gap-3 pl-4">
+    <div className="mt-3 flex items-center justify-between gap-3 ps-4">
       <p aria-live="polite" className="text-[14px] leading-5 text-dim tabular-nums">
-        <TextSwap className="font-medium text-text">{count.format(found)}</TextSwap> of {count.format(CARS.length)} cars
+        <TextSwap className="font-medium text-text">{n(found)}</TextSwap> of {n(CARS.length)} cars
       </p>
-      <button type="button" onClick={onReset} className={`${RESET} -mr-3`}>
+      <button type="button" onClick={onReset} className={`${RESET} -me-3`}>
         Reset
       </button>
     </div>
@@ -92,6 +96,9 @@ function Reveal({ children }: { children: ReactNode }) {
 const cheapestFirst = (cars: Car[]) => [...cars].sort((a, b) => a.price - b.price).slice(0, 4);
 
 function CarList({ cars, ref }: { cars: Car[]; ref?: Ref<HTMLUListElement> }) {
+  const { locale } = useStage();
+  const f = carFormats(locale);
+  const n = formatsFor(locale).number;
   return (
     <ul ref={ref} tabIndex={-1} aria-label="Cheapest results" className="rounded-[24px] border border-card-border bg-card p-2 outline-none">
       {cheapestFirst(cars).map((car) => (
@@ -102,11 +109,11 @@ function CarList({ cars, ref }: { cars: Car[]; ref?: Ref<HTMLUListElement> }) {
             </span>
             <span className="block truncate text-[13px] leading-5 text-dim">
               {car.year}
-              {car.km !== null && <> · {count.format(car.km)} km</>}
+              {car.km !== null && <> · {n(car.km)} km</>}
               {car.fuel && <> · {car.fuel}</>}
             </span>
           </span>
-          <span className="shrink-0 text-[15px] font-medium leading-5 text-accent-soft">{formatMoney(car.price)}</span>
+          <span className="shrink-0 text-[15px] font-medium leading-5 text-accent-soft">{f.money(car.price)}</span>
         </li>
       ))}
     </ul>
@@ -115,6 +122,8 @@ function CarList({ cars, ref }: { cars: Car[]; ref?: Ref<HTMLUListElement> }) {
 
 /** Shows the cars, or the fixes when there are none. After a fix, focus moves to the cars it found. */
 function Results({ filters, setFilters }: { filters: CarFilters; setFilters: (next: CarFilters) => void }) {
+  const { locale } = useStage();
+  const relax = useMemo(() => carRelax(locale), [locale]);
   const found = useMemo(() => matchingCars(filters), [filters]);
   const list = useRef<HTMLUListElement>(null);
   const fixed = useRef(false);
@@ -126,6 +135,7 @@ function Results({ filters, setFilters }: { filters: CarFilters; setFilters: (ne
   return found.length === 0 ? (
     <Reveal key="none">
       <NoResults
+        locale={locale}
         items={CARS}
         value={filters}
         onChange={(next) => {
@@ -133,7 +143,7 @@ function Results({ filters, setFilters }: { filters: CarFilters; setFilters: (ne
           setFilters(next);
         }}
         matches={carMatches}
-        relax={CAR_RELAX}
+        relax={relax}
         title="No cars match"
         noun={CAR_NOUN}
       />
@@ -155,6 +165,7 @@ const tryFilters = (i: number): CarFilters => ({ ...EMPTY_CAR_FILTERS, ...TRIES[
 
 /** Searches that find nothing, the chips they set, and the fixes in place of the results. */
 export function NoResultsStage() {
+  const { locale } = useStage();
   const [tried, setTried] = useState(0);
   const [filters, setFilters] = useState<CarFilters>(() => tryFilters(0));
   const found = matchingCars(filters).length;
@@ -176,7 +187,7 @@ export function NoResultsStage() {
       }
     >
       <AppliedFilters
-        filters={chipsOf(filters)}
+        filters={chipsOf(filters, locale)}
         onRemove={(key) => setFilters((f) => clearFacet(f, key as CarFacet))}
         onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
         className="mb-4"
@@ -197,17 +208,18 @@ const ADDS: { label: string; on: (f: CarFilters) => boolean; toggle: (f: CarFilt
 ];
 
 const ADD_PILL =
-  "relative inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border pl-2 pr-2.5 text-[14px] leading-5 transition-[color,background-color,border-color] duration-200 ease-smooth pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-soft";
+  "relative inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border ps-2 pe-2.5 text-[14px] leading-5 transition-[color,background-color,border-color] duration-200 ease-smooth pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-soft";
 
 /** A results page head: a few filters to add, then the chips they make, over the cars, so chips arrive as well as leave. */
 export function AppliedFiltersStage() {
+  const { locale } = useStage();
   const [filters, setFilters] = useState<CarFilters>(APPLIED_START);
   const found = matchingCars(filters).length;
 
   return (
     <Frame toolbar={<span />}>
       <div role="group" aria-label="Add a filter" className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="mr-0.5 text-[13px] leading-5 text-dim">Add</span>
+        <span className="me-0.5 text-[13px] leading-5 text-dim">Add</span>
         {ADDS.map((add) => {
           const on = add.on(filters);
           return (
@@ -225,7 +237,7 @@ export function AppliedFiltersStage() {
         })}
       </div>
       <AppliedFilters
-        filters={chipsOf(filters)}
+        filters={chipsOf(filters, locale)}
         onRemove={(key) => setFilters((f) => clearFacet(f, key as CarFacet))}
         onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
         className="mb-4"

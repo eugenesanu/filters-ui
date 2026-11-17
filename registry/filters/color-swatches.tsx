@@ -2,6 +2,7 @@
 
 import { useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import { resultsLabel } from "../lib/format";
 
 export type ColorSwatchOption<V extends string> = {
   value: V;
@@ -19,9 +20,9 @@ export type ColorSwatchesProps<V extends string> = Omit<HTMLAttributes<HTMLDivEl
   label: string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their spoken words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
-
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 /** A four-column grid of colour dots with their names. Several can be on. */
 export function ColorSwatches<V extends string>({
@@ -29,10 +30,12 @@ export function ColorSwatches<V extends string>({
   value,
   onChange,
   label,
-  countLabel = defaultCountLabel,
+  countLabel: countLabelProp,
+  locale,
   className,
   ...props
 }: ColorSwatchesProps<V>) {
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   // An option turned off at 0 would become disabled under the pointer or keyboard and drop focus; it stays enabled until it loses focus.
   const [kept, setKept] = useState<V | null>(null);
   const toggle = (v: V, button: HTMLButtonElement) => {

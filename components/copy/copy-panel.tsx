@@ -35,6 +35,7 @@ function Label({ children, action }: { children: ReactNode; action?: ReactNode }
 function Code({ html, className }: { html: string; className?: string }) {
   return (
     <div
+      dir="ltr"
       className={cn("fu-code overflow-auto rounded-[12px] border border-card bg-page", className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />
@@ -43,8 +44,8 @@ function Code({ html, className }: { html: string; className?: string }) {
 
 function CommandRow({ command, announce, copyLabel }: { command: string; announce: string; copyLabel: string }) {
   return (
-    <div className="flex items-center gap-2 rounded-[12px] border border-card bg-page py-1.5 pl-4 pr-1.5">
-      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-1.5 font-mono text-[13px] leading-5 text-mute [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] [scrollbar-width:none]">
+    <div className="flex items-center gap-2 rounded-[12px] border border-card bg-page py-1.5 ps-4 pe-1.5">
+      <code dir="ltr" className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-1.5 font-mono text-[13px] leading-5 text-mute [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] [scrollbar-width:none]">
         {command}
       </code>
       <CopyButton text={command} announce={announce} ariaLabel={copyLabel} />
@@ -70,8 +71,8 @@ function ShortToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) =>
       >
         <span
           className={cn(
-            "absolute left-0.5 top-0.5 size-4 rounded-full bg-[var(--fu-handle)] shadow-[0_0_0_0.5px_var(--fu-knob-edge),0_1px_2px_var(--fu-knob-shadow)] transition-[translate] duration-300 ease-smooth motion-reduce:transition-none",
-            on && "translate-x-3.5",
+            "absolute inset-s-0.5 top-0.5 size-4 rounded-full bg-[var(--fu-handle)] shadow-[0_0_0_0.5px_var(--fu-knob-edge),0_1px_2px_var(--fu-knob-shadow)] transition-[translate] duration-300 ease-smooth motion-reduce:transition-none",
+            on && "translate-x-3.5 rtl:-translate-x-3.5",
           )}
         />
       </span>
@@ -106,6 +107,7 @@ function PromptTab({ data, wide }: { data: PanelData; wide: boolean }) {
       </div>
       {/* On phones a short faded preview, so the page scroll never fights an inner one; Copy carries the whole text. */}
       <pre
+        dir="ltr"
         tabIndex={0}
         role="region"
         aria-label="Prompt text"
@@ -180,11 +182,12 @@ function CodeTab({ data }: { data: PanelData }) {
           </div>
         )}
         <div className="mt-1 overflow-hidden rounded-[12px] border border-card bg-page">
-          <div className="flex items-center justify-between gap-3 border-b border-card py-1.5 pl-4 pr-1.5">
-            <span className="min-w-0 truncate font-mono text-[12.5px] leading-5 text-dim">{file.savePath}</span>
+          <div className="flex items-center justify-between gap-3 border-b border-card py-1.5 ps-4 pe-1.5">
+            <span dir="ltr" className="min-w-0 truncate font-mono text-[12.5px] leading-5 text-dim">{file.savePath}</span>
             <CopyButton text={file.source} label="Copy file" announce={`${file.name} copied`} />
           </div>
           <div
+            dir="ltr"
             className="fu-code overflow-auto"
             {...(manyFiles ? {} : { id: `${id}-panel`, role: "tabpanel", "aria-labelledby": `${id}-tab-${index}` })}
             dangerouslySetInnerHTML={{ __html: file.html }}
@@ -201,7 +204,7 @@ function InstallTab({ data }: { data: PanelData }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div role="group" aria-label="Package manager" className="-ml-2 flex items-center gap-1 text-[13px] leading-5">
+      <div role="group" aria-label="Package manager" className="-ms-2 flex items-center gap-1 text-[13px] leading-5">
         {MANAGERS.map((m) => (
           <button
             key={m}

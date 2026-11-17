@@ -26,7 +26,7 @@ const SORTED_CARS = [
 export function DropdownTilePreview() {
   return (
     <div>
-      <div className="flex items-center justify-between gap-3 pr-[7px] pl-[21px]">
+      <div className="flex items-center justify-between gap-3 pe-[7px] ps-[21px]">
         <p className="text-[14px] leading-5 text-dim">5 cars</p>
         <DropdownMenu still variant="quiet" label="Sort by" prefix="Sort by" align="end" value="price-low" onChange={still} options={SORTS} />
       </div>

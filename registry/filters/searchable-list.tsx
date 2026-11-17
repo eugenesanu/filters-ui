@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor, resultsLabel } from "../lib/format";
 import { CountPill } from "../ui/count-pill";
 import { CheckIcon, SearchIcon } from "../ui/icons";
 import { TextField } from "../ui/text-field";
@@ -36,6 +37,8 @@ export type SearchableListProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their spoken words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
   /**
    * "card" (default): the look inside a FilterCard. "panel": a 48px search, 20px filled checkboxes, 17px names, counts as
    * plain numbers and rows flush with the field, as in the Filter panel block. The list grows in place for its scrolling
@@ -46,8 +49,6 @@ export type SearchableListProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
 
 const ROW_HEIGHT = 36;
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 // Swapped letters count as one slip, so "telsa" is one edit from "tesla".
 function editDistance(a: string, b: string) {
@@ -148,10 +149,10 @@ function Row({ label, query, count, checked, disabled, nested, panel, formatCoun
     <label
       data-state={checked ? "on" : "off"}
       className={cn(
-        "group/row relative flex h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] pr-3 text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]",
-        nested ? "pl-[40px]" : "pl-3",
-        panel && "rounded-[10px] pr-2 text-[17px] font-semibold pointer-coarse:h-11",
-        panel && (nested ? "pl-[38px]" : "pl-2"),
+        "group/row relative flex h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] pe-3 text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]",
+        nested ? "ps-[40px]" : "ps-3",
+        panel && "rounded-[10px] pe-2 text-[17px] font-semibold pointer-coarse:h-11",
+        panel && (nested ? "ps-[38px]" : "ps-2"),
         "transition-[background-color,opacity] duration-200 motion-reduce:transition-none",
         "[@media(hover:hover)]:has-[input:enabled]:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",
         // Drawn inside the row, so neither the scroll area nor the card can clip it.
@@ -218,12 +219,15 @@ export function SearchableList({
   label,
   noun = "items",
   collapsedCount = 8,
-  formatCount = defaultFormat,
-  countLabel = defaultCountLabel,
+  formatCount: formatCountProp,
+  countLabel: countLabelProp,
+  locale,
   variant = "card",
   className,
   ...props
 }: SearchableListProps) {
+  const formatCount = formatCountProp ?? formatsFor(locale).number;
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const panel = variant === "panel";
   const listId = useId();
   const [query, setQuery] = useState("");
@@ -463,20 +467,20 @@ export function SearchableList({
             setAll(!all);
           }}
           className={cn(
-            "group/more relative mt-1.5 ml-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
+            "group/more relative mt-1.5 ms-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
             "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
-            panel && "mt-2 ml-0 text-[15px] pointer-coarse:before:-inset-y-3",
+            panel && "mt-2 ms-0 text-[15px] pointer-coarse:before:-inset-y-3",
           )}
         >
-          {/* A 1px line draws in under the words from the left while it is hovered or focused. */}
+          {/* A 1px line draws in under the words from the start edge while it is hovered or focused. */}
           <span
             className={cn(
-              "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] bg-no-repeat pb-px",
+              "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] rtl:bg-[position:100%_100%] bg-no-repeat pb-px",
               "transition-[background-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
               "[@media(hover:hover)]:group-hover/more:bg-[length:100%_1px] group-focus-visible/more:bg-[length:100%_1px]",
             )}
           >
-            {all ? "Show fewer" : `All ${options.length} ${noun}`}
+            {all ? "Show fewer" : `All ${formatCount(options.length)} ${noun}`}
           </span>
         </button>
       )}

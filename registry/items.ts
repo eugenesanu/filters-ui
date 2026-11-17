@@ -9,6 +9,11 @@
 // Paths are from the repo root. The props tables are written by hand from the components: keep them in step.
 // Colours: every colour is var(--fu-<token>,<its dark value>) with the token from lib/theme.ts; a new token goes into
 // lib/theme.ts (dark and light) and into all three token blocks of app/globals.css. registry:check enforces this.
+// Direction and locale: lay out with start and end (ms-, ps-, inset-s-, text-start, border-s, rounded-s…; registry:check
+// fails on ml-, left-, text-right and the like; a right-to-left override uses the rtl: variant). Positions and arrow keys
+// worked out in script read the direction from the element (registry/lib/direction.ts). An item that prints numbers,
+// prices, distances or dates takes locale?: string (default "en-US") and formats through registry/lib/format.ts, with a
+// "locale" row in its props below. Every item also gets one line in components/stage/stage-specs.ts.
 
 export type ItemKind = "filter" | "basic" | "block";
 
@@ -53,7 +58,8 @@ export type RegistryItem = {
 const RANGE_DATA: PropRow[] = [
   { name: "buckets", type: "readonly number[]", meaning: "Item count per bar, spread evenly from min to max. Leave out for a plain slider." },
   { name: "format", type: "(value: number) => string", default: "1,234", meaning: "Text for a value in the field, the tooltip and screen readers, e.g. \"$45,000\"." },
-  { name: "parse", type: "(text: string) => number | null", default: "reads \"45k\" and \"1.2m\"", meaning: "Reads a typed value. Return null when the text holds no number." },
+  { name: "parse", type: "(text: string) => number | null", default: "reads \"45k\" and \"1.2m\"", meaning: "Reads a typed value, with the locale's marks. Return null when the text holds no number." },
+  { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats values by default and reads typed numbers the locale's way: \"45.000\" is forty-five thousand in de-DE. Words stay English." },
 ];
 
 const RANGE_TAIL: PropRow[] = [
@@ -65,6 +71,7 @@ const CHOICE_SHARED: PropRow[] = [
   { name: "label", type: "string", required: true, meaning: "Accessible name of the group." },
   { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text in each count pill." },
   { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
+  { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
 ];
 
 /** The card every filter sits in. Shipped with each filter item. */
@@ -127,6 +134,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "onChange", type: "(value: V[]) => void", required: true, meaning: "Called with the new list." },
       { name: "label", type: "string", required: true, meaning: "Accessible name of the group." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\". Counts are not shown on screen." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the spoken counts by default, e.g. \"de-DE\". Words stay English." },
     ],
     does: [
       "Each swatch toggles on or off; several can be on.",
@@ -164,6 +172,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text in each count pill." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
       { name: "variant", type: "\"card\" | \"panel\"", default: "\"card\"", meaning: "\"panel\": a 48px search, 20px filled checkboxes, 17px names and plain counts, for a list that sits in a panel rather than a card. The list grows in place and the panel scrolls it." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "Typing filters options and sub-options at once and marks the matching letters.",
@@ -210,6 +219,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "defaultHighlight", type: "number", meaning: "The row highlighted on first render, by position, e.g. for a still picture of an open list." },
       { name: "open / onOpenChange", type: "boolean / (open: boolean) => void", meaning: "The list's open state, when you control it." },
       { name: "emptyRows", type: "OwnRows<State>", meaning: "Rows of your own while the box is empty, in place of the suggestions or above them, such as recent searches." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "Reads a typed sentence into removable tokens: \"blue suv under 30k\" gives Blue, SUV and Under $30k.",
@@ -266,7 +276,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     keyboard: [
       "Tab reaches each handle, then each field.",
-      "Arrow keys move the focused handle by one step; Home and End jump to the ends.",
+      "Arrow keys move the focused handle by one step; Home and End jump to the ends. Right to left, Left raises the value and Right lowers it.",
       "Enter or leaving a field applies what was typed; Escape puts the field back.",
     ],
     accessibility: [
@@ -324,7 +334,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "value", type: "[V | null, V | null]", required: true, meaning: "[from, to], both inclusive. null is an open end." },
       { name: "onChange", type: "(value: [V | null, V | null]) => void", required: true, meaning: "Called with the new range." },
       { name: "buckets", type: "readonly number[]", meaning: "Item count per option, in the order of options." },
-      { name: "format", type: "(value: V) => string", default: "String", meaning: "Picker, tooltip and screen-reader text for a value." },
+      { name: "format", type: "(value: V) => string", default: "2026", meaning: "Picker, tooltip and screen-reader text for a value. The default prints the number with no group marks, in the locale's digits." },
       { name: "pickerOrder", type: "\"ascending\" | \"descending\"", default: "\"ascending\"", meaning: "Order of the picker choices; \"descending\" puts the newest year first." },
       { name: "anyLabel", type: "string", default: "\"Any\"", meaning: "The open-end choice in both pickers." },
       { name: "prefixes", type: "{ low?: string; high?: string }", default: "From, To", meaning: "Visible picker prefixes." },
@@ -332,6 +342,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count in the pickers, e.g. \"6 cars\"." },
       { name: "barScale", type: "number", default: "1", meaning: "Bar width as a share of its slot." },
       { name: "disabled", type: "boolean", default: "false", meaning: "Dims the filter and blocks input." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats values (with no group marks, so years read 2026) and counts by default, e.g. \"ar-EG\". Words stay English." },
     ],
     does: [
       "One bar per value; the handles sit between bars, so From and To may hold the same value.",
@@ -342,7 +353,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     keyboard: [
       "Tab reaches each handle, then each picker.",
-      "Arrow keys move the focused handle by one value.",
+      "Arrow keys move the focused handle by one value. Right to left, the scale runs from the right: Left raises the value and Right lowers it.",
       "On a picker, Down, Enter or Space opens its list; arrows, Home, End and typed digits (\"2015\") move; Enter picks; Escape closes.",
     ],
     accessibility: [
@@ -382,7 +393,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     keyboard: [
       "Tab reaches the handle, then the field.",
-      "Arrow keys move the handle by one step; Home and End jump to the ends.",
+      "Arrow keys move the handle by one step; Home and End jump to the ends. Right to left, Left raises the limit and Right lowers it.",
       "Enter or leaving the field applies what was typed; Escape puts it back.",
     ],
     accessibility: [
@@ -417,7 +428,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     keyboard: [
       "The group is one tab stop.",
-      "Arrow keys, Home and End move and select at once, skipping disabled options.",
+      "Arrow keys, Home and End move and select at once, skipping disabled options. Right to left, Left moves to the next option.",
     ],
     accessibility: [
       "It is a radiogroup of radio buttons with aria-checked.",
@@ -446,8 +457,9 @@ export const ITEMS: RegistryItem[] = [
       { name: "label", type: "string", default: "\"Dates\"", meaning: "Accessible name of the presets and the start of the fields' names, e.g. \"Listed\"." },
       { name: "anyLabel / customLabel", type: "string / string", default: "\"Any time\" / \"Custom\"", meaning: "The first and last preset." },
       { name: "allowFuture", type: "boolean", default: "false", meaning: "Lets days after today be picked. Off, they show dimmed." },
-      { name: "weekStartsOn", type: "0 | 1", default: "0", meaning: "0 starts weeks on Sunday, 1 on Monday." },
+      { name: "weekStartsOn", type: "0 | 1 | 2 | 3 | 4 | 5 | 6", default: "the locale's", meaning: "The first day of the week: 0 is Sunday, 1 Monday, 6 Saturday. Default: Sunday in en-US, Monday in de-DE, Saturday in ar-EG." },
       { name: "formatCount / countLabel", type: "(n: number) => string", default: "1,234 / \"6 results\"", meaning: "Text of each count, and its words for screen readers, e.g. \"6 cars\"." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Month and weekday names, the first day of the week, the order of typed dates (\"3.11.\" in de-DE) and the numbers. The presets' words stay as given." },
     ],
     does: [
       "Presets pick the last 1, 3, 7 or 30 days in one press; the chosen one is tinted and each shows its count.",
@@ -459,6 +471,7 @@ export const ITEMS: RegistryItem[] = [
     keyboard: [
       "The presets are one tab stop: arrow keys move and pick.",
       "In the calendar, arrows move by day and week, Home and End go to the week's ends, Page Up and Page Down change month, with Shift a year.",
+      "Right to left the week runs from the right, so Left moves to the next day and Right to the day before.",
       "Enter or Space picks the first day, then the last; Escape drops a half-picked range.",
       "In a date field, Enter or leaving it applies what was typed; Escape puts it back.",
     ],
@@ -495,6 +508,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "popularLabel", type: "string", default: "\"Popular\"", meaning: "The quick picks' name, shown dim before them and read out, e.g. \"Popular models\"." },
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text of each count." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "Each list shows every choice with a short bar for its share and its count.",
@@ -536,6 +550,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "collapsedCount", type: "number", default: "6", meaning: "How many rows show before \"All N\"." },
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text of each count." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "A soft bar behind each row shows its count as a share of the largest, so the list reads as a ranking.",
@@ -573,6 +588,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "buckets", type: "readonly number[]", meaning: "Items per price bar, spread evenly from min to max. Both ways draw them." },
       { name: "terms", type: "readonly number[]", default: "[36, 48, 60, 72]", meaning: "Loan lengths in months." },
       { name: "format", type: "(value: number) => string", default: "\"$45,000\"", meaning: "Money as text in the fields, the chart and the top price." },
+      { name: "currency", type: "string", default: "\"USD\"", meaning: "The currency of the default money format, as an ISO code such as \"EUR\"." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats money, the rate and the terms, and reads typed money the locale's way: \"45.000\" in de-DE. Words stay English." },
       { name: "label", type: "string", default: "\"Budget\"", meaning: "Accessible name of the two ways." },
     ],
     does: [
@@ -625,7 +642,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     keyboard: [
       "Each chip is a button: Tab reaches it, Enter or Space removes it.",
-      "Left and Right move between chips; Backspace or Delete removes the one in focus.",
+      "Left and Right move between chips the way they sit on screen, so in right to left Left moves to the next one; Backspace or Delete removes the one in focus.",
       "After a removal focus moves to the next chip; after Clear all, to the row.",
     ],
     accessibility: [
@@ -661,6 +678,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "limit", type: "number", default: "3", meaning: "How many fixes to offer." },
       { name: "onClearAll", type: "() => void", meaning: "When given, a Clear all button closes the card." },
       { name: "headingLevel", type: "2 | 3 | 4 | 5 | 6", default: "3", meaning: "Level of the title." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "Loosens each filter in use by its nearest step that finds something: \"Under $20k\" to \"Under $25k\", \"7+\" to \"Any\".",
@@ -705,6 +723,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "defaultOpen", type: "boolean", default: "false", meaning: "Shows the list on first render, before the field has focus. A press outside closes it, except inside an inert still picture." },
       { name: "defaultHighlight", type: "number", meaning: "The row highlighted on first render, by position, so its filters show in the box, e.g. for a still picture." },
       { name: "label / placeholder / countLabel / formatCount", type: "string / string / (n: number) => string / (n: number) => string", meaning: "As in the sentence search." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "Focus the empty box and your Saved and Recent searches show, each with its filters and how many items it finds now.",
@@ -748,6 +767,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "label", type: "string", default: "\"Rules\"", meaning: "Accessible name of the whole set." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Words for a count, e.g. \"6 cars\", read with each row and announced as the result changes." },
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "The number beside each row." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and number values, and reads typed numbers the locale's way (\"45.000\" in de-DE). Words stay English." },
     ],
     does: [
       "Each row reads field, condition and value; the value control follows the field: typed numbers, one picked step, or names as chips.",
@@ -793,6 +813,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "onClearAll", type: "() => void", meaning: "Clears every pill. \"Clear all\" fades in at the end of the bar once a pill is set." },
       { name: "showLabel / onShow", type: "string / () => void", default: "\"Done\"", meaning: "The button at the foot of each panel, e.g. \"Show 34 cars\". It closes the panel; filters apply as they change." },
       { name: "clearAllLabel / formatCount", type: "string / (n: number) => string", default: "\"Clear all\" / 1,234", meaning: "Words of Clear all, and the text in a pill's count." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "A pill's panel unfolds out of the pill: its outline grows into a card under it while the filter rises in from a blur, then folds back on close.",
@@ -835,6 +856,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "showLabel / onShow", type: "string / () => void", default: "\"Done\"", meaning: "The head's button, e.g. \"Show 34 cars\"." },
       { name: "title / headingLevel", type: "string / 2 | 3", default: "\"Filters\" / 2", meaning: "The head's title; the picked filter's title sits one level below." },
       { name: "findLabel / height", type: "string / number", default: "\"Find a filter\" / 560", meaning: "The find box's words, and the height of the two columns in px from 520px wide." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the \"3 set\" count, e.g. \"ar-EG\". Words stay English." },
     ],
     does: [
       "The picked row is tinted, and the filter on the right rises in from a blur.",
@@ -925,6 +947,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "emptyText", type: "string", default: "\"No choices\"", meaning: "Shown in the open list when there are no options." },
       { name: "waiting", type: "boolean", default: "false", meaning: "A quieter field while it waits on another choice, such as Model before a make. It still opens." },
       { name: "disabled", type: "boolean", default: "false", meaning: "Dims the field and blocks input." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
     ],
     does: [
       "Looks like the text fields: 44px, a 1px border, the value after an optional prefix such as \"From\".",
@@ -1003,6 +1026,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "defaultOpen", type: "CarFacet[]", default: "[]", meaning: "Cards open on first render." },
       { name: "onShow", type: "(cars: Car[]) => void", meaning: "Called by Show N cars with the matching cars." },
       { name: "headingLevel", type: "1 | 2 | 3", default: "2", meaning: "Level of the Filters heading; card headings sit one below." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Numbers, prices and distances on every card follow it, e.g. \"de-DE\". Words stay English." },
     ],
     does: [
       "Eleven filters, each on its own card. Each count shows what picking that option would give.",
@@ -1041,6 +1065,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "glow", type: "boolean", default: "false", meaning: "A faint coloured light along the panel's edges." },
       { name: "headingLevel", type: "2 | 3 | 4", default: "2", meaning: "Level of the Filters heading; row headings sit one below." },
       { name: "className", type: "string", meaning: "Give the panel a height or a max height, e.g. h-[600px], and the rows scroll between the head and Show." },
+      { name: "locale", type: "string", default: "\"en-US\"", meaning: "Numbers, prices and distances on every card follow it, e.g. \"de-DE\". Words stay English." },
     ],
     does: [
       "Eleven filters stacked as rows in one panel. Several can be open at once.",

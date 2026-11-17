@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BarList } from "../filters/bar-list";
+import { formatsFor } from "../lib/format";
 import { FilterCard } from "../ui/filter-card";
 import { Segmented } from "../ui/segmented";
 
@@ -28,12 +29,12 @@ const BODIES: Body[] = ["SUV", "Sedan", "Truck"];
 const count = (makes: string[], body: Body | null) =>
   (makes.length ? makes : MAKES).reduce((n, make) => n + BODIES.reduce((m, b) => m + (body === null || body === b ? STOCK[make][b] : 0), 0), 0);
 
-const carCount = (n: number) => (n === 1 ? "1 car" : `${n} cars`);
-
 const summaryOf = (makes: string[]) =>
   makes.length === 0 ? null : makes.length <= 2 ? makes.join(", ") : `${makes.slice(0, 2).join(", ")} +${makes.length - 2}`;
 
-export default function MakeBarsExample() {
+export default function MakeBarsExample({ locale = "en-US" }: { locale?: string }) {
+  const { number } = formatsFor(locale);
+  const carCount = (n: number) => (n === 1 ? "1 car" : `${number(n)} cars`);
   const [makes, setMakes] = useState<string[]>(["Toyota"]);
   const [body, setBody] = useState<Body | null>(null);
 
@@ -44,13 +45,13 @@ export default function MakeBarsExample() {
   return (
     <div className="flex w-full max-w-[320px] flex-col gap-3">
       <FilterCard title="Make" summary={summaryOf(makes)} onClear={() => setMakes([])} defaultOpen>
-        <BarList label="Make" noun="makes" options={makeOptions} value={makes} onChange={setMakes} countLabel={carCount} />
+        <BarList label="Make" noun="makes" options={makeOptions} value={makes} onChange={setMakes} countLabel={carCount} locale={locale} />
       </FilterCard>
       <FilterCard title="Body style" summary={body} onClear={() => setBody(null)} defaultOpen>
-        <Segmented label="Body style" options={bodyOptions} value={body} onChange={setBody} countLabel={carCount} />
+        <Segmented label="Body style" options={bodyOptions} value={body} onChange={setBody} countLabel={carCount} locale={locale} />
       </FilterCard>
       <p aria-live="polite" className="px-4 text-[14px] leading-5 tabular-nums">
-        <span className="font-medium">{count(makes, body)}</span> <span className="text-[var(--fu-dim,#929292)]">{count(makes, body) === 1 ? "car" : "cars"}</span>
+        <span className="font-medium">{number(count(makes, body))}</span> <span className="text-[var(--fu-dim,#929292)]">{count(makes, body) === 1 ? "car" : "cars"}</span>
       </p>
     </div>
   );

@@ -2,6 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode, type Ref, type RefObject } from "react";
 import { cn } from "../lib/cn";
+import { isRtl } from "../lib/direction";
+import { formatsFor } from "../lib/format";
 import { CheckIcon } from "./icons";
 
 export type PopoverCloseReason = "escape" | "outside" | "blur" | "away";
@@ -16,7 +18,7 @@ export type PopoverPanelProps = Omit<HTMLAttributes<HTMLDivElement>, "children">
    * outside both) or "away" (the trigger scrolled out of view). The owner sets open to false and moves focus if needed.
    */
   onClose: (reason: PopoverCloseReason) => void;
-  /** Lines up the start edges, or the end edges with "end". Default "start". */
+  /** Lines up the start edges, or the end edges with "end": the left edges in left-to-right, the right ones in RTL. Default "start". */
   align?: "start" | "end";
   /** At least as wide as the trigger. */
   matchWidth?: boolean;
@@ -144,7 +146,8 @@ export function PopoverPanel({
     node.style.maxHeight = `${Math.min(maxHeight, Math.max(MIN_HEIGHT, roomOf(next)))}px`;
     const width = node.offsetWidth;
     const height = node.offsetHeight;
-    const x = Math.min(Math.max(mx, align === "end" ? right - width : left), vw - mx - width);
+    const toRight = (align === "end") !== isRtl(trigger);
+    const x = Math.min(Math.max(mx, toRight ? right - width : left), vw - mx - width);
     const y = next === "bottom" ? bottom + GAP : top - GAP - height;
     node.style.left = `${Math.round(x)}px`;
     node.style.top = `${Math.round(y)}px`;
@@ -293,7 +296,7 @@ export function PopoverPanel({
         // The browser's own popover look is reset: no inset, margin or padding, and these colours, not Canvas.
         "group/popover m-0 box-border overflow-x-hidden overflow-y-auto overscroll-contain text-[var(--fu-text,#F8F5F1)] [-webkit-tap-highlight-color:transparent]",
         still
-          ? cn("absolute top-full z-10 mt-1.5", align === "end" ? "right-0" : "left-0", matchWidth && "min-w-full", !open && "hidden")
+          ? cn("absolute top-full z-10 mt-1.5", align === "end" ? "inset-e-0" : "inset-s-0", matchWidth && "min-w-full", !open && "hidden")
           : "fixed inset-auto z-50",
         "transition-[opacity,translate,scale,filter] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         "data-[state=open]:duration-[480ms] data-[state=closing]:duration-[160ms]",
@@ -396,10 +399,8 @@ export function ListCheck({ on }: { on: boolean }) {
   );
 }
 
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
-
 /**
- * A row's count as a short bar and a number. The bar is the count's share of `max`; bars grow in from the left as
+ * A row's count as a short bar and a number. The bar is the count's share of `max`; bars grow in from the start edge as
  * their panel first opens, one row after another (`order`), and ease to a new width when the count changes. With bar false
  * only the number shows, in the same place, e.g. for "Any".
  */
@@ -409,7 +410,8 @@ export function ListCount({
   order = 0,
   on = false,
   bar = true,
-  format = defaultFormat,
+  format,
+  locale,
 }: {
   count: number;
   max: number;
@@ -417,6 +419,8 @@ export function ListCount({
   on?: boolean;
   bar?: boolean;
   format?: (n: number) => string;
+  /** Formats the count when no format is given. */
+  locale?: string;
 }) {
   const share = max > 0 ? Math.min(1, count / max) : 0;
   return (
@@ -424,7 +428,7 @@ export function ListCount({
       <span className={cn("flex h-1 w-12 items-center rounded-full bg-[var(--fu-track,rgb(255_255_255/0.06))]", !bar && "invisible")}>
         <span
           className={cn(
-            "h-1 origin-left rounded-full transition-[scale,width,background-color] duration-[480ms] motion-reduce:transition-none",
+            "h-1 origin-left rtl:origin-right rounded-full transition-[scale,width,background-color] duration-[480ms] motion-reduce:transition-none",
             SMOOTH,
             "group-data-[unseen]/popover:scale-x-0 group-data-[unseen]/popover:transition-none",
             on
@@ -437,11 +441,11 @@ export function ListCount({
       </span>
       <span
         className={cn(
-          "min-w-[3ch] text-right text-[13px] leading-5 tabular-nums transition-[color] duration-200",
+          "min-w-[3ch] text-end text-[13px] leading-5 tabular-nums transition-[color] duration-200",
           on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)] group-data-[active]/row:text-[var(--fu-mute,#BDBDBD)]",
         )}
       >
-        {format(count)}
+        {(format ?? formatsFor(locale).number)(count)}
       </span>
     </span>
   );

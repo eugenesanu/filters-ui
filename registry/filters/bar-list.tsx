@@ -2,6 +2,7 @@
 
 import { useId, useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor, resultsLabel } from "../lib/format";
 import { CheckIcon, ChevronDownIcon } from "../ui/icons";
 import { TextSwap } from "../ui/text-swap";
 
@@ -23,11 +24,11 @@ export type BarListProps<V extends string = string> = Omit<HTMLAttributes<HTMLDi
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their spoken words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${defaultFormat(n)} results`);
 
 type RowProps = {
   label: string;
@@ -40,14 +41,14 @@ type RowProps = {
 };
 
 // The whole row is the checkbox's label; the native box is hidden and drawn again. The bar behind the name is the row's
-// count as a share of the largest one (a small share is a hairline), and eases to a new width over 480ms when other
+// count as a share of the largest one (a small share is a hairline), growing from the start edge, and eases to a new width over 480ms when other
 // filters change the counts. A ticked row is tinted end to end under its bar.
 function Row({ label, count, share, checked, format, countLabel, onToggle }: RowProps) {
   return (
     <label
       data-state={checked ? "on" : "off"}
       className={cn(
-        "group/row relative isolate flex h-10 min-w-0 cursor-pointer items-center gap-3 rounded-[10px] pr-3 pl-3 text-[14px] leading-5 pointer-coarse:h-11",
+        "group/row relative isolate flex h-10 min-w-0 cursor-pointer items-center gap-3 rounded-[10px] pe-3 ps-3 text-[14px] leading-5 pointer-coarse:h-11",
         "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:-outline-offset-2 has-[input:focus-visible]:outline-solid has-[input:focus-visible]:outline-[var(--fu-accent-soft,#8FAAFF)]",
         "has-[input:disabled]:cursor-default transition-[opacity] duration-300 motion-reduce:transition-none",
         count === 0 && !checked && "opacity-40",
@@ -63,7 +64,7 @@ function Row({ label, count, share, checked, format, countLabel, onToggle }: Row
       <span
         aria-hidden="true"
         className={cn(
-          "absolute inset-y-[2px] left-[34px] -z-10 rounded-[6px] transition-[width,background-color] duration-[480ms] motion-reduce:transition-none",
+          "absolute inset-y-[2px] inset-s-[34px] -z-10 rounded-[6px] transition-[width,background-color] duration-[480ms] motion-reduce:transition-none",
           SMOOTH,
           checked
             ? "bg-[var(--fu-accent-soft,#8FAAFF)]/15"
@@ -133,11 +134,14 @@ export function BarList<V extends string = string>({
   label,
   noun = "items",
   collapsedCount = 6,
-  formatCount = defaultFormat,
-  countLabel = defaultCountLabel,
+  formatCount: formatCountProp,
+  countLabel: countLabelProp,
+  locale,
   className,
   ...props
 }: BarListProps<V>) {
+  const formatCount = formatCountProp ?? formatsFor(locale).number;
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const restId = useId();
   // Opens on its own when a ticked row would be hidden.
   const [all, setAll] = useState(() => options.slice(collapsedCount).some((option) => value.includes(option.value)));
@@ -198,7 +202,7 @@ export function BarList<V extends string = string>({
               "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
             )}
           >
-            <TextSwap>{all ? `Fewer ${noun}` : `All ${options.length} ${noun}`}</TextSwap>
+            <TextSwap>{all ? `Fewer ${noun}` : `All ${formatCount(options.length)} ${noun}`}</TextSwap>
             <ChevronDownIcon size={16} className={cn("transition-[rotate] duration-[480ms] motion-reduce:transition-none", SMOOTH, all && "rotate-180")} />
           </button>
         </>

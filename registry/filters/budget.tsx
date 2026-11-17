@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type CSSProperties, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 import { RangeHistogram } from "./range-histogram";
 import type { RangeValue } from "../ui/range-chart";
 import { Segmented } from "../ui/segmented";
@@ -29,8 +30,12 @@ export type BudgetProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "def
   rate: number;
   /** Loan lengths in months. */
   terms?: readonly number[];
-  /** Money as text, e.g. "$45,000". */
+  /** Money as text, e.g. "$45,000". Default: whole units of `currency` in the locale. */
   format?: (value: number) => string;
+  /** ISO 4217 code for the default money format. Default "USD". */
+  currency?: string;
+  /** Formats money, the rate and the terms, and reads typed money, e.g. "de-DE" reads "45.000". Default "en-US". */
+  locale?: string;
   /** Accessible name of the two ways, e.g. "Budget". */
   label?: string;
 };
@@ -51,12 +56,6 @@ export function budgetRange(value: BudgetValue, rate: number): RangeValue {
   return value.monthly === null ? [null, null] : [null, topPrice(value.monthly, value.term, value.down, rate)];
 }
 
-const whole = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-const defaultFormat = (value: number) => `$${whole.format(value)}`;
-const readMoney = (text: string) => {
-  const match = text.replace(/[\s,$]/g, "").match(/^(\d*\.?\d+)(k)?$/i);
-  return match ? Math.round(Number(match[1]) * (match[2] ? 1000 : 1)) : null;
-};
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const FOCUS_RING = "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]";
@@ -76,11 +75,14 @@ export function Budget({
   buckets,
   rate,
   terms = [36, 48, 60, 72],
-  format = defaultFormat,
+  format: formatProp,
+  currency = "USD",
+  locale,
   label = "Budget",
   className,
   ...props
 }: BudgetProps) {
+  const format = formatProp ?? formatsFor(locale, { currency }).price;
   const id = useId();
   // Each way keeps what was set in it, so switching back finds it as it was.
   const [kept, setKept] = useState<{ total: BudgetValue & { by: "total" }; monthly: BudgetValue & { by: "monthly" } }>(() => ({
@@ -129,6 +131,7 @@ export function Budget({
         onChange={(range) => onChange({ by: "total", range })}
         buckets={buckets}
         format={format}
+        locale={locale}
         labels={{ low: "Lowest price", high: "Highest price" }}
       />
     ) : (
@@ -143,6 +146,7 @@ export function Budget({
         rate={rate}
         terms={terms}
         format={format}
+        locale={locale}
       />
     );
 
@@ -176,7 +180,7 @@ export function Budget({
               tabIndex={on ? 0 : -1}
               onClick={() => pick(way.key)}
               className={cn(
-                "flex w-full cursor-pointer items-start gap-3 rounded-[15px] p-3 text-left",
+                "flex w-full cursor-pointer items-start gap-3 rounded-[15px] p-3 text-start",
                 "outline-none focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
                 on && "cursor-default",
               )}
@@ -262,11 +266,17 @@ type MonthlyBodyProps = {
   rate: number;
   terms: readonly number[];
   format: (value: number) => string;
+  locale?: string;
 };
 
-function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, terms, format }: MonthlyBodyProps) {
+function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, terms, format, locale }: MonthlyBodyProps) {
   const set = (patch: Partial<BudgetValue & { by: "monthly" }>) => onChange({ ...value, ...patch });
-  const rateText = `${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(rate)}%`;
+  const formats = formatsFor(locale);
+  const rateText = formats.percent(rate);
+  const read = (text: string) => {
+    const typed = formats.readNumber(text);
+    return typed === null ? null : Math.round(typed);
+  };
   return (
     <div className="pt-1">
       <p aria-live="polite" className="flex items-baseline justify-between gap-3">
@@ -278,8 +288,8 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
       </p>
       <CeilingBars buckets={buckets} min={min} max={max} ceiling={ceiling} />
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <MoneyField label="Each month" value={value.monthly} placeholder="$0" onCommit={(monthly) => set({ monthly })} format={format} />
-        <MoneyField label="Down payment" value={value.down || null} placeholder="$0" onCommit={(down) => set({ down: down ?? 0 })} format={format} />
+        <MoneyField label="Each month" value={value.monthly} placeholder={format(0)} onCommit={(monthly) => set({ monthly })} format={format} read={read} />
+        <MoneyField label="Down payment" value={value.down || null} placeholder={format(0)} onCommit={(down) => set({ down: down ?? 0 })} format={format} read={read} />
       </div>
       <div className="mt-3 flex items-center gap-3">
         <span id={`${id}-term`} className="shrink-0 text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
@@ -288,7 +298,7 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
         <Segmented
           label="Term in months"
           aria-describedby={`${id}-term`}
-          options={terms.map((t) => ({ value: t, label: String(t) }))}
+          options={terms.map((t) => ({ value: t, label: formats.plain(t) }))}
           value={value.term}
           onChange={(term) => set({ term })}
           className="min-w-0 flex-1 bg-[var(--fu-well,rgb(0_0_0/0.22))]"
@@ -339,12 +349,12 @@ function CeilingBars({ buckets, min, max, ceiling }: { buckets?: readonly number
       </div>
       <span
         className={cn(
-          "pointer-events-none absolute -top-1 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-[var(--fu-accent-pale,#D1DDFF)]",
-          "transition-[left,opacity] duration-[480ms] motion-reduce:transition-none",
+          "pointer-events-none absolute -top-1 bottom-0 w-0.5 -translate-x-1/2 rtl:translate-x-1/2 rounded-full bg-[var(--fu-accent-pale,#D1DDFF)]",
+          "transition-[left,right,opacity] duration-[480ms] motion-reduce:transition-none",
           SMOOTH,
           ceiling === null && "opacity-0",
         )}
-        style={{ left: `${fraction * 100}%` } as CSSProperties}
+        style={{ insetInlineStart: `${fraction * 100}%` } as CSSProperties}
       />
       <div className="h-1 rounded-[2px] bg-[var(--fu-rail,#4A4A4A)]">
         <div
@@ -361,11 +371,12 @@ type MoneyFieldProps = {
   placeholder: string;
   value: number | null;
   format: (value: number) => string;
+  read: (text: string) => number | null;
   onCommit: (value: number | null) => void;
 };
 
 // Applies as you type, so the top price moves with each digit; leaving the field tidies the text.
-function MoneyField({ label, placeholder, value, format, onCommit }: MoneyFieldProps) {
+function MoneyField({ label, placeholder, value, format, read, onCommit }: MoneyFieldProps) {
   const [draft, setDraft] = useState<string | null>(null);
   return (
     <div className="min-w-0">
@@ -383,7 +394,7 @@ function MoneyField({ label, placeholder, value, format, onCommit }: MoneyFieldP
         setDraft(text);
         if (!text.trim()) onCommit(null);
         else {
-          const typed = readMoney(text);
+          const typed = read(text);
           if (typed !== null) onCommit(typed);
         }
       }}
@@ -398,7 +409,7 @@ function MoneyField({ label, placeholder, value, format, onCommit }: MoneyFieldP
           setDraft(null);
         }
       }}
-      className="pr-2"
+      className="pe-2"
       inputClassName="tabular-nums"
       />
     </div>

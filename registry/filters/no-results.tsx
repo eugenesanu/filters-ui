@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 import { findFixes, type Fix, type RelaxMap } from "../lib/relax";
 import { ArrowRightIcon, SearchXIcon } from "../ui/icons";
 
@@ -24,8 +25,10 @@ export type NoResultsProps<Item, State> = Omit<HTMLAttributes<HTMLElement>, "onC
   description?: string;
   /** Default { one: "result", other: "results" }. */
   noun?: CountNoun;
-  /** Default Intl en-US ("1,204"). */
+  /** Default: the number in the locale ("1,204"). */
   formatCount?: (n: number) => string;
+  /** Formats the counts by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
   /** How many fixes to offer. Default 3. */
   limit?: number;
   /** When given, a Clear all button closes the card. */
@@ -36,7 +39,6 @@ export type NoResultsProps<Item, State> = Omit<HTMLAttributes<HTMLElement>, "onC
 };
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const noop = () => () => {};
 
@@ -62,7 +64,8 @@ export function NoResults<Item, State>({
   title = "No results",
   description,
   noun = { one: "result", other: "results" },
-  formatCount = defaultFormat,
+  formatCount: formatCountProp,
+  locale,
   limit = 3,
   onClearAll,
   clearAllLabel = "Clear all",
@@ -70,6 +73,7 @@ export function NoResults<Item, State>({
   className,
   ...props
 }: NoResultsProps<Item, State>) {
+  const formatCount = formatCountProp ?? formatsFor(locale).number;
   const id = useId();
   const fixes = useMemo(() => findFixes({ items, value, matches, relax, limit }), [items, value, matches, relax, limit]);
   const most = Math.max(1, ...fixes.map((fix) => fix.count));
@@ -150,7 +154,7 @@ export function NoResults<Item, State>({
                 aria-label={spoken(fix, noun, formatCount)}
                 onClick={() => onChange(fix.state)}
                 className={cn(
-                  "group/fix relative isolate flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-[10px] py-2.5 pr-3 pl-3 text-left font-[inherit] text-[14px] leading-5 text-inherit",
+                  "group/fix relative isolate flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-[10px] py-2.5 pe-3 ps-3 text-start font-[inherit] text-[14px] leading-5 text-inherit",
                   "transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.99] active:duration-75 motion-reduce:transition-none",
                   "[@media(hover:hover)]:hover:bg-[var(--fu-card-hover,#262626)] focus-visible:bg-[var(--fu-card-hover,#262626)]",
                   "outline-none focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
@@ -162,7 +166,7 @@ export function NoResults<Item, State>({
                   data-fix-bar=""
                   style={{ width: `max(40px, calc((100% - 72px) * ${fix.count / most}))` }}
                   className={cn(
-                    "absolute inset-y-1 left-1 -z-10 rounded-[8px] bg-[var(--fu-card-hover,#262626)]",
+                    "absolute inset-y-1 inset-s-1 -z-10 rounded-[8px] bg-[var(--fu-card-hover,#262626)]",
                     "transition-[width,background-color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                     "group-hover/fix:bg-[var(--fu-selected,#1F2747)] group-focus-visible/fix:bg-[var(--fu-selected,#1F2747)]",
                   )}
@@ -177,7 +181,7 @@ export function NoResults<Item, State>({
                             {change.from}
                             <span
                               className={cn(
-                                "absolute inset-x-[-2px] top-1/2 h-px origin-left scale-x-0 bg-current",
+                                "absolute inset-x-[-2px] top-1/2 h-px origin-left rtl:origin-right scale-x-0 bg-current",
                                 "transition-[scale] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                                 "group-hover/fix:scale-x-100 group-focus-visible/fix:scale-x-100",
                               )}
@@ -186,7 +190,7 @@ export function NoResults<Item, State>({
                           <ArrowRightIcon
                             size={12}
                             strokeWidth={2.25}
-                            className="shrink-0 text-[var(--fu-dim,#929292)] transition-[translate,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/fix:translate-x-0.5 group-hover/fix:text-[var(--fu-mute,#BDBDBD)] motion-reduce:transition-none"
+                            className="shrink-0 text-[var(--fu-dim,#929292)] transition-[translate,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] [--flip:1] rtl:[--flip:-1] rtl:-scale-x-100 group-hover/fix:translate-x-[calc(var(--flip,1)*0.125rem)] group-hover/fix:text-[var(--fu-mute,#BDBDBD)] motion-reduce:transition-none"
                           />
                           {" "}
                           <span className="truncate font-medium transition-[color] duration-200 group-hover/fix:text-[var(--fu-accent-pale,#D1DDFF)] group-focus-visible/fix:text-[var(--fu-accent-pale,#D1DDFF)]">
@@ -214,7 +218,7 @@ export function NoResults<Item, State>({
             type="button"
             onClick={onClearAll}
             className={cn(
-              "relative -mr-2.5 inline-flex h-9 cursor-pointer items-center rounded-[10px] px-2.5 font-[inherit] text-[14px] font-medium leading-5 text-[var(--fu-accent-soft,#8FAAFF)]",
+              "relative -me-2.5 inline-flex h-9 cursor-pointer items-center rounded-[10px] px-2.5 font-[inherit] text-[14px] font-medium leading-5 text-[var(--fu-accent-soft,#8FAAFF)]",
               "transition-[color,background-color,scale] duration-200 hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))] hover:text-[var(--fu-accent-pale,#D1DDFF)] active:scale-[0.97] motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",

@@ -21,9 +21,7 @@ import {
   fuelCounts,
   transmissionOptions,
   YEARS,
-  formatCarCount,
-  formatKm,
-  formatMoney,
+  carFormats,
   kmBuckets,
   makeOptions,
   MAKES_UP_FRONT,
@@ -75,6 +73,8 @@ export type CarsBoardProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & 
   defaultOpen?: CarFacet[];
   onShow?: (cars: Car[]) => void;
   headingLevel?: 1 | 2 | 3;
+  /** Numbers, prices and distances follow it, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
 
 /**
@@ -88,9 +88,11 @@ export function CarsBoard({
   defaultOpen = [],
   onShow,
   headingLevel = 2,
+  locale,
   className,
   ...props
 }: CarsBoardProps) {
+  const f = carFormats(locale);
   const [filters, setFilters] = useState(defaultFilters);
   const [open, setOpen] = useState<CarFacet[]>(defaultOpen);
   const [headSeen, setHeadSeen] = useState(true);
@@ -117,19 +119,21 @@ export function CarsBoard({
       case "price":
         return (
           <RangeHistogram
+            locale={locale}
             min={PRICE_MIN}
             max={PRICE_MAX}
             step={PRICE_STEP}
             value={[filters.priceMin, filters.priceMax]}
             onChange={([priceMin, priceMax]) => set({ priceMin, priceMax })}
             buckets={priceBuckets(filters, cars)}
-            format={formatMoney}
+            format={f.money}
             labels={{ low: "Lowest price", high: "Highest price" }}
           />
         );
       case "year":
         return (
           <RangeSelect
+            locale={locale}
             options={YEARS}
             value={[filters.yearMin, filters.yearMax]}
             onChange={([yearMin, yearMax]) => set({ yearMin, yearMax })}
@@ -141,35 +145,38 @@ export function CarsBoard({
       case "km":
         return (
           <UpperLimit
+            locale={locale}
             min={0}
             max={KM_MAX}
             step={KM_STEP}
             value={filters.kmMax}
             onChange={(kmMax) => set({ kmMax })}
             buckets={kmBuckets(filters, cars)}
-            format={formatKm}
+            format={f.km}
             label="Maximum kilometres"
           />
         );
       case "seats":
         return (
           <SegmentedChoice<number | null>
+            locale={locale}
             label="Seats"
             options={seatOptions(filters, cars)}
             value={filters.seatsMin}
             onChange={(seatsMin) => set({ seatsMin })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       case "body": {
         const counts = bodyCounts(filters, cars);
         return (
           <IconTiles
+            locale={locale}
             label="Body style"
             options={BODIES.map((b) => ({ value: b, label: b, icon: <BodyIcon body={b} />, count: counts.get(b) ?? 0 }))}
             value={filters.bodies}
             onChange={(bodies) => set({ bodies })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
@@ -177,44 +184,48 @@ export function CarsBoard({
         const counts = colorCounts(filters, cars);
         return (
           <ColorSwatches
+            locale={locale}
             label="Colour"
             options={COLORS.map((c) => ({ value: c, label: c, color: COLOR_PAINTS[c], count: counts.get(c) ?? 0 }))}
             value={filters.colors}
             onChange={(colors) => set({ colors })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
       case "condition":
         return (
           <SegmentedChoice<Condition | null>
+            locale={locale}
             label="New or used"
             options={conditionOptions(filters, cars)}
             value={filters.condition}
             onChange={(condition) => set({ condition })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       case "transmission":
         return (
           <SegmentedChoice<Transmission | null>
+            locale={locale}
             label="Transmission"
             fit="content"
             options={transmissionOptions(filters, cars)}
             value={filters.transmission}
             onChange={(transmission) => set({ transmission })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       case "fuel": {
         const counts = fuelCounts(filters, cars);
         return (
           <ChipGroup
+            locale={locale}
             label="Fuel"
             options={FUELS.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
             value={filters.fuels}
             onChange={(fuels) => set({ fuels })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
@@ -222,24 +233,26 @@ export function CarsBoard({
         const counts = driveCounts(filters, cars);
         return (
           <ChipGroup
+            locale={locale}
             label="Drivetrain"
             options={DRIVES.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
             value={filters.drives}
             onChange={(drives) => set({ drives })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
       }
       case "make":
         return (
           <SearchableList
+            locale={locale}
             label="Make and model"
             noun="makes"
             collapsedCount={MAKES_UP_FRONT}
             options={makeOptions(filters, cars)}
             value={filters.makes.map((p) => ({ value: p.make, children: p.models }))}
             onChange={(picks) => set({ makes: picks.map((p) => ({ make: p.value, models: p.children })) })}
-            countLabel={formatCarCount}
+            countLabel={f.carCount}
           />
         );
     }
@@ -252,6 +265,7 @@ export function CarsBoard({
     <div className={cn("w-full", phone && "pb-24", className)} {...props}>
       <div ref={head}>
         <FiltersHead
+          locale={locale}
           count={matches.length}
           noun={NOUN}
           onClearAll={clearAll}
@@ -271,7 +285,7 @@ export function CarsBoard({
                   key={facet}
                   data-facet={facet}
                   title={CAR_FACET_TITLES[facet]}
-                  summary={summaryOf(filters, facet)}
+                  summary={summaryOf(filters, facet, locale)}
                   onClear={() => setFilters((f) => clearFacet(f, facet))}
                   open={open.includes(facet)}
                   onOpenChange={(next) => setOpen((list) => (next ? [...list, facet] : list.filter((f) => f !== facet)))}
@@ -284,6 +298,7 @@ export function CarsBoard({
         ))}
       </div>
       <FiltersBar
+        locale={locale}
         visible={phone || !headSeen}
         count={matches.length}
         noun={NOUN}

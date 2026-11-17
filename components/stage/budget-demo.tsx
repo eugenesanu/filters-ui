@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useStage } from "@/components/stage/stage-controls";
+import { formatsFor } from "@/registry/lib/format";
 import { CARS } from "@/registry/demo/cars";
-import { EMPTY_CAR_FILTERS, PRICE_MAX, PRICE_MIN, PRICE_STEP, formatMoney, matchingCars, priceBuckets, summaryOf } from "@/registry/demo/cars-facets";
+import { EMPTY_CAR_FILTERS, carFormats, PRICE_MAX, PRICE_MIN, PRICE_STEP, matchingCars, priceBuckets, summaryOf } from "@/registry/demo/cars-facets";
 import { Budget, budgetRange, type BudgetValue } from "@/registry/filters/budget";
 import { FilterCard } from "@/registry/ui/filter-card";
 import { TextSwap } from "@/registry/ui/text-swap";
-
-const count = new Intl.NumberFormat("en-US");
 
 /** An example rate for the estimate, shown as one on the card. */
 export const BUDGET_RATE = 6.9;
@@ -16,13 +16,16 @@ export const BUDGET_PRESET: BudgetValue = { by: "monthly", monthly: 450, term: 6
 
 /** The Budget card on the demo cars, with the result count and a Reset under it. */
 export function BudgetDemo({ reset }: { reset: ReactNode }) {
+  const { locale } = useStage();
+  const f = carFormats(locale);
+  const n = formatsFor(locale).number;
   const [budget, setBudget] = useState<BudgetValue>(BUDGET_PRESET);
   const [open, setOpen] = useState(true);
   const [priceMin, priceMax] = budgetRange(budget, BUDGET_RATE);
   const filters = { ...EMPTY_CAR_FILTERS, priceMin, priceMax };
   const matches = matchingCars(filters).length;
   const summary =
-    budget.by === "monthly" ? (budget.monthly === null ? null : `${formatMoney(budget.monthly)} a month`) : summaryOf(filters, "price");
+    budget.by === "monthly" ? (budget.monthly === null ? null : `${f.money(budget.monthly)} a month`) : summaryOf(filters, "price", locale);
 
   return (
     <div className="flex w-full max-w-[320px] flex-col">
@@ -35,6 +38,7 @@ export function BudgetDemo({ reset }: { reset: ReactNode }) {
         headingLevel={2}
       >
         <Budget
+          locale={locale}
           value={budget}
           onChange={setBudget}
           min={PRICE_MIN}
@@ -42,12 +46,12 @@ export function BudgetDemo({ reset }: { reset: ReactNode }) {
           step={PRICE_STEP}
           buckets={priceBuckets(EMPTY_CAR_FILTERS)}
           rate={BUDGET_RATE}
-          format={formatMoney}
+          format={f.money}
         />
       </FilterCard>
-      <div className="mt-3 flex items-center justify-between gap-3 pl-4">
+      <div className="mt-3 flex items-center justify-between gap-3 ps-4">
         <p className="text-[14px] leading-5 text-dim tabular-nums">
-          <TextSwap className="font-medium text-text">{count.format(matches)}</TextSwap> of {count.format(CARS.length)} cars
+          <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
         </p>
         {reset}
       </div>

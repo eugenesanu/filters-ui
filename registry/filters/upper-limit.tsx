@@ -13,10 +13,12 @@ export type UpperLimitProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
   onChange: (value: number | null) => void;
   /** Item count per bar, spread evenly from min to max. */
   buckets?: readonly number[];
-  /** Field, tooltip and screen-reader text for a value, e.g. "50,000 km". */
+  /** Field, tooltip and screen-reader text for a value, e.g. "50,000 km". Default: the number in the locale. */
   format?: (value: number) => string;
-  /** Reads a typed value. Default: the first number in the text, with an optional k or m suffix. */
+  /** Reads a typed value. Default: the first number in the text, read with the locale's marks, with an optional k or m suffix. */
   parse?: (text: string) => number | null;
+  /** Formats and reads numbers by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
   /** Tooltip text while there is no limit. Default "Any". */
   openLabel?: string;
   /** Field placeholder. Default "Maximum". */

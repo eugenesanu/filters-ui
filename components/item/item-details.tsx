@@ -24,26 +24,29 @@ function Lines({ lines, columns = false }: { lines: string[]; columns?: boolean 
 
 function Props({ rows, caption }: { rows: PropRow[]; caption: string }) {
   return (
-    <table className="w-full border-collapse text-left">
+    <table className="w-full border-collapse text-start">
       <caption className="sr-only">{caption}</caption>
       <thead className="max-sm:sr-only">
         <tr className="text-[13px] leading-5 text-dim">
-          <th scope="col" className="w-[38%] pb-2 pr-6 font-normal">Prop</th>
+          <th scope="col" className="w-[38%] pb-2 pe-6 font-normal">Prop</th>
           <th scope="col" className="pb-2 font-normal">Description</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => (
           <tr key={row.name} className="border-t border-card align-top max-sm:flex max-sm:flex-col max-sm:gap-1 max-sm:py-3">
-            <th scope="row" className="py-3.5 pr-6 font-normal max-sm:p-0">
-              <code className="font-mono text-[13.5px] leading-5 break-words text-text">{row.name}</code>
-              <div className="mt-1 text-[13px] leading-5 text-dim max-sm:ml-2 max-sm:mt-0 max-sm:inline">
+            <th scope="row" className="py-3.5 pe-6 font-normal max-sm:p-0">
+              <code dir="ltr" className="font-mono text-[13.5px] leading-5 break-words text-text">{row.name}</code>
+              <div className="mt-1 text-[13px] leading-5 text-dim max-sm:ms-2 max-sm:mt-0 max-sm:inline">
                 {row.required ? "Required" : row.default ? `Default ${row.default}` : "Optional"}
               </div>
             </th>
             <td className="py-3.5 max-sm:p-0">
               <p className="text-[15px] leading-[1.55] text-mute">{row.meaning}</p>
-              <code className="mt-1.5 block font-mono text-[12.5px] max-sm:mt-1 leading-5 text-dim [overflow-wrap:anywhere]">{row.type}</code>
+              <code className="mt-1.5 block font-mono text-[12.5px] max-sm:mt-1 leading-5 text-dim [overflow-wrap:anywhere]">
+                {/* Code reads left to right on a right-to-left page too; the line still sits on the page's side. */}
+                <span dir="ltr">{row.type}</span>
+              </code>
             </td>
           </tr>
         ))}

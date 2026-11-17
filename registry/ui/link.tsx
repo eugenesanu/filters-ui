@@ -37,26 +37,28 @@ export function linkClasses({ variant = "inline", tone = "mute", size = "md", cl
   );
 }
 
-/** A 16px chevron that nudges 2px its way while its link is hovered. Back links point and nudge left. */
+/** A 16px chevron that nudges 2px its way while its link is hovered. Back links point and nudge back: left, or right in RTL. */
 export function LinkArrow({ direction = "forward", className }: { direction?: "forward" | "back"; className?: string }) {
   return (
     <ChevronDownIcon
       size={16}
       className={cn(
         "shrink-0 transition-[translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-        direction === "back" ? "rotate-90 group-hover/link:-translate-x-0.5" : "-rotate-90 group-hover/link:translate-x-0.5",
+        direction === "back"
+          ? "rotate-90 group-hover/link:-translate-x-0.5 rtl:-rotate-90 rtl:group-hover/link:translate-x-0.5"
+          : "-rotate-90 group-hover/link:translate-x-0.5 rtl:rotate-90 rtl:group-hover/link:-translate-x-0.5",
         className,
       )}
     />
   );
 }
 
-/** A quiet link's words: a 1px line draws in under them from the left while the link is hovered or focused. */
+/** A quiet link's words: a 1px line draws in under them from the start edge while the link is hovered or focused. */
 export function LinkText({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <span
       className={cn(
-        "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] bg-no-repeat pb-px",
+        "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] rtl:bg-[position:100%_100%] bg-no-repeat pb-px",
         "transition-[background-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         "[@media(hover:hover)]:group-hover/link:bg-[length:100%_1px] group-focus-visible/link:bg-[length:100%_1px]",
         className,
@@ -75,7 +77,7 @@ export function ExternalMark() {
         size={12}
         strokeWidth={2.5}
         className={cn(
-          "ml-1 inline-block shrink-0 align-[-1px] opacity-70",
+          "ms-1 inline-block shrink-0 align-[-1px] opacity-70",
           "transition-[translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/link:translate-x-px group-hover/link:-translate-y-px motion-reduce:transition-none",
         )}
       />

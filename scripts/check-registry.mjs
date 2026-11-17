@@ -128,6 +128,39 @@ for (const [selector, scheme] of SCHEME_BLOCKS) {
   }
 }
 
+// Every item says what its stage offers (the Locale control, and later others) in components/stage/stage-specs.ts.
+const stageSpecs = readFileSync(join(ROOT, "components/stage/stage-specs.ts"), "utf8");
+for (const item of ITEMS) {
+  if (!new RegExp(`^\\s*(?:"${item.slug}"|${item.slug}): \\{ locale: (?:true|false)`, "m").test(stageSpecs)) {
+    fail(`${item.slug}: add it to STAGE_SPECS in components/stage/stage-specs.ts`);
+  }
+}
+
+// Right to left: layout runs on start and end. A physical-direction class (ml-, pr-, left-, text-right, border-l,
+// rounded-tl…) or a physical style key in a style={{…}} object is a problem, unless a comment holding "physical:"
+// sits on that line or the line above and says why. A centred left-1/2 with -translate-x-1/2 on the same line passes.
+// Right-to-left overrides use Tailwind's rtl: variant. A :dir() selector is out: Tailwind's CSS step rewrites it into a
+// list of :lang() tests for older browsers, which ignores dir="rtl" altogether.
+const PHYSICAL_CLASS =
+  /(?<![\w\-[/.])(?:[\w\-[\]&:()=.>*@/~+%,#']+:)*(-?(?:m[lr]|p[lr]|scroll-[mp][lr])-(?:\d|\[|px\b|auto\b)[^\s"'`]*|-?(?:left|right)-(?:\d|\[|px\b|auto\b|full\b|\()[^\s"'`]*|rounded-(?:[lr]|tl|tr|bl|br)(?:-[^\s"'`]+)?|border-[lr](?:-[^\s"'`]+)?|text-(?:left|right)|float-(?:left|right)|clear-(?:left|right))(?![\w-])/g;
+const DIR_PSEUDO = /:dir\(/;
+const PHYSICAL_STYLE = /style=\{\{[^}]*?\b(left|right|marginLeft|marginRight|paddingLeft|paddingRight|borderLeft\w*|borderRight\w*)\s*:/g;
+for (const path of registryFiles) {
+  if (path === "registry/items.ts") continue;
+  const lines = readFileSync(join(ROOT, path), "utf8").split("\n");
+  lines.forEach((text, i) => {
+    const marked = /physical:/.test(text) || /physical:/.test(lines[i - 1] ?? "");
+    if (marked) return;
+    const code = text.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
+    for (const match of code.matchAll(PHYSICAL_CLASS)) {
+      if (/^left-1\/2$/.test(match[1]) && /-translate-x-1\/2/.test(code)) continue;
+      fail(`${path}:${i + 1}: physical-direction class "${match[0]}" (use ms-/me-/ps-/pe-/inset-s-/inset-e-/text-start/border-s/rounded-s…, or mark it with a "physical:" comment saying why)`);
+    }
+    if (DIR_PSEUDO.test(code)) fail(`${path}:${i + 1}: ":dir(" is compiled to :lang() tests and ignores dir="rtl"; use the rtl: variant`);
+    for (const match of code.matchAll(PHYSICAL_STYLE)) fail(`${path}:${i + 1}: physical style key "${match[1]}" (use insetInlineStart, marginInlineEnd…, or a "physical:" comment)`);
+  });
+}
+
 // Registry files stay portable: no site code, no theme classes, every colour a --fu-* token whose fallback is its dark value.
 const SITE = /^(@\/|~\/)?(app|components|lib)(\/|$)|^\.\.\/\.\.\/(app|components|lib)(\/|$)|^next(\/|$)/;
 const THEME_COLOURS = Object.keys(TOKENS).map((name) => name.slice("--fu-".length)).sort((a, b) => b.length - a.length).join("|");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
+import { formatsFor, type Formats } from "../lib/format";
 import { DropdownMenu } from "../ui/dropdown-menu";
 import { AscendingGlyph, CalendarGlyph, ClockGlyph, DescendingGlyph, GaugeGlyph } from "../ui/sort-glyphs";
 
@@ -15,8 +16,6 @@ const CARS: Car[] = [
   { id: "cx5", name: "Mazda CX-5", year: 2021, price: 26200, km: 35000, days: 8 },
 ];
 
-const number = new Intl.NumberFormat("en-US");
-const listed = (days: number) => (days === 0 ? "Today" : days === 1 ? "Yesterday" : `${days} days ago`);
 
 type Field = "days" | "price" | "km" | "year";
 
@@ -30,17 +29,19 @@ const SORTS = [
 
 type Sort = (typeof SORTS)[number]["value"];
 
-const show: Record<Field, (car: Car) => string> = {
-  days: (car) => listed(car.days),
-  price: (car) => `$${number.format(car.price)}`,
-  km: (car) => `${number.format(car.km)} km`,
-  year: (car) => String(car.year),
-};
+// Each field in words, with the locale's numbers: "$31,400", "28,000 km", "3 days ago".
+const showIn = (f: Formats): Record<Field, (car: Car) => string> => ({
+  days: (car) => (car.days === 0 ? "Today" : car.days === 1 ? "Yesterday" : `${f.number(car.days)} days ago`),
+  price: (car) => f.price(car.price),
+  km: (car) => f.distance(car.km),
+  year: (car) => f.plain(car.year),
+});
 
-// Each order's hint is what would come first.
-const OPTIONS = SORTS.map(({ value, label, icon, field, by }) => ({ value, label, icon, hint: show[field]([...CARS].sort(by)[0]) }));
-
-export default function SortExample() {
+export default function SortExample({ locale = "en-US" }: { locale?: string }) {
+  const f = formatsFor(locale);
+  const show = showIn(f);
+  // Each order's hint is what would come first.
+  const options = SORTS.map(({ value, label, icon, field, by }) => ({ value, label, icon, hint: show[field]([...CARS].sort(by)[0]) }));
   const [sort, setSort] = useState<Sort>("newest");
   const order = SORTS.find((s) => s.value === sort)!;
   const cars = [...CARS].sort(order.by);
@@ -65,15 +66,15 @@ export default function SortExample() {
 
   return (
     <div className="w-full max-w-[400px]">
-      <div className="flex items-center justify-between gap-3 pr-[7px] pl-[21px]">
-        <p className="text-[14px] leading-5 text-[var(--fu-dim,#929292)]">{CARS.length} cars</p>
-        <DropdownMenu label="Sort by" prefix="Sort by" variant="quiet" align="end" value={sort} onChange={setSort} options={OPTIONS} />
+      <div className="flex items-center justify-between gap-3 pe-[7px] ps-[21px]">
+        <p className="text-[14px] leading-5 text-[var(--fu-dim,#929292)]">{f.number(CARS.length)} cars</p>
+        <DropdownMenu label="Sort by" prefix="Sort by" variant="quiet" align="end" value={sort} onChange={setSort} options={options} />
       </div>
       <div className="relative mt-2 flex rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] p-2">
-        <ol aria-hidden="true" className="w-6 shrink-0 pl-2">
+        <ol aria-hidden="true" className="w-6 shrink-0 ps-2">
           {cars.map((car, i) => (
             <li key={i} className="flex h-14 items-center text-[13px] leading-5 tabular-nums text-[var(--fu-dim,#929292)]">
-              {i + 1}
+              {f.plain(i + 1)}
             </li>
           ))}
         </ol>
@@ -90,12 +91,12 @@ export default function SortExample() {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[15px] leading-5 font-medium text-[var(--fu-text,#F8F5F1)]">{car.name}</span>
                 <span className="block text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
-                  <span className={lit("year")}>{car.year}</span>
+                  <span className={lit("year")}>{show.year(car)}</span>
                   {" · "}
                   <span className={lit("km")}>{show.km(car)}</span>
                 </span>
               </span>
-              <span className="shrink-0 text-right">
+              <span className="shrink-0 text-end">
                 <span className={`block text-[15px] leading-5 font-medium ${lit("price", "text-[var(--fu-text,#F8F5F1)]")}`}>{show.price(car)}</span>
                 <span className={`block text-[13px] leading-5 ${lit("days", "text-[var(--fu-dim,#929292)]")}`}>{show.days(car)}</span>
               </span>

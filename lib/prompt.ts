@@ -155,6 +155,18 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
     "Keep the sizes, corners, spacing and motion as they are.",
   );
 
+  add(
+    "",
+    "## Direction and language",
+    "",
+    "It lays out with start and end, so it works on a right-to-left page or inside any element with dir=\"rtl\": arrows, bars, charts and the arrow keys follow. Keep the start and end classes; do not swap them for left and right.",
+    ...(item.props.some((row) => row.name === "locale")
+      ? [
+          'Pass locale (default "en-US") to print its numbers, prices and dates the way a language writes them and to read typed numbers that way, e.g. locale="de-DE". The words stay English: change them through the props.',
+        ]
+      : []),
+  );
+
   add("", "## Keep the accessibility", "", ...[...item.accessibility, ...item.keyboard].map((line) => `- ${line}`));
 
   add("", LAST(target, item));

@@ -1,4 +1,5 @@
 import { createFacets, histogram } from "../lib/facets";
+import { formatsFor } from "../lib/format";
 import { CARS, THIS_YEAR, TRANSMISSIONS, type Body, type Car, type Color, type Condition, type Drive, type Fuel, type Transmission } from "./cars";
 
 /** A ticked make and the models that narrow it; no models means every model of that make. */
@@ -220,46 +221,61 @@ export function clearFacet(f: CarFilters, facet: CarFacet): CarFilters {
   }
 }
 
-const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+/** The cars' words for numbers in one locale. Each takes the value alone, so it can go straight to a format prop. */
+export type CarFormats = {
+  /** "$45,000", or "45.000 $" in de-DE. */
+  money: (value: number) => string;
+  /** "$45k" or "$97.5k" from a thousand up, "$950" below. */
+  moneyShort: (value: number) => string;
+  /** "1 car", "6 cars", "1,204 cars". The words stay English. */
+  carCount: (n: number) => string;
+  /** "50,000 km" */
+  km: (value: number) => string;
+};
 
-/** "$45,000" */
-export const formatMoney = (value: number) => `$${integer.format(value)}`;
-const thousands = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 });
+const carFormatsByLocale = new Map<string, CarFormats>();
 
-/** "$45k" or "$97.5k" above a thousand, "$950" below. */
-export const formatMoneyShort = (value: number) =>
-  value >= 1000 ? `$${thousands.format(value / 1000)}k` : formatMoney(value);
-/** "1 car", "6 cars", "1,204 cars" */
-export const formatCarCount = (n: number) => (n === 1 ? "1 car" : `${integer.format(n)} cars`);
-/** "50,000 km" */
-export const formatKm = (value: number) => `${integer.format(value)} km`;
+/** The cars' formats for a locale. Default en-US. */
+export function carFormats(locale?: string): CarFormats {
+  const f = formatsFor(locale);
+  let known = carFormatsByLocale.get(f.locale);
+  if (!known) {
+    known = { money: f.price, moneyShort: f.priceShort, carCount: (n) => (n === 1 ? "1 car" : `${f.number(n)} cars`), km: f.distance };
+    carFormatsByLocale.set(f.locale, known);
+  }
+  return known;
+}
+
+export const { money: formatMoney, moneyShort: formatMoneyShort, carCount: formatCarCount, km: formatKm } = carFormats();
 
 /** "SUV", "SUV, Minivan", then two values and a count of the rest: "SUV, Minivan +1". */
 export const listSummary = (values: readonly string[]) =>
   values.length === 0 ? null : values.length <= 2 ? values.join(", ") : `${values.slice(0, 2).join(", ")} +${values.length - 2}`;
 
-/** The closed card's summary for one facet, or null when the facet is unset. */
-export function summaryOf(f: CarFilters, facet: CarFacet): string | null {
+/** The closed card's summary for one facet, or null when the facet is unset. Numbers follow the locale; words stay English. */
+export function summaryOf(f: CarFilters, facet: CarFacet, locale?: string): string | null {
+  const { moneyShort, km } = carFormats(locale);
+  const year = formatsFor(locale).plain;
   switch (facet) {
     case "condition":
       return f.condition;
     case "price":
-      if (f.priceMin !== null && f.priceMax !== null) return `${formatMoneyShort(f.priceMin)} to ${formatMoneyShort(f.priceMax)}`;
-      if (f.priceMax !== null) return `Under ${formatMoneyShort(f.priceMax)}`;
-      if (f.priceMin !== null) return `Over ${formatMoneyShort(f.priceMin)}`;
+      if (f.priceMin !== null && f.priceMax !== null) return `${moneyShort(f.priceMin)} to ${moneyShort(f.priceMax)}`;
+      if (f.priceMax !== null) return `Under ${moneyShort(f.priceMax)}`;
+      if (f.priceMin !== null) return `Over ${moneyShort(f.priceMin)}`;
       return null;
     case "make":
       return listSummary(f.makes.flatMap((p) => (p.models.length ? p.models : [p.make])));
     case "body":
       return listSummary(f.bodies);
     case "year":
-      if (f.yearMin !== null && f.yearMin === f.yearMax) return String(f.yearMin);
-      if (f.yearMin !== null && f.yearMax !== null) return `${f.yearMin} to ${f.yearMax}`;
-      if (f.yearMin !== null) return `${f.yearMin} or newer`;
-      if (f.yearMax !== null) return `${f.yearMax} or older`;
+      if (f.yearMin !== null && f.yearMin === f.yearMax) return year(f.yearMin);
+      if (f.yearMin !== null && f.yearMax !== null) return `${year(f.yearMin)} to ${year(f.yearMax)}`;
+      if (f.yearMin !== null) return `${year(f.yearMin)} or newer`;
+      if (f.yearMax !== null) return `${year(f.yearMax)} or older`;
       return null;
     case "km":
-      return f.kmMax === null ? null : `Under ${formatKm(f.kmMax)}`;
+      return f.kmMax === null ? null : `Under ${km(f.kmMax)}`;
     case "fuel":
       return listSummary(f.fuels);
     case "drive":
@@ -269,22 +285,22 @@ export function summaryOf(f: CarFilters, facet: CarFacet): string | null {
     case "color":
       return listSummary(f.colors);
     case "seats":
-      return f.seatsMin === null ? null : `${f.seatsMin}+`;
+      return f.seatsMin === null ? null : `${year(f.seatsMin)}+`;
     case "listed":
-      return listedSummary(f.listedMin, f.listedMax);
+      return listedSummary(f.listedMin, f.listedMax, locale);
   }
 }
 
-const daysAgo = (n: number) => (n === 0 ? "today" : n === 1 ? "yesterday" : `${n} days ago`);
-
 /** "Today", "Last 7 days", "3 days ago" or "7 to 13 days ago": days rather than dates, so it reads the same on any day. */
-function listedSummary(min: number | null, max: number | null): string | null {
+function listedSummary(min: number | null, max: number | null, locale?: string): string | null {
   if (min === null && max === null) return null;
+  const n = formatsFor(locale).number;
+  const daysAgo = (d: number) => (d === 0 ? "today" : d === 1 ? "yesterday" : `${n(d)} days ago`);
   const from = min ?? 0;
-  if (max === null) return from === 0 ? null : from === 1 ? "Before today" : `${from} or more days ago`;
-  if (from === 0) return max === 0 ? "Today" : `Last ${max + 1} days`;
+  if (max === null) return from === 0 ? null : from === 1 ? "Before today" : `${n(from)} or more days ago`;
+  if (from === 0) return max === 0 ? "Today" : `Last ${n(max + 1)} days`;
   if (from === max) return daysAgo(from).replace(/^./, (c) => c.toUpperCase());
-  return `${from} to ${max} days ago`;
+  return `${n(from)} to ${n(max)} days ago`;
 }
 
 /** Card titles, in the designer's wording. */

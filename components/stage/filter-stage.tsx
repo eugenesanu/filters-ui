@@ -2,7 +2,7 @@
 
 import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
 import { CARS } from "@/registry/demo/cars";
-import { CAR_FACET_TITLES, clearFacet, formatCarCount, matchingCars, summaryOf, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
+import { CAR_FACET_TITLES, carFormats, clearFacet, matchingCars, summaryOf, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
 import { CarsBoard } from "@/registry/blocks/cars-board";
 import { FilterCard } from "@/registry/ui/filter-card";
 import { TextSwap } from "@/registry/ui/text-swap";
@@ -22,6 +22,8 @@ import { RecentSearchesStage } from "@/components/stage/recent-searches-stage";
 import { RulesStage } from "@/components/stage/rules-stage";
 import { FilterPanel } from "@/registry/blocks/filter-panel";
 import { PANEL_PRESET } from "@/components/tile/presets";
+import { StageControlRow, StageControlsProvider, useStage, useStageFrame, useStageProps } from "@/components/stage/stage-controls";
+import { formatsFor } from "@/registry/lib/format";
 
 /** Which car filters demonstrate each tile; several make a quiet switch at the stage top-left. A tile with none shows its example. */
 const STAGE_FACETS: Record<string, CarFacet[]> = {
@@ -35,8 +37,6 @@ const STAGE_FACETS: Record<string, CarFacet[]> = {
   "searchable-list": ["make"],
 };
 
-const count = new Intl.NumberFormat("en-US");
-
 const RESET =
   "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text";
 
@@ -48,24 +48,27 @@ function ResetButton({ onReset, className }: { onReset: () => void; className?: 
   );
 }
 
-function StagePanel({ onReset, toolbar, children, wide = false }: { onReset?: () => void; toolbar?: ReactNode; children: ReactNode; wide?: boolean }) {
+/** The stage: its toolbar, the live component (in the direction and language the controls ask for) and the control row. */
+export function StagePanel({ onReset, toolbar, children, wide = false }: { onReset?: () => void; toolbar?: ReactNode; children: ReactNode; wide?: boolean }) {
+  const frame = useStageFrame();
   return (
     <section aria-label="Try it" className="relative flex h-full min-h-[360px] flex-col rounded-[24px] border border-card bg-panel">
       <div className="flex min-h-12 items-center justify-between gap-3 px-3 pt-3">
         {toolbar ?? <span />}
         {onReset && <ResetButton onReset={onReset} />}
       </div>
-      <div className={wide ? "flex-1 px-4 pb-10 pt-2 sm:px-8" : "flex flex-1 flex-col items-center justify-center px-4 pb-12 pt-2 sm:pb-14"}>
+      <div {...frame} className={wide ? "flex-1 px-4 pt-2 sm:px-8" : "flex flex-1 flex-col items-center justify-center px-4 pb-1 pt-2 sm:pb-3"}>
         {children}
       </div>
+      <StageControlRow />
     </section>
   );
 }
 
 function ExampleSwitch({ facets, value, onChange }: { facets: CarFacet[]; value: CarFacet; onChange: (facet: CarFacet) => void }) {
   return (
-    <div role="group" aria-label="Example" className="flex min-w-0 flex-wrap items-center gap-x-1 pl-2 text-[14px] leading-5">
-      <span className="mr-1 text-dim">Example:</span>
+    <div role="group" aria-label="Example" className="flex min-w-0 flex-wrap items-center gap-x-1 ps-2 text-[14px] leading-5">
+      <span className="me-1 text-dim">Example:</span>
       {facets.map((f) => (
         <button
           key={f}
@@ -84,6 +87,8 @@ function ExampleSwitch({ facets, value, onChange }: { facets: CarFacet[]; value:
 }
 
 function CarFilterStage({ slug, facets }: { slug: string; facets: CarFacet[] }) {
+  const { locale } = useStage();
+  const n = formatsFor(locale).number;
   const [facet, setFacet] = useState(facets[0]);
   const [filters, setFilters] = useState<CarFilters>(() => presetFilters(slug, facets[0]));
   const [open, setOpen] = useState(true);
@@ -117,19 +122,19 @@ function CarFilterStage({ slug, facets }: { slug: string; facets: CarFacet[] }) 
         <FilterCard
           key={`${facet}-${round}`}
           title={CAR_FACET_TITLES[facet]}
-          summary={summaryOf(filters, facet)}
+          summary={summaryOf(filters, facet, locale)}
           onClear={() => setFilters((f) => clearFacet(f, facet))}
           open={open}
           onOpenChange={setOpen}
           headingLevel={2}
         >
-          <CarFilterBody facet={facet} filters={filters} set={set} />
+          <CarFilterBody facet={facet} filters={filters} set={set} locale={locale} />
         </FilterCard>
-        <div className="mt-3 flex items-center justify-between gap-3 pl-4">
+        <div className="mt-3 flex items-center justify-between gap-3 ps-4">
           <p aria-live="polite" className="text-[14px] leading-5 text-dim tabular-nums">
-            <TextSwap className="font-medium text-text">{count.format(matches)}</TextSwap> of {count.format(CARS.length)} cars
+            <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
           </p>
-          <ResetButton onReset={reset} className="-mr-3" />
+          <ResetButton onReset={reset} className="-me-3" />
         </div>
       </div>
     </StagePanel>
@@ -137,6 +142,8 @@ function CarFilterStage({ slug, facets }: { slug: string; facets: CarFacet[] }) 
 }
 
 function BoardStage() {
+  const { locale } = useStage();
+  const n = formatsFor(locale).number;
   const [round, setRound] = useState(0);
   const [away, setAway] = useState(false);
   const frame = useRef<HTMLDivElement>(null);
@@ -172,9 +179,10 @@ function BoardStage() {
         className="mx-auto max-w-[929px]"
         defaultOpen={["price", "body", "make"]}
         onShow={(cars) => setShown(cars.length)}
+        locale={locale}
       />
       <p aria-live="polite" className="mx-auto mt-6 h-5 max-w-[929px] text-[14px] leading-5 text-dim">
-        {shown !== null && <>{count.format(shown)} {shown === 1 ? "car" : "cars"} sent to onShow</>}
+        {shown !== null && <>{n(shown)} {shown === 1 ? "car" : "cars"} sent to onShow</>}
       </p>
     </StagePanel>
     </div>
@@ -187,6 +195,8 @@ const SENTENCES = ["blue suv under 30k", "hybrid with 7 seats", "rav4 2020 or ne
 const presetSentence = () => readSentence(carVocabulary, CARS, SENTENCE_PRESET).value;
 
 function SentenceStage() {
+  const { locale } = useStage();
+  const n = formatsFor(locale).number;
   const [filters, setFilters] = useState<CarFilters>(presetSentence);
   const [round, setRound] = useState(0);
   const [typed, setTyped] = useState<string | null>(null);
@@ -202,8 +212,8 @@ function SentenceStage() {
     <StagePanel
       wide
       toolbar={
-        <div role="group" aria-label="Try a sentence" className="flex min-w-0 items-start gap-x-1 pl-2 text-[14px] leading-5">
-          <span className="mr-1 flex h-9 shrink-0 items-center text-dim">Try:</span>
+        <div role="group" aria-label="Try a sentence" className="flex min-w-0 items-start gap-x-1 ps-2 text-[14px] leading-5">
+          <span className="me-1 flex h-9 shrink-0 items-center text-dim">Try:</span>
           <span className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-2">
             {SENTENCES.map((sentence) => (
               <button
@@ -232,16 +242,17 @@ function SentenceStage() {
           value={filters}
           onChange={setFilters}
           label="Describe the car you want"
-          countLabel={formatCarCount}
+          countLabel={carFormats(locale).carCount}
+          locale={locale}
           defaultText={typed ?? ""}
           defaultOpen={typed !== null}
           autoFocus={typed !== null}
         />
-        <div className="mt-3 flex items-center justify-between gap-3 pl-4">
+        <div className="mt-3 flex items-center justify-between gap-3 ps-4">
           <p className="text-[14px] leading-5 text-dim tabular-nums">
-            <TextSwap className="font-medium text-text">{count.format(matches)}</TextSwap> of {count.format(CARS.length)} cars
+            <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
           </p>
-          <ResetButton onReset={reset} className="-mr-3" />
+          <ResetButton onReset={reset} className="-me-3" />
         </div>
       </div>
     </StagePanel>
@@ -252,7 +263,7 @@ function ListedStage() {
   const [round, setRound] = useState(0);
   return (
     <StagePanel>
-      <ListedDemo key={round} wide reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-mr-3" />} />
+      <ListedDemo key={round} wide reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-me-3" />} />
     </StagePanel>
   );
 }
@@ -261,12 +272,13 @@ function BudgetStage() {
   const [round, setRound] = useState(0);
   return (
     <StagePanel>
-      <BudgetDemo key={round} reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-mr-3" />} />
+      <BudgetDemo key={round} reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-me-3" />} />
     </StagePanel>
   );
 }
 
 function PanelStage() {
+  const { locale } = useStage();
   const [round, setRound] = useState(0);
   const [shown, setShown] = useState<number | null>(null);
   return (
@@ -283,9 +295,10 @@ function PanelStage() {
           defaultFilters={PANEL_PRESET.filters}
           defaultOpen={PANEL_PRESET.open}
           onShow={(cars) => setShown(cars.length)}
+          locale={locale}
         />
-        <p aria-live="polite" className="mt-3 h-5 pl-5 text-[14px] leading-5 text-dim tabular-nums">
-          {shown !== null && <>{count.format(shown)} {shown === 1 ? "car" : "cars"} sent to onShow</>}
+        <p aria-live="polite" className="mt-3 h-5 ps-5 text-[14px] leading-5 text-dim tabular-nums">
+          {shown !== null && <>{formatsFor(locale).number(shown)} {shown === 1 ? "car" : "cars"} sent to onShow</>}
         </p>
       </div>
     </StagePanel>
@@ -294,14 +307,23 @@ function PanelStage() {
 
 function ExampleStage({ slug }: { slug: string }) {
   const [round, setRound] = useState(0);
+  const props = useStageProps();
   return (
     <StagePanel onReset={() => setRound((n) => n + 1)}>
-      {createElement(exampleOf(slug), { key: round })}
+      {createElement(exampleOf(slug), { key: round, ...props })}
     </StagePanel>
   );
 }
 
 export function FilterStage({ slug }: { slug: string }) {
+  return (
+    <StageControlsProvider slug={slug}>
+      <StageFor slug={slug} />
+    </StageControlsProvider>
+  );
+}
+
+function StageFor({ slug }: { slug: string }) {
   if (slug === "cars-board") return <BoardStage />;
   if (slug === "sentence-search") return <SentenceStage />;
   if (slug === "filter-pills") return <FilterPillsStage />;

@@ -2,6 +2,7 @@
 
 import { useState, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { resultsLabel } from "../lib/format";
 import { CountPill } from "../ui/count-pill";
 
 export type IconTileOption<V extends string> = {
@@ -21,9 +22,9 @@ export type IconTilesProps<V extends string> = Omit<HTMLAttributes<HTMLDivElemen
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their spoken words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
-
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 /** A two-column grid of toggle tiles, each an icon over a name and a count. Several can be on. */
 export function IconTiles<V extends string>({
@@ -32,10 +33,12 @@ export function IconTiles<V extends string>({
   onChange,
   label,
   formatCount,
-  countLabel = defaultCountLabel,
+  countLabel: countLabelProp,
+  locale,
   className,
   ...props
 }: IconTilesProps<V>) {
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   // An option turned off at 0 would become disabled under the pointer or keyboard and drop focus; it stays enabled until it loses focus.
   const [kept, setKept] = useState<V | null>(null);
   const toggle = (v: V, button: HTMLButtonElement) => {
@@ -59,7 +62,7 @@ export function IconTiles<V extends string>({
             onClick={(event) => toggle(option.value, event.currentTarget)}
             data-state={on ? "on" : "off"}
             className={cn(
-              "group/tile flex min-w-0 cursor-pointer flex-col gap-1.5 rounded-[16px] border px-3 py-2.5 text-left font-[inherit]",
+              "group/tile flex min-w-0 cursor-pointer flex-col gap-1.5 rounded-[16px] border px-3 py-2.5 text-start font-[inherit]",
               "bg-[var(--tile-bg)] [--tile-bg:var(--fu-card,#1F1F1F)]",
               "transition-[background-color,border-color,color,scale,opacity] duration-200 ease-[cubic-bezier(0.42,0,0.58,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "[&_svg_*]:transition-[fill,stroke] [&_svg_*]:duration-200 motion-reduce:[&_svg_*]:transition-none",
@@ -76,7 +79,7 @@ export function IconTiles<V extends string>({
             </span>
             <span aria-hidden="true" className="flex min-w-0 items-center justify-between gap-1">
               <span className="truncate text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]">{option.label}</span>{" "}
-              <CountPill variant="square" on={on} count={option.count} format={formatCount} />
+              <CountPill variant="square" on={on} count={option.count} format={formatCount} locale={locale} />
             </span>
           </button>
         );

@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { resultsLabel } from "../lib/format";
 import { countOf, type Token, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
 import { CheckIcon, HistoryIcon, StarIcon, XIcon } from "../ui/icons";
@@ -26,7 +27,6 @@ export type RecentSearchesProps<Item, State> = Omit<SentenceSearchProps<Item, St
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -189,7 +189,7 @@ function Leaving({ top, height, onDone, children }: { top: number; height: numbe
       ref={node}
       aria-hidden="true"
       style={{ top, height }}
-      className="pointer-events-none absolute inset-x-1.5 flex items-center gap-3 rounded-[12px] pr-3 pl-2"
+      className="pointer-events-none absolute inset-x-1.5 flex items-center gap-3 rounded-[12px] pe-3 ps-2"
     >
       {children}
     </div>
@@ -218,11 +218,13 @@ export function RecentSearches<Item, State>({
   recentLimit = 4,
   defaultOpen = false,
   formatCount,
-  countLabel = defaultCountLabel,
+  countLabel: countLabelProp,
+  locale,
   className,
   onBlur,
   ...props
 }: RecentSearchesProps<Item, State>) {
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const id = useId();
   const root = useRef<HTMLDivElement>(null);
   const drawn = useRef<HTMLDivElement>(null);
@@ -240,7 +242,7 @@ export function RecentSearches<Item, State>({
       return key && !savedSigs.has(key);
     })
     .slice(0, recentLimit);
-  const pill = (n: number) => <CountPill count={n} {...(formatCount && { format: formatCount })} />;
+  const pill = (n: number) => <CountPill count={n} locale={locale} {...(formatCount && { format: formatCount })} />;
   const rowId = (kind: "saved" | "recent", entryId: string) => `${id}-${kind}-${entryId}`;
   const saveId = `${id}-save`;
 
@@ -337,7 +339,7 @@ export function RecentSearches<Item, State>({
   );
 
   const countCell = (entry: SavedSearch<State>) => (
-    <span aria-hidden="true" className="flex shrink-0 items-center pl-2">
+    <span aria-hidden="true" className="flex shrink-0 items-center ps-2">
       {pill(countOf(vocabulary, items, entry.value))}
     </span>
   );
@@ -403,7 +405,7 @@ export function RecentSearches<Item, State>({
               {...option(rowId("saved", entry.id))}
               data-flip={signatureOf(vocabulary, entry.value)}
               aria-label={spoken(entry)}
-              className="group/row relative flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[12px] py-2 pr-3 pl-2"
+              className="group/row relative flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[12px] py-2 pe-3 ps-2"
             >
               {savedBody(entry)}{" "}
               <span className="flex shrink-0 items-center">
@@ -432,7 +434,7 @@ export function RecentSearches<Item, State>({
               {...option(rowId("recent", entry.id))}
               data-flip={signatureOf(vocabulary, entry.value)}
               aria-label={spoken(entry)}
-              className="group/row relative flex min-h-11 cursor-pointer items-center gap-3 rounded-[12px] py-1.5 pr-3 pl-2"
+              className="group/row relative flex min-h-11 cursor-pointer items-center gap-3 rounded-[12px] py-1.5 pe-3 ps-2"
             >
               {recentBody(entry)}{" "}
               <span className="flex shrink-0 items-center">
@@ -456,7 +458,7 @@ export function RecentSearches<Item, State>({
     render = (option) => (
       <div ref={drawn} className="mb-1.5 border-b border-[var(--fu-line,#404040)] pb-1.5">
         {savedNow ? (
-          <div className="flex min-h-[52px] items-center gap-3 py-2 pr-3 pl-2">
+          <div className="flex min-h-[52px] items-center gap-3 py-2 pe-3 ps-2">
             <Glyph tone="accent">
               <CheckIcon
                 size={16}
@@ -479,7 +481,7 @@ export function RecentSearches<Item, State>({
           <div
             {...option(saveId)}
             aria-label={`Save this search: ${tokens.map((token) => token.label).join(", ")}`}
-            className="group/row relative flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[12px] py-2 pr-3 pl-2"
+            className="group/row relative flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[12px] py-2 pe-3 ps-2"
           >
             <Glyph tone="accent">
               <StarIcon size={16} />
@@ -513,6 +515,7 @@ export function RecentSearches<Item, State>({
         open={open}
         onOpenChange={setOpen}
         countLabel={countLabel}
+        locale={locale}
         {...(formatCount && { formatCount })}
         emptyRows={{
           rows,

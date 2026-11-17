@@ -28,7 +28,7 @@ export function SelectField({ value, onChange, options, label, prefix, className
   return (
     <div
       className={cn(
-        "relative flex h-11 min-w-0 items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] pl-3",
+        "relative flex h-11 min-w-0 items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] ps-3",
         "text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none",
         "hover:border-[var(--fu-control-hover,#A3A3A3)] focus-within:border-[var(--fu-accent-soft,#8FAAFF)] focus-within:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
         "focus-within:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
@@ -62,7 +62,7 @@ export function SelectField({ value, onChange, options, label, prefix, className
         disabled={disabled}
         data-empty={value === "" || undefined}
         className={cn(
-          "h-full min-w-0 flex-1 cursor-pointer appearance-none truncate rounded-[11px] bg-transparent pr-9 font-[inherit] text-inherit tabular-nums outline-none",
+          "h-full min-w-0 flex-1 cursor-pointer appearance-none truncate rounded-[11px] bg-transparent pe-9 font-[inherit] text-inherit tabular-nums outline-none",
           // An open end reads like a field placeholder, not a chosen value.
           "data-[empty]:text-[var(--fu-mute,#BDBDBD)]",
           "[&>option]:bg-[var(--fu-surface-1,#171717)] [&>option]:text-[var(--fu-text,#F8F5F1)]",
@@ -77,7 +77,7 @@ export function SelectField({ value, onChange, options, label, prefix, className
       </select>
       <ChevronDownIcon
         size={16}
-        className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--fu-mute,#BDBDBD)]"
+        className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-[var(--fu-mute,#BDBDBD)]"
       />
     </div>
   );

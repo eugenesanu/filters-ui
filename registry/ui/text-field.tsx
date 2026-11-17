@@ -75,7 +75,7 @@ export function TextField({
             input.current?.focus();
           }}
           className={cn(
-            "-mr-1 grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-[var(--fu-mute,#BDBDBD)]",
+            "-me-1 grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-[var(--fu-mute,#BDBDBD)]",
             "transition-colors duration-150 hover:text-[var(--fu-text,#F8F5F1)]",
             "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
           )}

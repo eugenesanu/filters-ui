@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { StageControlRow, useStage, useStageFrame } from "@/components/stage/stage-controls";
+import { formatsFor } from "@/registry/lib/format";
 import { CARS, COLOR_PAINTS } from "@/registry/demo/cars";
 import {
   CAR_FACET_TITLES,
   EMPTY_CAR_FILTERS,
   clearFacet,
-  formatCarCount,
+  carFormats,
   matchingCars,
   summaryOf,
   type CarFacet,
@@ -14,8 +16,6 @@ import {
 } from "@/registry/demo/cars-facets";
 import { AllFilters, type FilterGroup, type FilterValue } from "@/registry/filters/all-filters";
 import { CarFilterBody } from "@/components/stage/car-filter";
-
-const count = new Intl.NumberFormat("en-US");
 
 const GROUPS: { label: string; facets: CarFacet[] }[] = [
   { label: "Price and age", facets: ["price", "year", "km", "condition"] },
@@ -64,9 +64,9 @@ export const ALL_FILTERS_PRESET: CarFilters = {
 };
 
 /** Each set value as a chip; lists get one chip per value, ranges one chip for the range. */
-function valuesOf(f: CarFilters, facet: CarFacet, set: (next: (f: CarFilters) => CarFilters) => void): FilterValue[] {
+function valuesOf(f: CarFilters, facet: CarFacet, set: (next: (f: CarFilters) => CarFilters) => void, locale?: string): FilterValue[] {
   const one = (): FilterValue[] => {
-    const label = summaryOf(f, facet);
+    const label = summaryOf(f, facet, locale);
     return label ? [{ key: facet, label: facet === "seats" ? `${label} seats` : label, onRemove: () => set((x) => clearFacet(x, facet)) }] : [];
   };
   switch (facet) {
@@ -103,6 +103,10 @@ function valuesOf(f: CarFilters, facet: CarFacet, set: (next: (f: CarFilters) =>
 }
 
 export function AllFiltersStage() {
+  const frame = useStageFrame();
+  const { locale } = useStage();
+  const f = carFormats(locale);
+  const n = formatsFor(locale).number;
   const [filters, setFilters] = useState<CarFilters>(ALL_FILTERS_PRESET);
   const [round, setRound] = useState(0);
   const [shown, setShown] = useState<number | null>(null);
@@ -116,7 +120,7 @@ export function AllFiltersStage() {
       label: CAR_FACET_TITLES[facet],
       hint: HINTS[facet],
       keywords: KEYWORDS[facet],
-      values: valuesOf(filters, facet, setFilters),
+      values: valuesOf(filters, facet, setFilters, locale),
       onClear: () => setFilters((f) => clearFacet(f, facet)),
       content: <CarFilterBody facet={facet} filters={filters} set={patch} />,
     })),
@@ -137,25 +141,27 @@ export function AllFiltersStage() {
           Reset
         </button>
       </div>
-      <div className="flex-1 px-4 pb-8 pt-1 sm:px-6">
+      <div {...frame} className="flex-1 px-4 pb-0 pt-1 sm:px-6">
         <AllFilters
+          locale={locale}
           key={round}
           groups={groups}
           defaultPicked="body"
           height={500}
-          showLabel={`Show ${formatCarCount(matches.length)}`}
+          showLabel={`Show ${f.carCount(matches.length)}`}
           onShow={() => setShown(matches.length)}
           onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
           className="bg-page"
         />
-        <p aria-live="polite" className="mt-4 h-5 pl-1 text-[14px] leading-5 text-dim">
+        <p aria-live="polite" className="mt-4 h-5 ps-1 text-[14px] leading-5 text-dim">
           {shown !== null && (
             <>
-              {count.format(shown)} {shown === 1 ? "car" : "cars"} of {count.format(CARS.length)} sent to onShow
+              {n(shown)} {shown === 1 ? "car" : "cars"} of {n(CARS.length)} sent to onShow
             </>
           )}
         </p>
       </div>
+      <StageControlRow />
     </section>
   );
 }

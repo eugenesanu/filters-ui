@@ -28,9 +28,9 @@ const VARIANTS: Record<ButtonVariant, string> = {
 const TAP = "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:content-['']";
 
 const SIZES: Record<ButtonSize, { box: string; before: string; after: string }> = {
-  sm: { box: cn("h-8 gap-1.5 px-3 text-[13px] leading-5 [&_svg]:size-4", TAP, "pointer-coarse:after:-inset-y-1.5"), before: "pl-2.5", after: "pr-2.5" },
-  md: { box: cn("h-10 gap-2 px-3.5 text-[15px] leading-5 [&_svg]:size-4", TAP, "pointer-coarse:after:-inset-y-0.5"), before: "pl-3", after: "pr-3" },
-  lg: { box: "h-11 gap-2 px-4 text-[15px] leading-5 [&_svg]:size-[18px]", before: "pl-3.5", after: "pr-3.5" },
+  sm: { box: cn("h-8 gap-1.5 px-3 text-[13px] leading-5 [&_svg]:size-4", TAP, "pointer-coarse:after:-inset-y-1.5"), before: "ps-2.5", after: "pe-2.5" },
+  md: { box: cn("h-10 gap-2 px-3.5 text-[15px] leading-5 [&_svg]:size-4", TAP, "pointer-coarse:after:-inset-y-0.5"), before: "ps-3", after: "pe-3" },
+  lg: { box: "h-11 gap-2 px-4 text-[15px] leading-5 [&_svg]:size-[18px]", before: "ps-3.5", after: "pe-3.5" },
 };
 
 /** The classes of a button, for a link or a router link that should look like one. */

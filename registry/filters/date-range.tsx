@@ -12,6 +12,8 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "../lib/cn";
+import { isRtl, onDirChange, readingKey } from "../lib/direction";
+import { formatsFor, resultsLabel, type Formats } from "../lib/format";
 import { ChevronDownIcon } from "../ui/icons";
 import { TextField } from "../ui/text-field";
 import { TextSwap } from "../ui/text-swap";
@@ -48,15 +50,18 @@ export type DateRangeProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "
   customLabel?: string;
   /** Days after today can be picked too. Default false: they show dimmed. */
   allowFuture?: boolean;
-  /** 0 starts weeks on Sunday, 1 on Monday. */
-  weekStartsOn?: 0 | 1;
+  /** The first day of the week: 0 is Sunday, 1 Monday, 6 Saturday. Default: the locale's (Sunday in en-US, Monday in de-DE). */
+  weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /**
+   * Month and weekday names, the first day of the week, the order of typed dates ("3.11." in de-DE) and the numbers
+   * follow it, e.g. "de-DE". Default "en-US". The words of the presets stay as given.
+   */
+  locale?: string;
 };
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAY = 86_400_000;
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -96,47 +101,89 @@ export function resolveDateRange(value: DateRangeValue, today: string): { start:
 }
 
 const yearOf = (iso: string) => Number(iso.slice(0, 4));
+const english = (f: Formats) => f.locale === "en" || f.locale.startsWith("en-");
+const weekdayOf = (iso: string) => new Date(timeOf(iso)).getUTCDay();
+
 // "Nov 3", with the year only when it is not this year's.
-const shortDay = (iso: string, today: string | null) => {
-  const [y, m, d] = parts(iso);
-  return `${MONTHS[m].slice(0, 3)} ${d}${today && yearOf(today) === y ? "" : `, ${y}`}`;
-};
-const spokenDay = (iso: string) => {
-  const [y, m, d] = parts(iso);
-  return `${WEEKDAYS[new Date(timeOf(iso)).getUTCDay()]}, ${MONTHS[m]} ${d}, ${y}`;
-};
-// A day cell's name: the grid is named by its month and year, and the day number comes last so the count read
-// after it follows it, as on screen.
-const cellDay = (iso: string) => {
-  const [, m, d] = parts(iso);
-  return `${WEEKDAYS[new Date(timeOf(iso)).getUTCDay()]}, ${MONTHS[m]} ${d}`;
+const shortDay = (f: Formats, iso: string, today: string | null) =>
+  f.day(iso, { month: "short", day: "numeric", ...(today && yearOf(today) === yearOf(iso) ? {} : { year: "numeric" }) });
+const spokenDay = (f: Formats, iso: string) => f.day(iso, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+// A day cell's name: the grid is named by its month and year, and the day number comes last in every locale, so the
+// count read after it follows it, as on screen ("Sonntag, November 1, 6 cars").
+const cellDay = (f: Formats, iso: string) =>
+  english(f)
+    ? f.day(iso, { weekday: "long", month: "long", day: "numeric" })
+    : `${f.weekday(weekdayOf(iso))}, ${f.month(parts(iso)[1])} ${f.plain(parts(iso)[2])}`;
+// English keeps its three-letter months and two-letter weekdays; other locales take their own short forms.
+const monthShort = (f: Formats, m: number) => (english(f) ? f.month(m).slice(0, 3) : f.month(m, "short"));
+const weekdayHead = (f: Formats, i: number) => {
+  if (english(f)) return f.weekday(i).slice(0, 2);
+  const short = f.weekday(i, "short");
+  return short.length > 3 ? new Intl.DateTimeFormat(f.locale, { weekday: "narrow", timeZone: "UTC" }).format(Date.UTC(2021, 0, 3 + i)) : short;
 };
 
-function describe(value: DateRangeValue, presets: readonly DatePreset[], today: string | null, long: boolean) {
+function describe(f: Formats, value: DateRangeValue, presets: readonly DatePreset[], today: string | null, long: boolean) {
   if (!value) return null;
-  if ("last" in value) return presets.find((p) => p.last === value.last)?.label ?? (value.last === 1 ? "Today" : `Last ${value.last} days`);
+  if ("last" in value) return presets.find((p) => p.last === value.last)?.label ?? (value.last === 1 ? "Today" : `Last ${f.number(value.last)} days`);
   const start = minIso(value.start, value.end);
   const end = maxIso(value.start, value.end);
-  const month = (iso: string) => (long ? MONTHS[parts(iso)[1]] : MONTHS[parts(iso)[1]].slice(0, 3));
-  const day = (iso: string) => `${month(iso)} ${parts(iso)[2]}`;
-  const tail = (iso: string) => (today && yearOf(today) === yearOf(iso) ? "" : `, ${yearOf(iso)}`);
+  const month = long ? "long" : "short";
+  const thisYear = (iso: string) => !!today && yearOf(today) === yearOf(iso);
+  const sameMonth = start.slice(0, 7) === end.slice(0, 7);
+  if (!english(f)) {
+    const day = (iso: string, withYear: boolean) => f.day(iso, { month, day: "numeric", ...(withYear ? { year: "numeric" } : {}) });
+    if (start === end) return day(start, !thisYear(start));
+    if (yearOf(start) !== yearOf(end)) return `${day(start, true)} to ${day(end, true)}`;
+    const last = sameMonth ? f.day(end, { day: "numeric" }) : day(end, false);
+    return `${day(start, false)} to ${last}${thisYear(end) ? "" : ` ${f.plain(yearOf(end))}`}`;
+  }
+  const name = (iso: string) => (long ? f.month(parts(iso)[1]) : monthShort(f, parts(iso)[1]));
+  const day = (iso: string) => `${name(iso)} ${f.plain(parts(iso)[2])}`;
+  const tail = (iso: string) => (thisYear(iso) ? "" : `, ${f.plain(yearOf(iso))}`);
   if (start === end) return `${day(start)}${tail(start)}`;
-  if (yearOf(start) !== yearOf(end)) return `${day(start)}, ${yearOf(start)} to ${day(end)}, ${yearOf(end)}`;
-  return `${day(start)} to ${start.slice(0, 7) === end.slice(0, 7) ? parts(end)[2] : day(end)}${tail(end)}`;
+  if (yearOf(start) !== yearOf(end)) return `${day(start)}, ${f.plain(yearOf(start))} to ${day(end)}, ${f.plain(yearOf(end))}`;
+  return `${day(start)} to ${sameMonth ? f.plain(parts(end)[2]) : day(end)}${tail(end)}`;
 }
 
-/** The value in words: a preset's label, "Nov 3", "Nov 3 to 9" or "Oct 28 to Nov 3". The year shows only when it is not today's. */
-export const formatDateRange = (value: DateRangeValue, presets: readonly DatePreset[] = DEFAULT_DATE_PRESETS, today: string | null = null) =>
-  describe(value, presets, today, false);
+/**
+ * The value in words: a preset's label, "Nov 3", "Nov 3 to 9" or "Oct 28 to Nov 3". The year shows only when it is
+ * not today's. Dates follow the locale ("3. Nov." in de-DE); the joining words stay English.
+ */
+export const formatDateRange = (
+  value: DateRangeValue,
+  presets: readonly DatePreset[] = DEFAULT_DATE_PRESETS,
+  today: string | null = null,
+  locale?: string,
+) => describe(formatsFor(locale), value, presets, today, false);
 
-const MONTH_WORDS = MONTHS.map((name) => name.toLowerCase());
+const ENGLISH_MONTHS = Array.from({ length: 12 }, (_, m) => formatsFor().month(m).toLowerCase());
+
+/** Days written before months in the locale's numeric dates, as "3.11." in de-DE. */
+const dayFirst = (locale: string) => {
+  const order = new Intl.DateTimeFormat(locale, { day: "numeric", month: "numeric", timeZone: "UTC" }).formatToParts(0).map((p) => p.type);
+  return order.indexOf("day") < order.indexOf("month");
+};
 
 /**
  * Reads a typed date: "Nov 3", "November 3, 2026", "3 Nov", "11/3", "11/3/26", "2026-11-03", "today" or "yesterday".
- * With no year it takes the latest such day that is not after today. Returns null for anything else.
+ * With a locale it also reads that locale's month names and digits, and takes numeric dates in its order: "3.11." and
+ * "3/11/26" are 3 November in de-DE. With no year it takes the latest such day that is not after today. Returns null
+ * for anything else.
  */
-export function parseDate(text: string, today: string): string | null {
-  const t = text.trim().toLowerCase().replace(/(\d)(st|nd|rd|th)\b/g, "$1").replace(/[.,]/g, " ").replace(/\s+/g, " ");
+export function parseDate(text: string, today: string, locale?: string): string | null {
+  const f = formatsFor(locale);
+  const months = english(f) ? ENGLISH_MONTHS : Array.from({ length: 12 }, (_, m) => f.month(m).toLocaleLowerCase(f.locale));
+  const shortMonths = english(f) ? [] : Array.from({ length: 12 }, (_, m) => f.month(m, "short").toLocaleLowerCase(f.locale).replace(/\./g, ""));
+  const swap = !english(f) && dayFirst(f.locale);
+  let typed = text;
+  for (let i = 0; i < 10; i++) typed = typed.split(f.digits[i]).join(String(i));
+  const t = typed
+    .trim()
+    .toLocaleLowerCase(f.locale)
+    .replace(/(\d)(st|nd|rd|th)\b/g, "$1")
+    .replace(/[.,\u060c]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!t) return null;
   if (t === "today") return today;
   if (t === "yesterday") return addDays(today, -1);
@@ -144,15 +191,21 @@ export function parseDate(text: string, today: string): string | null {
   let m: number | null = null;
   let d: number | null = null;
   let match: RegExpMatchArray | null;
-  const monthAt = (word: string) => (word.length >= 3 ? MONTH_WORDS.findIndex((name) => name.startsWith(word)) : -1);
+  const monthAt = (word: string) => {
+    if (word.length < 3 && !shortMonths.includes(word)) return -1;
+    const at = months.findIndex((name) => name.startsWith(word));
+    if (at >= 0) return at;
+    const short = shortMonths.indexOf(word);
+    return short >= 0 ? short : ENGLISH_MONTHS.findIndex((name) => word.length >= 3 && name.startsWith(word));
+  };
   if ((match = t.match(/^(\d{4})[-/ ](\d{1,2})[-/ ](\d{1,2})$/))) [y, m, d] = [Number(match[1]), Number(match[2]) - 1, Number(match[3])];
-  else if ((match = t.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|\d{4}))?$/))) {
-    [m, d] = [Number(match[1]) - 1, Number(match[2])];
+  else if ((match = t.match(swap ? /^(\d{1,2})[/ -](\d{1,2})(?:[/ -](\d{2}|\d{4}))?$/ : /^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2}|\d{4}))?$/))) {
+    [m, d] = swap ? [Number(match[2]) - 1, Number(match[1])] : [Number(match[1]) - 1, Number(match[2])];
     if (match[3]) y = match[3].length === 2 ? 2000 + Number(match[3]) : Number(match[3]);
-  } else if ((match = t.match(/^([a-z]+) (\d{1,2})(?: (\d{4}))?$/)) && monthAt(match[1]) >= 0) {
+  } else if ((match = t.match(/^(\p{L}+) (\d{1,2})(?: (\d{4}))?$/u)) && monthAt(match[1]) >= 0) {
     [m, d] = [monthAt(match[1]), Number(match[2])];
     if (match[3]) y = Number(match[3]);
-  } else if ((match = t.match(/^(\d{1,2}) ([a-z]+)(?: (\d{4}))?$/)) && monthAt(match[2]) >= 0) {
+  } else if ((match = t.match(/^(\d{1,2}) (\p{L}+)(?: (\d{4}))?$/u)) && monthAt(match[2]) >= 0) {
     [m, d] = [monthAt(match[2]), Number(match[1])];
     if (match[3]) y = Number(match[3]);
   } else return null;
@@ -178,8 +231,6 @@ const noDay = () => null;
 /** Today as "YYYY-MM-DD" in the visitor's time zone, or null during the server render and hydration, so the two always match. */
 export const useToday = () => useSyncExternalStore(subscribeToDay, localToday, noDay);
 
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${defaultFormat(n)} results`);
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 const FOCUS_RING = "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]";
@@ -192,6 +243,7 @@ type Growth = { band: Band; before: Band; toward: "start" | "end" };
  * Presets (Any time, Today, Last 3, 7 and 30 days, Custom) over a one-month calendar and typed From and To fields.
  * Picking a day starts a range; the band follows the pointer day by day until a second pick ends it. Each day can carry
  * its count. The calendar is a keyboard grid: arrows by day and week, Page Up and Page Down by month, with Shift by year.
+ * Right to left, the week runs from the right, previous and next swap sides, and Left and Right follow the screen.
  */
 export function DateRange({
   value,
@@ -204,12 +256,17 @@ export function DateRange({
   anyLabel = "Any time",
   customLabel = "Custom",
   allowFuture = false,
-  weekStartsOn = 0,
-  formatCount = defaultFormat,
-  countLabel = defaultCountLabel,
+  weekStartsOn: weekStartsOnProp,
+  formatCount: formatCountProp,
+  countLabel: countLabelProp,
+  locale,
   className,
   ...props
 }: DateRangeProps) {
+  const f = formatsFor(locale);
+  const weekStartsOn = weekStartsOnProp ?? f.firstDay;
+  const formatCount = formatCountProp ?? f.number;
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const id = useId();
   const browserToday = useToday();
   const today = todayProp ?? browserToday;
@@ -272,7 +329,7 @@ export function DateRange({
     onChange(next);
     const r = next && today ? resolveDateRange(next, today) : null;
     const total = sum(r);
-    const text = describe(next, presets, today, true) ?? anyLabel;
+    const text = describe(f, next, presets, today, true) ?? anyLabel;
     setSaid(total === null || !next ? text : `${text}, ${countLabel(total)}`);
   };
 
@@ -293,7 +350,7 @@ export function DateRange({
     setPending({ anchor: iso, before: value });
     setPreview(null);
     onChange({ start: iso, end: iso });
-    setSaid(`${spokenDay(iso)}. Now pick the last day, or press Escape.`);
+    setSaid(`${spokenDay(f, iso)}. Now pick the last day, or press Escape.`);
   };
 
   const dropPending = () => {
@@ -355,16 +412,18 @@ export function DateRange({
     const observer = new ResizeObserver(measure);
     observer.observe(button);
     if (button.parentElement) observer.observe(button.parentElement);
+    const stop = onDirChange(measure);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
+      stop();
     };
   }, [checkedIndex]);
 
   const onPresetKeys = (event: KeyboardEvent<HTMLDivElement>) => {
     const from = Math.max(0, presetButtons.current.findIndex((b) => b === document.activeElement));
     const n = choices.length;
-    const next = { ArrowRight: from + 1, ArrowDown: from + 1, ArrowLeft: from - 1, ArrowUp: from - 1, Home: 0, End: n - 1 }[event.key];
+    const next = { ArrowRight: from + 1, ArrowDown: from + 1, ArrowLeft: from - 1, ArrowUp: from - 1, Home: 0, End: n - 1 }[readingKey(event.key, event.currentTarget)];
     if (next === undefined) return;
     event.preventDefault();
     const index = (next + n) % n;
@@ -390,7 +449,8 @@ export function DateRange({
 
   const onGridKeys = (event: KeyboardEvent<HTMLDivElement>) => {
     if (!focused) return;
-    const weekday = (new Date(timeOf(focused)).getUTCDay() - weekStartsOn + 7) % 7;
+    const weekday = (weekdayOf(focused) - weekStartsOn + 7) % 7;
+    const key = readingKey(event.key, event.currentTarget);
     const moves: Record<string, () => string> = {
       ArrowLeft: () => addDays(focused, -1),
       ArrowRight: () => addDays(focused, 1),
@@ -401,9 +461,9 @@ export function DateRange({
       PageUp: () => addMonths(focused, event.shiftKey ? -12 : -1),
       PageDown: () => addMonths(focused, event.shiftKey ? 12 : 1),
     };
-    if (moves[event.key]) {
+    if (moves[key]) {
       event.preventDefault();
-      moveFocus(moves[event.key]());
+      moveFocus(moves[key]());
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       pickDay(focused);
@@ -463,7 +523,7 @@ export function DateRange({
     };
   };
 
-  const weekdays = Array.from({ length: 7 }, (_, i) => WEEKDAYS[(i + weekStartsOn) % 7]);
+  const weekdays = Array.from({ length: 7 }, (_, i) => (i + weekStartsOn) % 7);
   const weeksOf = (month: string) => {
     const [y, m] = parts(month);
     const lead = (new Date(Date.UTC(y, m, 1)).getUTCDay() - weekStartsOn + 7) % 7;
@@ -499,8 +559,8 @@ export function DateRange({
           const timing = timingOf(day);
           const before = !band || day < band.start;
           // The band is square where it wraps to the next week or runs into another month; only its own ends are round.
-          const roundLeft = isStart;
-          const roundRight = isEnd;
+          const roundStart = isStart;
+          const roundEnd = isEnd;
           return (
             <div
               key={c}
@@ -509,7 +569,7 @@ export function DateRange({
               aria-selected={live ? selected : undefined}
               aria-disabled={live && !can ? true : undefined}
               aria-current={live && isToday ? "date" : undefined}
-              aria-label={live ? `${cellDay(day)}${count !== null ? `, ${countLabel(count)}` : ""}` : undefined}
+              aria-label={live ? `${cellDay(f, day)}${count !== null ? `, ${countLabel(count)}` : ""}` : undefined}
               data-day={day}
               onClick={live ? () => pickDay(day) : undefined}
               onPointerEnter={live && pending && can ? () => setPreview(day) : undefined}
@@ -524,14 +584,19 @@ export function DateRange({
                 className={cn(
                   "absolute inset-y-0 bg-[var(--fu-selected,#1F2747)] pointer-coarse:inset-y-0.5",
                   "transition-[clip-path,left,right,border-radius] ease-linear motion-reduce:transition-none",
-                  roundLeft ? "rounded-l-[20px]" : "rounded-l-none",
-                  roundRight ? "rounded-r-[20px]" : "rounded-r-none",
+                  roundStart ? "rounded-s-[20px]" : "rounded-s-none",
+                  roundEnd ? "rounded-e-[20px]" : "rounded-e-none",
+                  // Out of the band, a segment is clipped to nothing at the band's side, so it grows in from there.
+                  inBand && !single
+                    ? "[clip-path:inset(0_0_0_0)]"
+                    : before
+                      ? "[clip-path:inset(0_0_0_100%)] rtl:[clip-path:inset(0_100%_0_0)]"
+                      : "[clip-path:inset(0_100%_0_0)] rtl:[clip-path:inset(0_0_0_100%)]",
                 )}
                 style={{
                   // Neighbouring segments overlap by a pixel, so no seam shows between days.
-                  left: inBand && isStart && !single ? "50%" : -0.5,
-                  right: inBand && isEnd && !single ? "50%" : -0.5,
-                  clipPath: inBand && !single ? "inset(0 0 0 0)" : before ? "inset(0 0 0 100%)" : "inset(0 100% 0 0)",
+                  insetInlineStart: inBand && isStart && !single ? "50%" : -0.5,
+                  insetInlineEnd: inBand && isEnd && !single ? "50%" : -0.5,
                   transitionDelay: `${timing.delay}ms`,
                   transitionDuration: `${timing.duration}ms`,
                 }}
@@ -563,7 +628,7 @@ export function DateRange({
                 // The day's colours change as the band reaches it; a hover never waits.
                 style={{ transitionDelay: isEdge ? `${timing.delay}ms` : `${timing.delay}ms, 0ms, 0ms, 0ms` }}
               >
-                <span className="text-[14px] font-medium leading-4 tabular-nums">{n}</span>{" "}
+                <span className="text-[14px] font-medium leading-4 tabular-nums">{f.plain(n)}</span>{" "}
                 {/* Every date keeps the count's line, so the numbers sit on one baseline whether a day has items or not. */}
                 {countOf && (
                   <span
@@ -589,7 +654,8 @@ export function DateRange({
   const arrivingRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     if (!leaving) return;
-    const shift = 8 * leaving.dir;
+    // The months move the way the arrows point: in RTL the next month comes in from the left.
+    const shift = 8 * leaving.dir * (isRtl(arrivingRef.current) ? -1 : 1);
     const timing = { duration: 220, easing: "cubic-bezier(0.22, 1, 0.36, 1)" };
     const out = leavingRef.current?.animate(
       [
@@ -617,7 +683,7 @@ export function DateRange({
 
   const monthLabelId = `${id}-month`;
   const viewYear = shownMonth ? Number(shownMonth.slice(0, 4)) : null;
-  const heading = shownMonth ? (mode === "months" ? String(viewYear) : `${MONTHS[parts(shownMonth)[1]]} ${viewYear}`) : "";
+  const heading = shownMonth ? (mode === "months" ? f.plain(viewYear ?? 0) : f.day(shownMonth, { month: "long", year: "numeric" })) : "";
 
   // The twelve-month view: one cell per month of the shown year, with its count.
   const [monthFocus, setMonthFocus] = useState<number | null>(null);
@@ -642,9 +708,10 @@ export function DateRange({
   };
   const onMonthKeys = (event: KeyboardEvent<HTMLDivElement>) => {
     const moves: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 };
-    if (moves[event.key] !== undefined) {
+    const key = readingKey(event.key, event.currentTarget);
+    if (moves[key] !== undefined) {
       event.preventDefault();
-      const next = focusedMonth + moves[event.key];
+      const next = focusedMonth + moves[key];
       if (next < 0 || next > 11) {
         if (shownMonth) setViewMonth(addMonths(shownMonth, next < 0 ? -12 : 12));
         setMonthFocus((next + 12) % 12);
@@ -705,7 +772,7 @@ export function DateRange({
                 tabIndex={i === Math.max(0, checkedIndex) ? 0 : -1}
                 onClick={() => choose(i, true)}
                 className={cn(
-                  "group/preset relative flex h-9 min-w-0 cursor-pointer items-center gap-1.5 rounded-[9px] px-3 text-left text-[14px] leading-5 font-medium pointer-coarse:h-11 @min-[500px]:justify-between @min-[500px]:gap-3",
+                  "group/preset relative flex h-9 min-w-0 cursor-pointer items-center gap-1.5 rounded-[9px] px-3 text-start text-[14px] leading-5 font-medium pointer-coarse:h-11 @min-[500px]:justify-between @min-[500px]:gap-3",
                   "transition-[color,background-color,scale] duration-200 active:scale-[0.98] active:duration-75 motion-reduce:transition-none",
                   SMOOTH,
                   FOCUS_RING,
@@ -738,7 +805,7 @@ export function DateRange({
   const calendarBlock = (
           <div
             key="calendar"
-            className="min-w-0 @min-[500px]:col-start-2 @min-[500px]:row-start-1 @min-[500px]:border-l @min-[500px]:border-[var(--fu-card-border,#2A2A2A)] @min-[500px]:pl-6"
+            className="min-w-0 @min-[500px]:col-start-2 @min-[500px]:row-start-1 @min-[500px]:border-s @min-[500px]:border-[var(--fu-card-border,#2A2A2A)] @min-[500px]:ps-6"
           >
             <div className="flex h-9 items-center justify-between gap-2">
               <button
@@ -752,7 +819,7 @@ export function DateRange({
                   focusAfterRender.current = mode === "days" ? "month" : "day";
                 }}
                 className={cn(
-                  "relative -ml-2 flex h-9 min-w-0 cursor-pointer items-center gap-1 rounded-[10px] px-2 text-[15px] leading-5 font-semibold text-[var(--fu-text,#F8F5F1)]",
+                  "relative -ms-2 flex h-9 min-w-0 cursor-pointer items-center gap-1 rounded-[10px] px-2 text-[15px] leading-5 font-semibold text-[var(--fu-text,#F8F5F1)]",
                   "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
                   "transition-colors duration-200 hover:bg-[var(--fu-item-hover,#2A2A2A)]",
                   FOCUS_RING,
@@ -779,7 +846,7 @@ export function DateRange({
                       FOCUS_RING,
                     )}
                   >
-                    <ChevronDownIcon size={18} className={by < 0 ? "rotate-90" : "-rotate-90"} />
+                    <ChevronDownIcon size={18} className={by < 0 ? "rotate-90 rtl:-rotate-90" : "-rotate-90 rtl:rotate-90"} />
                   </button>
                 ))}
               </div>
@@ -794,9 +861,9 @@ export function DateRange({
                 )}
               >
                 <div aria-hidden="true" className="grid h-8 grid-cols-7 items-center text-center text-[12px] leading-4 text-[var(--fu-dim,#929292)]">
-                  {weekdays.map((name) => (
-                    <abbr key={name} title={name} className="no-underline">
-                      {name.slice(0, 2)}
+                  {weekdays.map((i) => (
+                    <abbr key={i} title={f.weekday(i)} className="no-underline">
+                      {weekdayHead(f, i)}
                     </abbr>
                   ))}
                 </div>
@@ -834,7 +901,7 @@ export function DateRange({
               <div
                 ref={months}
                 role="group"
-                aria-label={viewYear !== null ? `Months of ${viewYear}` : "Months"}
+                aria-label={viewYear !== null ? `Months of ${f.plain(viewYear)}` : "Months"}
                 inert={mode !== "months"}
                 onKeyDown={onMonthKeys}
                 className={cn(
@@ -843,7 +910,7 @@ export function DateRange({
                   mode === "months" ? "opacity-100" : "pointer-events-none translate-y-1 opacity-0 blur-[2px]",
                 )}
               >
-                {MONTHS.map((name, m) => {
+                {Array.from({ length: 12 }, (_, m) => monthShort(f, m)).map((name, m) => {
                   const first = viewYear !== null ? `${viewYear}-${pad(m + 1)}-01` : "";
                   const lastDay = viewYear !== null ? `${viewYear}-${pad(m + 1)}-${pad(daysIn(viewYear, m))}` : "";
                   const can = !!first && (allowFuture || !today || first <= today);
@@ -859,7 +926,7 @@ export function DateRange({
                       aria-current={isShown || undefined}
                       aria-disabled={!can || undefined}
                       /* Named as shown: short month, then its count. The group around it names the year. */
-                      aria-label={`${name.slice(0, 3)}${count !== null ? `, ${countLabel(count)}` : ""}`}
+                      aria-label={`${name}${count !== null ? `, ${countLabel(count)}` : ""}`}
                       onClick={() => openMonth(m)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
@@ -877,7 +944,7 @@ export function DateRange({
                         holdsToday && "shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
                       )}
                     >
-                      {name.slice(0, 3)}{" "}
+                      {name}{" "}
                       {countOf && (
                         <span className={cn("mt-1 h-3 text-[10px] leading-3 font-normal tabular-nums", covered ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]")}>
                           {count ? formatCount(count) : ""}
@@ -893,9 +960,9 @@ export function DateRange({
               <DateField
                 label={`${label}: from`}
                 placeholder="From"
-                shown={range ? shortDay(range.start, today) : ""}
+                shown={range ? shortDay(f, range.start, today) : ""}
                 disabled={fieldsDisabled}
-                read={(text) => (today ? parseDate(text, today) : null)}
+                read={(text) => (today ? parseDate(text, today, locale) : null)}
                 onCommit={(day) => {
                   if (!today) return;
                   setPending(null);
@@ -912,9 +979,9 @@ export function DateRange({
               <DateField
                 label={`${label}: to`}
                 placeholder="To"
-                shown={range ? shortDay(range.end, today) : ""}
+                shown={range ? shortDay(f, range.end, today) : ""}
                 disabled={fieldsDisabled}
-                read={(text) => (today ? parseDate(text, today) : null)}
+                read={(text) => (today ? parseDate(text, today, locale) : null)}
                 onCommit={(day) => {
                   if (!today) return;
                   setPending(null);
@@ -988,7 +1055,7 @@ function DateField({ label, placeholder, shown, disabled, read, onCommit }: Date
           setDraft(null);
         }
       }}
-      className="pr-2"
+      className="pe-2"
       inputClassName="tabular-nums"
     />
   );

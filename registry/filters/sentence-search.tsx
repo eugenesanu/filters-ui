@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { resultsLabel } from "../lib/format";
 import { countOf, ghostOf, matchIn, readSentence, suggest, wholeWord, type Correction, type Suggestion, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
 import { SearchIcon, XIcon } from "../ui/icons";
@@ -51,6 +52,8 @@ export type SentenceSearchProps<Item, State> = Omit<HTMLAttributes<HTMLDivElemen
   formatCount?: (n: number) => string;
   /** Screen-reader words for the result count and each suggestion's count: "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
   /** Text in the field on first render. */
   defaultText?: string;
   /** Suggestions open on first render. */
@@ -69,7 +72,6 @@ export type SentenceSearchProps<Item, State> = Omit<HTMLAttributes<HTMLDivElemen
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 /** A 44px tap area on touch screens around a smaller drawn control. */
 const TAP = "relative pointer-coarse:after:absolute pointer-coarse:after:-inset-[4px] pointer-coarse:after:rounded-[inherit]";
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 const quote = (words: readonly string[]) => words.map((word) => `“${word}”`).join(", ");
 
 function Label({ label, typed }: { label: string; typed: string }) {
@@ -109,7 +111,8 @@ export function SentenceSearch<Item, State>({
   addPlaceholder = "Add another filter",
   submitLabel = "Search",
   formatCount,
-  countLabel = defaultCountLabel,
+  countLabel: countLabelProp,
+  locale,
   defaultText = "",
   defaultOpen = false,
   defaultHighlight,
@@ -122,6 +125,7 @@ export function SentenceSearch<Item, State>({
   onBlur,
   ...props
 }: SentenceSearchProps<Item, State>) {
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const id = useId();
   const listId = `${id}-list`;
   const optionId = (index: number) => `${id}-option-${index}`;
@@ -306,7 +310,7 @@ export function SentenceSearch<Item, State>({
           }
         }}
         className={cn(
-          "flex cursor-text items-start gap-2 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-surface-3,#2A2A2A)] py-1.5 pr-1.5 pl-3.5",
+          "flex cursor-text items-start gap-2 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-surface-3,#2A2A2A)] py-1.5 pe-1.5 ps-3.5",
           "transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none",
           "hover:border-[var(--fu-control-hover,#A3A3A3)] focus-within:border-[var(--fu-accent-soft,#8FAAFF)] focus-within:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
           "focus-within:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
@@ -334,7 +338,7 @@ export function SentenceSearch<Item, State>({
                   field.current?.focus();
                 }}
                 className={cn(
-                  "relative flex h-[26px] max-w-full cursor-pointer items-center pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[9px] gap-1 rounded-full border border-[var(--fu-accent-pale,#D1DDFF)] bg-[var(--fu-accent-pale,#D1DDFF)] pr-[7px] pl-[11px]",
+                  "relative flex h-[26px] max-w-full cursor-pointer items-center pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[9px] gap-1 rounded-full border border-[var(--fu-accent-pale,#D1DDFF)] bg-[var(--fu-accent-pale,#D1DDFF)] pe-[7px] ps-[11px]",
                   "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-surface-1,#171717)]",
                   "transition-[background-color,color,border-color,opacity,filter,scale] duration-300 motion-reduce:transition-none",
                   SMOOTH,
@@ -353,7 +357,7 @@ export function SentenceSearch<Item, State>({
               // The highlighted row's filters, tried on in the box without moving anything.
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute -inset-y-px left-0 -right-2 flex items-center gap-1.5 overflow-hidden [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]"
+                className="pointer-events-none absolute -inset-y-px inset-s-0 -inset-e-2 flex items-center gap-1.5 overflow-hidden [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] rtl:[mask-image:linear-gradient(to_left,#000_calc(100%-24px),transparent)]"
               >
                 {previewTokens.map((token, i) => (
                   <span
@@ -363,7 +367,7 @@ export function SentenceSearch<Item, State>({
                       "flex h-[26px] shrink-0 items-center rounded-full border border-dashed border-[var(--fu-accent-soft,#8FAAFF)] px-[11px] text-[14px] leading-5 font-medium whitespace-nowrap text-[var(--fu-accent-soft,#8FAAFF)]",
                       "transition-[opacity,filter,translate] duration-300 motion-reduce:transition-none",
                       SMOOTH,
-                      "starting:-translate-x-1 starting:opacity-0 starting:blur-[3px]",
+                      "starting:-translate-x-1 rtl:starting:translate-x-1 starting:opacity-0 starting:blur-[3px]",
                     )}
                   >
                     {token.label}
@@ -505,9 +509,9 @@ export function SentenceSearch<Item, State>({
                       />
                     )}
                     <Label label={row.label} typed={text} />{" "}
-                    <span aria-hidden="true" className="ml-auto flex shrink-0 items-center gap-2 pl-3">
+                    <span aria-hidden="true" className="ms-auto flex shrink-0 items-center gap-2 ps-3">
                       {row.hint && <span className="text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{row.hint}</span>}{" "}
-                      <CountPill count={row.count} {...(formatCount && { format: formatCount })} />
+                      <CountPill count={row.count} locale={locale} {...(formatCount && { format: formatCount })} />
                     </span>
                   </div>
                 );
@@ -535,7 +539,7 @@ export function SentenceSearch<Item, State>({
               </>
             )}
           </span>
-          <span className="ml-auto tabular-nums">{countLabel(preview !== undefined ? countOf(vocabulary, items, preview) : count)}</span>
+          <span className="ms-auto tabular-nums">{countLabel(preview !== undefined ? countOf(vocabulary, items, preview) : count)}</span>
         </div>
       </div>
       </div>

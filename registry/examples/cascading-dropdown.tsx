@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CascadingDropdown, type CascadeOption } from "../filters/cascading-dropdown";
+import { formatsFor } from "../lib/format";
 import { FilterCard } from "../ui/filter-card";
 
 // Cars in stock per make and model.
@@ -26,11 +27,11 @@ const OPTIONS: CascadeOption[] = Object.entries(STOCK).map(([make, models]) => (
   children: Object.entries(models).map(([model, count]) => ({ value: model, label: model, count })),
 }));
 
-const carCount = (n: number) => (n === 1 ? "1 car" : `${n} cars`);
-
 type Pick = [string | null, string | null];
 
-export default function MakeModelExample() {
+export default function MakeModelExample({ locale = "en-US" }: { locale?: string }) {
+  const { number } = formatsFor(locale);
+  const carCount = (n: number) => (n === 1 ? "1 car" : `${number(n)} cars`);
   const [pick, setPick] = useState<Pick>(["Toyota", null]);
   const [make, model] = pick;
   const results = make === null ? TOTAL : model === null ? sum(STOCK[make]) : STOCK[make][model];
@@ -53,10 +54,11 @@ export default function MakeModelExample() {
           secondHeading={(first) => `${first.label} models`}
           popularLabel="Popular"
           countLabel={carCount}
+          locale={locale}
         />
       </FilterCard>
       <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
-        <span className="font-medium">{results}</span> <span className="text-[var(--fu-dim,#929292)]">{results === 1 ? "car" : "cars"}</span>
+        <span className="font-medium">{number(results)}</span> <span className="text-[var(--fu-dim,#929292)]">{results === 1 ? "car" : "cars"}</span>
       </p>
     </div>
   );

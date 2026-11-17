@@ -32,7 +32,7 @@ export function SiteHeader() {
         <nav aria-label="Site" className="flex items-center">
           <Link
             href="/about"
-            className="mr-3 inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
+            className="me-3 inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
           >
             About
           </Link>
@@ -42,7 +42,7 @@ export function SiteHeader() {
             target="_blank"
             rel="noopener"
             aria-label="FiltersUI on GitHub (opens in a new tab)"
-            className="-mr-2.5 inline-flex size-11 items-center justify-center rounded-[10px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
+            className="-me-2.5 inline-flex size-11 items-center justify-center rounded-[10px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
           >
             <GitHubMark className="size-5" />
           </a>

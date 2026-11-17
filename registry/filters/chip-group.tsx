@@ -2,6 +2,7 @@
 
 import { useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import { resultsLabel } from "../lib/format";
 import { CountPill } from "../ui/count-pill";
 
 export type ChipOption<V extends string> = {
@@ -19,9 +20,9 @@ export type ChipGroupProps<V extends string> = Omit<HTMLAttributes<HTMLDivElemen
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their spoken words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
-
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 /** Rounded toggle chips that wrap onto rows, each a name and a count. Several can be on. */
 export function ChipGroup<V extends string>({
@@ -30,10 +31,12 @@ export function ChipGroup<V extends string>({
   onChange,
   label,
   formatCount,
-  countLabel = defaultCountLabel,
+  countLabel: countLabelProp,
+  locale,
   className,
   ...props
 }: ChipGroupProps<V>) {
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   // An option turned off at 0 would become disabled under the pointer or keyboard and drop focus; it stays enabled until it loses focus.
   const [kept, setKept] = useState<V | null>(null);
   const toggle = (v: V, button: HTMLButtonElement) => {
@@ -57,7 +60,7 @@ export function ChipGroup<V extends string>({
             onClick={(event) => toggle(option.value, event.currentTarget)}
             data-state={on ? "on" : "off"}
             className={cn(
-              "inline-flex h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-full border pr-1.5 pl-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
+              "inline-flex h-8 min-w-0 cursor-pointer items-center gap-1.5 rounded-full border pe-1.5 ps-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
               "transition-[background-color,border-color,color,scale,opacity] duration-200 ease-[cubic-bezier(0.42,0,0.58,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               on
@@ -70,7 +73,7 @@ export function ChipGroup<V extends string>({
             <span aria-hidden="true" className="text-[var(--fu-text,#F8F5F1)]">
               {option.label}
             </span>{" "}
-            <CountPill aria-hidden="true" on={on} count={option.count} format={formatCount} className="rounded-full" />
+            <CountPill aria-hidden="true" on={on} count={option.count} format={formatCount} locale={locale} className="rounded-full" />
           </button>
         );
       })}

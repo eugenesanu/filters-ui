@@ -2,6 +2,7 @@
 
 import type { HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor } from "../lib/format";
 import { RangeChart, type RangeValue } from "../ui/range-chart";
 import { Select } from "../ui/select";
 
@@ -13,7 +14,7 @@ export type RangeSelectProps<V extends number> = Omit<HTMLAttributes<HTMLDivElem
   onChange: (value: [V | null, V | null]) => void;
   /** Item count per option, in the order of `options`. */
   buckets?: readonly number[];
-  /** Picker, tooltip and screen-reader text for a value. Default String. */
+  /** Picker, tooltip and screen-reader text for a value. Default: the number with no group marks, in the locale's digits. */
   format?: (value: V) => string;
   /** Picker order. Default "ascending"; "descending" puts the newest year first. */
   pickerOrder?: "ascending" | "descending";
@@ -27,6 +28,8 @@ export type RangeSelectProps<V extends number> = Omit<HTMLAttributes<HTMLDivElem
   countLabel?: (n: number) => string;
   /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
   barScale?: number;
+  /** Formats values and counts by default, e.g. "ar-EG". Default "en-US". */
+  locale?: string;
   disabled?: boolean;
 };
 
@@ -42,17 +45,19 @@ export function RangeSelect<V extends number>({
   value,
   onChange,
   buckets,
-  format = String,
+  format: formatProp,
   pickerOrder = "ascending",
   anyLabel = "Any",
   prefixes,
   labels,
   countLabel,
   barScale,
+  locale,
   disabled,
   className,
   ...props
 }: RangeSelectProps<V>) {
+  const format = formatProp ?? formatsFor(locale).plain;
   const n = options.length;
   const lowPrefix = prefixes?.low ?? "From";
   const highPrefix = prefixes?.high ?? "To";
@@ -105,6 +110,7 @@ export function RangeSelect<V extends number>({
         openLabel={format(options[n - 1])}
         labels={{ low: lowLabel, high: highLabel }}
         barScale={barScale}
+        locale={locale}
         disabled={disabled}
       />
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -113,6 +119,7 @@ export function RangeSelect<V extends number>({
           prefix={lowPrefix}
           options={choicesFor("low")}
           countLabel={countLabel}
+          locale={locale}
           value={value[0] === null ? ANY : String(value[0])}
           disabled={disabled}
           onChange={(text) => {
@@ -125,6 +132,7 @@ export function RangeSelect<V extends number>({
           prefix={highPrefix}
           options={choicesFor("high")}
           countLabel={countLabel}
+          locale={locale}
           value={value[1] === null ? ANY : String(value[1])}
           disabled={disabled}
           onChange={(text) => {

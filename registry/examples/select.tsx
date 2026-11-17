@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatsFor } from "../lib/format";
 import { Select } from "../ui/select";
 import { TextSwap } from "../ui/text-swap";
 
@@ -10,34 +11,34 @@ const TIMELINE = Object.keys(PER_YEAR).map(Number);
 const TALLEST = Math.max(...Object.values(PER_YEAR));
 const carsFrom = (from: number | null) => TIMELINE.reduce((n, year) => (from === null || year >= from ? n + PER_YEAR[year] : n), 0);
 
-// Each year counts the cars it would show: that year or newer.
-const OPTIONS = [
-  { value: "", label: "Any", count: carsFrom(null) },
-  ...[...TIMELINE].reverse().map((year) => ({ value: String(year), label: String(year), count: carsFrom(year) })),
-];
-
-const carCount = (n: number) => (n === 1 ? "1 car" : `${n} cars`);
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 
-export default function SelectExample() {
+export default function SelectExample({ locale = "en-US" }: { locale?: string }) {
+  const { number, plain } = formatsFor(locale);
+  const carCount = (n: number) => (n === 1 ? "1 car" : `${number(n)} cars`);
+  // Each year counts the cars it would show: that year or newer.
+  const options = [
+    { value: "", label: "Any", count: carsFrom(null) },
+    ...[...TIMELINE].reverse().map((year) => ({ value: String(year), label: plain(year), count: carsFrom(year) })),
+  ];
   const [from, setFrom] = useState("2021");
   // Where the kept years start on the timeline, oldest first.
   const cut = from === "" ? 0 : TIMELINE.indexOf(Number(from));
 
   return (
     <div className="w-full max-w-[320px]">
-      <Select label="From year" prefix="From" value={from} onChange={setFrom} options={OPTIONS} countLabel={carCount} />
+      <Select label="From year" prefix="From" value={from} onChange={setFrom} options={options} countLabel={carCount} locale={locale} />
       <div className="mt-2 rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] px-5 pt-4 pb-5">
         <p aria-live="polite" className="flex items-baseline gap-1 text-[14px] leading-5 tabular-nums">
-          <TextSwap className="font-medium text-[var(--fu-text,#F8F5F1)]">{String(carsFrom(from === "" ? null : Number(from)))}</TextSwap>
+          <TextSwap className="font-medium text-[var(--fu-text,#F8F5F1)]">{number(carsFrom(from === "" ? null : Number(from)))}</TextSwap>
           <span className="text-[var(--fu-dim,#929292)]">cars</span>
         </p>
         {/* One mark per car, by model year. The kept years sit on a band whose edge slides to the new year; their marks
             light up in a wave that starts at the band's edge. */}
         <div aria-hidden="true" className="relative mt-5">
           <span
-            className={`absolute -inset-y-2 -right-[5px] rounded-[12px] bg-[var(--fu-selected,#1F2747)] transition-[left] duration-[480ms] motion-reduce:transition-none ${SMOOTH}`}
-            style={{ left: `calc(${cut} * (100% + 10px) / ${TIMELINE.length} - 5px)` }}
+            className={`absolute -inset-y-2 -inset-e-[5px] rounded-[12px] bg-[var(--fu-selected,#1F2747)] transition-[left,right] duration-[480ms] motion-reduce:transition-none ${SMOOTH}`}
+            style={{ insetInlineStart: `calc(${cut} * (100% + 10px) / ${TIMELINE.length} - 5px)` }}
           />
           <div className="relative grid grid-cols-10 items-end gap-2.5" style={{ height: TALLEST * 8 - 2 }}>
             {TIMELINE.map((year, i) => (
@@ -62,7 +63,7 @@ export default function SelectExample() {
                   i >= cut ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-dim,#929292)]"
                 }`}
               >
-                ’{String(year).slice(2)}
+                ’{plain(year).slice(2)}
               </span>
             ))}
           </div>

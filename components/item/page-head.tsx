@@ -14,7 +14,7 @@ export function PageHead({ item }: { item: RegistryItem }) {
   return (
     <div className="pt-5 sm:pt-6">
       <div className="flex items-center justify-between gap-4">
-        <Link href={item.kind === "basic" ? "/#basics" : "/#filters"} className={`${QUIET_LINK} -ml-1 pr-2`}>
+        <Link href={item.kind === "basic" ? "/#basics" : "/#filters"} className={`${QUIET_LINK} -ms-1 pe-2`}>
           <LinkArrow direction="back" />
           {item.kind === "basic" ? "Basics" : "Filters"}
         </Link>

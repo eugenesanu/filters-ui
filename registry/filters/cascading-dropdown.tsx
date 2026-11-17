@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { formatsFor, resultsLabel } from "../lib/format";
 import { Select } from "../ui/select";
 
 export type CascadeChild = { value: string; label: string; count: number };
@@ -29,18 +30,18 @@ export type CascadingDropdownProps = Omit<HTMLAttributes<HTMLDivElement>, "onCha
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count: "6 cars". */
   countLabel?: (n: number) => string;
+  /** Formats the counts and their spoken words by default, e.g. "de-DE". Default "en-US". */
+  locale?: string;
 };
 
 const ANY = "";
 const SMOOTH = "cubic-bezier(0.22, 1, 0.36, 1)";
-const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
-const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${defaultFormat(n)} results`);
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * Two linked selects, such as Make then Model. The second waits, quiet, until the first is set; a hairline elbow joins
- * it to the first and draws itself in accent as a first choice is made, and again when it changes. A new first choice
+ * Two linked selects, such as Make then Model. The second waits, quiet, until the first is set; a hairline elbow (mirrored
+ * in RTL) joins it to the first and draws itself in accent as a first choice is made, and again when it changes. A new first choice
  * clears the second, whose old value blurs out. Under them, the most common second choices sit as quick picks, each
  * with a thin accent bar along its foot for its share; they rise in one after another for each new first choice.
  */
@@ -54,11 +55,14 @@ export function CascadingDropdown({
   secondHeading = (first) => first.label,
   popular = 2,
   popularLabel = "Popular",
-  formatCount = defaultFormat,
-  countLabel = defaultCountLabel,
+  formatCount: formatCountProp,
+  countLabel: countLabelProp,
+  locale,
   className,
   ...props
 }: CascadingDropdownProps) {
+  const formatCount = formatCountProp ?? formatsFor(locale).number;
+  const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const firstLabel = labels?.first ?? "First";
   const secondLabel = labels?.second ?? "Second";
   const [first, second] = value;
@@ -110,7 +114,7 @@ export function CascadingDropdown({
         formatCount={formatCount}
         countLabel={countLabel}
       />
-      <div className="relative mt-3 pl-7">
+      <div className="relative mt-3 ps-7">
         <svg
           aria-hidden="true"
           width="28"
@@ -119,7 +123,7 @@ export function CascadingDropdown({
           fill="none"
           strokeWidth="1.5"
           strokeLinecap="round"
-          className="pointer-events-none absolute -top-3 left-0 overflow-visible"
+          className="pointer-events-none absolute -top-3 inset-s-0 overflow-visible rtl:-scale-x-100"
         >
           <path d="M14 0v26a8 8 0 0 0 8 8h6" className="stroke-[var(--fu-line,#404040)]" />
           <path
@@ -148,8 +152,8 @@ export function CascadingDropdown({
         />
       </div>
       {picks.length > 0 && (
-        <div ref={chips} role="group" aria-label={popularLabel} className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-7">
-          <span aria-hidden="true" className="mr-1 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
+        <div ref={chips} role="group" aria-label={popularLabel} className="mt-2.5 flex flex-wrap items-center gap-1.5 ps-7">
+          <span aria-hidden="true" className="me-1 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
             {popularLabel}
           </span>
           {picks.map((child) => {
@@ -181,7 +185,7 @@ export function CascadingDropdown({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "absolute bottom-0 left-0 h-[2px] transition-[width,background-color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                    "absolute bottom-0 inset-s-0 h-[2px] transition-[width,background-color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                     on ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-accent-soft,#8FAAFF)]/45",
                   )}
                   style={{ width: `${most > 0 ? (child.count / most) * 100 : 0}%` }}

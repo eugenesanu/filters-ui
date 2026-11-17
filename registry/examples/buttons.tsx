@@ -36,7 +36,7 @@ export default function ButtonsExample() {
         <Button>Show 138 cars</Button>
         <Button variant="secondary">Save search</Button>
         {/* In a narrow column the two quiet looks take their own line, pulled back so their words start on the edge. */}
-        <span className="flex gap-2 @max-[420px]:-ml-3.5 @max-[420px]:basis-full">
+        <span className="flex gap-2 @max-[420px]:-ms-3.5 @max-[420px]:basis-full">
           <Button variant="ghost">Clear all</Button>
           <Button variant="quiet">Cancel</Button>
         </span>
@@ -68,7 +68,7 @@ export default function ButtonsExample() {
           </TextLink>
           .
         </p>
-        <div className="-ml-1 flex flex-wrap items-center gap-x-5">
+        <div className="-ms-1 flex flex-wrap items-center gap-x-5">
           <TextLink variant="quiet" arrow="back" href="#" onClick={stay}>
             All cars
           </TextLink>
