@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { StageControlRow, useStage, useStageFrame } from "@/components/stage/stage-controls";
+import { StageControlRow, useStage, useStageFrame, useStageStatus, type StageStatus } from "@/components/stage/stage-controls";
+import { StageCount } from "@/components/stage/stage-count";
+import { LONG_FILTER_TITLES, longMakeNames } from "@/components/stage/state-data";
 import { formatsFor } from "@/registry/lib/format";
 import { CARS } from "@/registry/demo/cars";
 import {
@@ -9,6 +11,7 @@ import {
   EMPTY_CAR_FILTERS,
   clearFacet,
   carFormats,
+  listSummary,
   matchingCars,
   summaryOf,
   type CarFacet,
@@ -16,7 +19,6 @@ import {
 } from "@/registry/demo/cars-facets";
 import { FilterPills, type FilterPill } from "@/registry/filters/filter-pills";
 import { SlidersIcon } from "@/registry/ui/icons";
-import { TextSwap } from "@/registry/ui/text-swap";
 import { CarFilterBody } from "@/components/stage/car-filter";
 
 /** The pills in the bar, then the filters "More filters" holds. */
@@ -28,14 +30,38 @@ const BAR: { facet: CarFacet; width: number }[] = [
   { facet: "fuel", width: 320 },
 ];
 const MORE: CarFacet[] = ["km", "seats", "condition", "drive", "transmission", "color"];
+/** The many-options state: every filter as a pill of its own, so the bar wraps onto more rows. */
+const EVERY: { facet: CarFacet; width: number }[] = [...BAR, ...MORE.map((facet) => ({ facet, width: facet === "km" ? 360 : 320 }))];
 
 export const PILLS_PRESET: CarFilters = { ...EMPTY_CAR_FILTERS, priceMin: 15000, priceMax: 45000, bodies: ["SUV"] };
+/** The long-labels state also picks a model and a make, whose long names make a long value. */
+const LONG_PRESET: CarFilters = { ...PILLS_PRESET, makes: [{ make: "Toyota", models: ["RAV4"] }, { make: "Honda", models: [] }] };
+
+/** What the filters in the panels get: long names in the long-labels state; status and disabled stay with the bar. */
+const dataOnly = (stage: StageStatus): StageStatus => ({
+  ...stage,
+  state: stage.state === "long-labels" ? stage.state : "ready",
+  status: "ready",
+  disabled: false,
+});
 
 const RESET =
   "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text";
 
 /** One filter inside "More filters": its title and value, or Clear, over its body. */
-function MoreSection({ facet, filters, set, onClear }: { facet: CarFacet; filters: CarFilters; set: (patch: Partial<CarFilters>) => void; onClear: () => void }) {
+function MoreSection({
+  facet,
+  filters,
+  set,
+  onClear,
+  stage,
+}: {
+  facet: CarFacet;
+  filters: CarFilters;
+  set: (patch: Partial<CarFilters>) => void;
+  onClear: () => void;
+  stage: StageStatus;
+}) {
   const { locale } = useStage();
   const summary = summaryOf(filters, facet, locale);
   return (
@@ -58,7 +84,7 @@ function MoreSection({ facet, filters, set, onClear }: { facet: CarFacet; filter
           </button>
         )}
       </div>
-      <CarFilterBody facet={facet} filters={filters} set={set} locale={locale} />
+      <CarFilterBody facet={facet} filters={filters} set={set} locale={locale} stage={dataOnly(stage)} />
     </section>
   );
 }
@@ -92,38 +118,57 @@ function ResultList({ filters }: { filters: CarFilters }) {
 export function FilterPillsStage() {
   const frame = useStageFrame();
   const { locale } = useStage();
+  const stage = useStageStatus();
+  const { state, ...states } = stage;
+  const long = state === "long-labels";
+  const many = state === "many-options";
+  const preset = long ? LONG_PRESET : PILLS_PRESET;
   const f = carFormats(locale);
-  const n = formatsFor(locale).number;
-  const [filters, setFilters] = useState<CarFilters>(PILLS_PRESET);
+  const [filters, setFilters] = useState<CarFilters>(preset);
   const [round, setRound] = useState(0);
+  // The data states start the demo afresh from their own preset.
+  const shape = long ? "long" : many ? "many" : "plain";
+  const [lastShape, setLastShape] = useState(shape);
+  if (lastShape !== shape) {
+    setLastShape(shape);
+    setFilters(preset);
+  }
   const set = (patch: Partial<CarFilters>) => setFilters((f) => ({ ...f, ...patch }));
   const matches = matchingCars(filters).length;
   const moreSet = MORE.filter((facet) => summaryOf(filters, facet, locale) !== null).length;
+  const content = dataOnly(stage);
+
+  const titleOf = (facet: CarFacet) => (long ? (LONG_FILTER_TITLES[facet] ?? CAR_FACET_TITLES[facet]) : CAR_FACET_TITLES[facet]);
+  const summaryFor = (facet: CarFacet) => (long && facet === "make" ? listSummary(longMakeNames(filters.makes)) : summaryOf(filters, facet, locale));
 
   const pills: FilterPill[] = [
-    ...BAR.map(({ facet, width }) => ({
+    ...(many ? EVERY : BAR).map(({ facet, width }) => ({
       id: facet,
-      label: CAR_FACET_TITLES[facet],
-      summary: summaryOf(filters, facet, locale),
+      label: titleOf(facet),
+      summary: summaryFor(facet),
       onClear: () => setFilters((f) => clearFacet(f, facet)),
       width,
-      content: <CarFilterBody facet={facet} filters={filters} set={set} locale={locale} />,
+      content: <CarFilterBody facet={facet} filters={filters} set={set} locale={locale} stage={content} />,
     })),
-    {
-      id: "more",
-      label: "More filters",
-      icon: <SlidersIcon size={16} />,
-      count: moreSet,
-      onClear: () => setFilters((f) => MORE.reduce(clearFacet, f)),
-      width: 400,
-      content: (
-        <div>
-          {MORE.map((facet) => (
-            <MoreSection key={facet} facet={facet} filters={filters} set={set} onClear={() => setFilters((f) => clearFacet(f, facet))} />
-          ))}
-        </div>
-      ),
-    },
+    ...(many
+      ? []
+      : [
+          {
+            id: "more",
+            label: long ? "More ways to narrow it down" : "More filters",
+            icon: <SlidersIcon size={16} />,
+            count: moreSet,
+            onClear: () => setFilters((f) => MORE.reduce(clearFacet, f)),
+            width: 400,
+            content: (
+              <div>
+                {MORE.map((facet) => (
+                  <MoreSection key={facet} facet={facet} filters={filters} set={set} onClear={() => setFilters((f) => clearFacet(f, facet))} stage={stage} />
+                ))}
+              </div>
+            ),
+          },
+        ]),
   ];
 
   return (
@@ -131,21 +176,20 @@ export function FilterPillsStage() {
       <div {...frame} className="flex-1 px-4 pt-6 pb-0 sm:px-8 sm:pt-8">
         <FilterPills
           locale={locale}
-          key={round}
+          key={`${round}-${shape}`}
           label="Car filters"
           pills={pills}
           defaultOpen="price"
           showLabel={`Show ${f.carCount(matches)}`}
           onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
+          {...states}
         />
         <div className="mt-4 flex items-center justify-between gap-3 ps-1">
-          <p aria-live="polite" className="text-[14px] leading-5 text-dim tabular-nums">
-            <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
-          </p>
+          <StageCount matches={matches} total={CARS.length} stage={stage} />
           <button
             type="button"
             onClick={() => {
-              setFilters(PILLS_PRESET);
+              setFilters(preset);
               setRound((n) => n + 1);
             }}
             className={`${RESET} -me-3`}

@@ -44,6 +44,7 @@ import { SegmentedChoice } from "../filters/segmented-choice";
 import { UpperLimit } from "../filters/upper-limit";
 import { ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon } from "../ui/icons";
+import { StatusFrame, StatusLine, useFocusKept, type StateProps } from "../ui/status-frame";
 import { TextSwap } from "../ui/text-swap";
 
 /** Sidebar order: the filters people reach for first come first. */
@@ -101,7 +102,8 @@ function Edge({ glow }: { glow: boolean }) {
 type RowProps = {
   title: string;
   summary: string | null;
-  onClear: () => void;
+  /** Left out while the panel is disabled: the row then offers no Clear. */
+  onClear?: () => void;
   open: boolean;
   onToggle: (row: HTMLElement) => void;
   onHeadKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
@@ -187,36 +189,38 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
               SWAP,
               set && !open ? SHOWN : GONE_UP,
               // Hovering a closed row, or tabbing to its Clear, offers Clear in the summary's place.
-              set && !open && "[@media(hover:hover)]:group-hover/head:opacity-0 [@media(hover:hover)]:group-hover/head:blur-[2px] [@media(hover:hover)]:group-hover/head:-translate-y-1",
-              set && !open && "group-focus-within/slot:opacity-0 group-focus-within/slot:blur-[2px] group-focus-within/slot:-translate-y-1",
+              set && !open && onClear && "[@media(hover:hover)]:group-hover/head:opacity-0 [@media(hover:hover)]:group-hover/head:blur-[2px] [@media(hover:hover)]:group-hover/head:-translate-y-1",
+              set && !open && onClear && "group-focus-within/slot:opacity-0 group-focus-within/slot:blur-[2px] group-focus-within/slot:-translate-y-1",
             )}
           >
             {summary || lastSummary}
           </span>
-          <button
-            type="button"
-            tabIndex={set ? 0 : -1}
-            aria-label={`Clear ${title.toLowerCase()}`}
-            onClick={() => {
-              onClear();
-              head.current?.focus();
-            }}
-            className={cn(
-              "relative cursor-pointer rounded-[6px] font-medium [grid-area:1/1] [-webkit-tap-highlight-color:transparent]",
-              // The press area runs the full height of the head.
-              "before:absolute before:-inset-x-2 before:-inset-y-4 before:content-['']",
-              FOCUS,
-              "focus-visible:outline-offset-2",
-              SWAP,
-              set && open ? cn(SHOWN, "pointer-events-auto") : GONE_DOWN,
-              set &&
-                !open &&
-                "[@media(hover:hover)]:pointer-events-auto [@media(hover:hover)]:group-hover/head:opacity-100 [@media(hover:hover)]:group-hover/head:blur-none [@media(hover:hover)]:group-hover/head:translate-y-0",
-              set && !open && "focus-visible:opacity-100 focus-visible:blur-none focus-visible:translate-y-0",
-            )}
-          >
-            Clear
-          </button>
+          {onClear && (
+            <button
+              type="button"
+              tabIndex={set ? 0 : -1}
+              aria-label={`Clear ${title.toLowerCase()}`}
+              onClick={() => {
+                onClear();
+                head.current?.focus();
+              }}
+              className={cn(
+                "relative cursor-pointer rounded-[6px] font-medium [grid-area:1/1] [-webkit-tap-highlight-color:transparent]",
+                // The press area runs the full height of the head.
+                "before:absolute before:-inset-x-2 before:-inset-y-4 before:content-['']",
+                FOCUS,
+                "focus-visible:outline-offset-2",
+                SWAP,
+                set && open ? cn(SHOWN, "pointer-events-auto") : GONE_DOWN,
+                set &&
+                  !open &&
+                  "[@media(hover:hover)]:pointer-events-auto [@media(hover:hover)]:group-hover/head:opacity-100 [@media(hover:hover)]:group-hover/head:blur-none [@media(hover:hover)]:group-hover/head:translate-y-0",
+                set && !open && "focus-visible:opacity-100 focus-visible:blur-none focus-visible:translate-y-0",
+              )}
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -248,7 +252,8 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
   );
 }
 
-export type FilterPanelProps = Omit<HTMLAttributes<HTMLElement>, "onChange"> & {
+export type FilterPanelProps = Omit<HTMLAttributes<HTMLElement>, "onChange"> &
+  Omit<StateProps, "emptyText"> & {
   cars?: readonly Car[];
   defaultFilters?: CarFilters;
   /** Rows open on first render. Several may be open at once. */
@@ -266,6 +271,9 @@ export type FilterPanelProps = Omit<HTMLAttributes<HTMLElement>, "onChange"> & {
  * Every car filter as a row in one tall panel, like a search page's sidebar: a head (Filters, how many are set,
  * Clear all), the rows between soft fades, and Show N cars pinned at the bottom. Closed rows keep their value in
  * words, so the closed panel reads as the whole search. Give it a height (or a max height) and the rows scroll.
+ * status and disabled reach every row's filter through a frame of its own, quiet, as the head says the state once:
+ * loading draws each filter's placeholders and the number in Show; an error shows its line in each open row and once
+ * under the head, with the one Retry; disabled turns every filter off and leaves Clear and Clear all out.
  */
 export function FilterPanel({
   cars = CARS,
@@ -275,10 +283,15 @@ export function FilterPanel({
   headingLevel = 2,
   glow = false,
   locale,
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the cars.",
+  disabled = false,
   className,
   ...props
 }: FilterPanelProps) {
   const titleId = useId();
+  const root = useRef<HTMLElement>(null);
   const [filters, setFilters] = useState(defaultFilters);
   const [open, setOpen] = useState<CarFacet[]>(defaultOpen);
   const scroller = useRef<HTMLDivElement>(null);
@@ -529,12 +542,21 @@ export function FilterPanel({
   const Heading = `h${headingLevel}` as const;
   const rowLevel = (headingLevel + 1) as 3 | 4 | 5;
   const anySet = setCount > 0;
+  // Clear all hides while disabled, as when nothing is set.
+  const canClear = anySet && !disabled;
+  // A Clear that leaves while disabled, or Retry once it reloads: focus that sat on it moves to the panel.
+  useFocusKept(root, `${status}|${disabled}`);
 
   return (
     <section
+      ref={root}
       aria-labelledby={titleId}
+      // Retry hands focus to the panel, which stays while it reloads.
+      tabIndex={-1}
+      data-status-frame=""
       className={cn(
         "not-prose relative isolate flex min-h-0 w-full flex-col overflow-hidden rounded-[24px] bg-[var(--fu-card,#1F1F1F)] text-[var(--fu-text,#F8F5F1)]",
+        "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
         className,
       )}
       {...props}
@@ -555,7 +577,7 @@ export function FilterPanel({
         </span>
         <button
           type="button"
-          inert={!anySet}
+          inert={!canClear}
           onClick={clearAll}
           className={cn(
             "relative ms-auto inline-flex h-9 shrink-0 cursor-pointer items-center rounded-[10px] px-2.5 text-[15px] font-medium leading-5 text-[var(--fu-accent-soft,#8FAAFF)] [-webkit-tap-highlight-color:transparent]",
@@ -564,12 +586,18 @@ export function FilterPanel({
             "focus-visible:outline-offset-0",
             SWAP,
             "transition-[opacity,filter,translate,color]",
-            anySet ? SHOWN : GONE_DOWN,
+            canClear ? SHOWN : GONE_DOWN,
           )}
         >
           Clear all
         </button>
       </div>
+      <StatusLine
+        status={status}
+        onRetry={onRetry}
+        errorText={errorText}
+        className="shrink-0 justify-start gap-x-4 border-b border-[var(--fu-line,#404040)] px-5 py-3"
+      />
 
       <div className="relative flex min-h-0 flex-1 flex-col">
         <div
@@ -582,13 +610,15 @@ export function FilterPanel({
                 key={facet}
                 title={CAR_FACET_TITLES[facet]}
                 summary={summaryOf(filters, facet, locale)}
-                onClear={() => setFilters((f) => clearFacet(f, facet))}
+                onClear={disabled ? undefined : () => setFilters((f) => clearFacet(f, facet))}
                 open={open.includes(facet)}
                 onToggle={(row) => toggle(facet, row)}
                 onHeadKeyDown={onHeadKeyDown}
                 headingLevel={rowLevel}
               >
-                {bodyOf(facet)}
+                <StatusFrame status={status} errorText={errorText} disabled={disabled} announce={false}>
+                  {bodyOf(facet)}
+                </StatusFrame>
               </PanelRow>
             ))}
           </div>
@@ -608,7 +638,7 @@ export function FilterPanel({
       </div>
 
       <div className="shrink-0 border-t border-[var(--fu-line,#404040)] p-4">
-        <ShowButton label={`Show ${f.carCount(matches.length)}`} onClick={onShow && (() => onShow(matches))} className="h-11 w-full" />
+        <ShowButton label={`Show ${f.carCount(matches.length)}`} onClick={onShow && (() => onShow(matches))} loading={status === "loading"} className="h-11 w-full" />
       </div>
 
       <Edge glow={glow} />

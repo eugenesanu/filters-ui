@@ -3,6 +3,7 @@
 import { useRef, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { XIcon } from "./icons";
+import { ARRIVING, Skeleton, useLoading } from "./skeleton";
 
 export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "prefix" | "size"> & {
   value: string;
@@ -33,6 +34,8 @@ export function TextField({
 }: TextFieldProps) {
   const input = useRef<HTMLInputElement>(null);
   const filled = value.length > 0;
+  // Inside a loading StatusFrame the box stays and a bar stands in for the words, which fade in once when they arrive.
+  const { loading, arriving } = useLoading();
 
   return (
     <div
@@ -41,7 +44,7 @@ export function TextField({
         "text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none",
         "hover:border-[var(--fu-control-hover,#A3A3A3)] focus-within:border-[var(--fu-accent-soft,#8FAAFF)] focus-within:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
         "focus-within:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
-        disabled && "pointer-events-none opacity-40",
+        disabled && "pointer-events-none opacity-50",
         className,
       )}
       onPointerDown={(event) => {
@@ -52,20 +55,24 @@ export function TextField({
       }}
     >
       {prefix != null && <span className="shrink-0 text-[var(--fu-mute,#BDBDBD)]">{prefix}</span>}
+      {loading && <Skeleton className="h-3 w-[45%] max-w-28 rounded-[4px]" />}
       <input
+        key={loading ? "loading" : "ready"}
         ref={input}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label={label}
         disabled={disabled}
         className={cn(
-          "h-full min-w-0 flex-1 bg-transparent text-inherit tabular-nums outline-none",
+          "h-full min-w-0 flex-1 bg-transparent text-ellipsis text-inherit tabular-nums outline-none",
           "placeholder:text-[var(--fu-mute,#BDBDBD)]",
           inputClassName,
+          loading && "sr-only",
+          arriving && ARRIVING,
         )}
         {...props}
       />
-      {filled && (
+      {filled && !loading && (
         <button
           type="button"
           aria-label={clearLabel ?? `Clear ${label.toLowerCase()}`}

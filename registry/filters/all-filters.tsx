@@ -6,6 +6,8 @@ import { formatsFor } from "../lib/format";
 import { SCROLL } from "../lib/scroll";
 import { ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, SearchIcon, XIcon } from "../ui/icons";
+import { SkeletonText, useLoading } from "../ui/skeleton";
+import { StatusFrame, useFocusKept, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
 import { TextSwap } from "../ui/text-swap";
 
@@ -29,7 +31,8 @@ export type FilterEntry = {
 
 export type FilterGroup = { label: string; filters: readonly FilterEntry[] };
 
-export type AllFiltersProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
+export type AllFiltersProps = Omit<HTMLAttributes<HTMLElement>, "title"> &
+  Omit<StateProps, "emptyText"> & {
   groups: readonly FilterGroup[];
   /** Default "Filters". */
   title?: string;
@@ -82,6 +85,9 @@ function Marked({ text, query }: { text: string; query: string }) {
  * Every filter in one panel: a list at the start (left, or right in RTL) in groups, each row with its set values as
  * chips, and the picked filter open beside it. The picked row is tinted; the filter's side rises in from a blur.
  * A find box narrows the list. Below 520px wide the list and the filter take turns: a row drills in, Back returns.
+ * While loading the list keeps its rows with their values as placeholders and the picked filter draws its own; an
+ * error shows its line and Retry in the filter's place, and the list stays; disabled turns the whole panel off but
+ * Show, and leaves every Clear and cross out.
  */
 export function AllFilters({
   groups,
@@ -96,6 +102,10 @@ export function AllFilters({
   findLabel = "Find a filter",
   height = 560,
   locale,
+  status = "ready",
+  onRetry,
+  errorText,
+  disabled = false,
   className,
   ...props
 }: AllFiltersProps) {
@@ -231,13 +241,19 @@ export function AllFilters({
 
   const detailHidden = narrow && view === "list";
   const listHidden = narrow && view === "detail";
+  // The "3 set" chip leaves while disabled: focus that sat on it moves to the panel.
+  useFocusKept(root, `${status}|${disabled}`);
+  // Its own status, or the loading frame of an item around it.
+  const loading = useLoading().loading || status === "loading";
 
   return (
     <section
       ref={root}
       aria-labelledby={`${id}-title`}
+      tabIndex={-1}
       className={cn(
         "not-prose @container relative overflow-hidden rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-panel,#141414)] text-[var(--fu-text,#F8F5F1)]",
+        "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
         className,
       )}
       {...props}
@@ -246,7 +262,7 @@ export function AllFilters({
         <Heading id={`${id}-title`} className="m-0 text-[20px] leading-7 font-semibold">
           {title}
         </Heading>
-        {onClearAll && setCount > 0 && (
+        {onClearAll && setCount > 0 && !disabled && (
           <button
             type="button"
             aria-label={`${formatsFor(locale).number(setCount)} set, clear all`}
@@ -269,141 +285,152 @@ export function AllFilters({
         <span className="sr-only" aria-live="polite" aria-atomic="true">
           {showLabel.replace(/^Show /, "")}
         </span>
-        <ShowButton label={showLabel} onClick={onShow} className="ms-auto" />
+        <ShowButton label={showLabel} onClick={onShow} loading={loading} className="ms-auto" />
       </div>
 
-      <div
-        ref={body}
-        data-view={view}
-        style={{ "--all-filters-h": `${height}px` } as CSSProperties}
-        className={cn(
-          "group/body relative grid grid-cols-1 overflow-hidden",
-          "@min-[520px]:h-[var(--all-filters-h)] @min-[520px]:grid-cols-[minmax(208px,232px)_minmax(0,1fr)] @min-[760px]:grid-cols-[minmax(240px,264px)_minmax(0,1fr)]",
-        )}
+      {/* Loading and disabled hold the whole body; an error sits in the filter's place below, so the list stays. */}
+      <StatusFrame
+        status={loading ? "loading" : "ready"}
+        disabled={disabled}
+        className="rounded-none rounded-b-[23px] focus-visible:-outline-offset-2"
       >
         <div
-          inert={listHidden}
+          ref={body}
+          data-view={view}
+          style={{ "--all-filters-h": `${height}px` } as CSSProperties}
           className={cn(
-            "flex min-h-0 min-w-0 flex-col transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            "@max-[519px]:group-data-[view=detail]/body:pointer-events-none @max-[519px]:group-data-[view=detail]/body:absolute @max-[519px]:group-data-[view=detail]/body:inset-x-0 @max-[519px]:group-data-[view=detail]/body:top-0 @max-[519px]:group-data-[view=detail]/body:translate-x-[calc(var(--flip,1)*-24%)] @max-[519px]:group-data-[view=detail]/body:opacity-0",
-            // Right to left, the list leaves to the right and the filter comes in from the left.
-            "[--flip:1] rtl:[--flip:-1]",
+            "group/body relative grid grid-cols-1 overflow-hidden",
+            "@min-[520px]:h-[var(--all-filters-h)] @min-[520px]:grid-cols-[minmax(208px,232px)_minmax(0,1fr)] @min-[760px]:grid-cols-[minmax(240px,264px)_minmax(0,1fr)]",
           )}
         >
-          <div className="px-3 pt-3 pb-1 @min-[520px]:px-4 @min-[520px]:pt-4 @min-[520px]:pb-2">
-            <TextField
-              id={findId}
-              value={query}
-              onChange={setQuery}
-              label={findLabel}
-              placeholder={findLabel}
-              type="search"
-              autoComplete="off"
-              spellCheck={false}
-              prefix={<SearchIcon size={18} />}
-              clearLabel="Clear the find box"
-              className="h-10"
-              inputClassName="[&::-webkit-search-cancel-button]:appearance-none"
-              onKeyDown={(event) => {
-                if (event.key === "Escape" && query) {
-                  event.stopPropagation();
-                  event.preventDefault();
-                  setQuery("");
-                } else if (event.key === "ArrowDown" && visible[0]) {
-                  event.preventDefault();
-                  rows.current.get(visible[0].id)?.focus();
-                } else if (event.key === "Enter" && q && visible[0]) {
-                  event.preventDefault();
-                  pick(visible[0].id);
-                }
-              }}
-            />
-          </div>
           <div
-            ref={list}
+            inert={listHidden}
             className={cn(
-              "relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 @min-[520px]:px-4 @min-[520px]:pb-8 @min-[520px]:[mask-image:linear-gradient(to_bottom,#000_calc(100%-32px),transparent)]",
-              SCROLL,
+              "flex min-h-0 min-w-0 flex-col transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "@max-[519px]:group-data-[view=detail]/body:pointer-events-none @max-[519px]:group-data-[view=detail]/body:absolute @max-[519px]:group-data-[view=detail]/body:inset-x-0 @max-[519px]:group-data-[view=detail]/body:top-0 @max-[519px]:group-data-[view=detail]/body:translate-x-[calc(var(--flip,1)*-24%)] @max-[519px]:group-data-[view=detail]/body:opacity-0",
+              // Right to left, the list leaves to the right and the filter comes in from the left.
+              "[--flip:1] rtl:[--flip:-1]",
             )}
           >
-            <Highlight list={list} activeId={picked && visible.some((entry) => entry.id === picked) ? `${id}-row-${picked}` : null} />
-            {groups.map((group, index) => {
-              const shown = group.filters.filter((entry) => matchesQuery(entry, q));
-              if (!shown.length) return null;
-              const groupId = `${id}-group-${index}`;
-              return (
-                <div key={group.label} role="group" aria-labelledby={groupId} className="relative">
-                  <div id={groupId} className="px-3 pt-4 pb-1.5 @min-[520px]:pt-5 @min-[520px]:pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
-                    {group.label}
-                  </div>
-                  {shown.map((entry) => (
-                    <Row
-                      key={entry.id}
-                      id={`${id}-row-${entry.id}`}
-                      entry={entry}
-                      query={q}
-                      picked={entry.id === picked}
-                      tabbable={entry.id === (focusRow && visible.some((e) => e.id === focusRow) ? focusRow : tabRow)}
-                      buttonRef={(node) => {
-                        if (node) rows.current.set(entry.id, node);
-                        else rows.current.delete(entry.id);
-                      }}
-                      onPick={() => pick(entry.id)}
-                      onFocus={() => setFocusRow(entry.id)}
-                      onKeyDown={(event) => moveFocus(event, entry.id)}
-                    />
-                  ))}
-                </div>
-              );
-            })}
-            {visible.length === 0 && (
-              <p role="status" className="m-0 px-3 pt-6 pb-4 text-center text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
-                No filter called &ldquo;{query.trim()}&rdquo;.
-                <span className="block text-[var(--fu-dim,#929292)]">Try another word.</span>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div
-          inert={detailHidden}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && !event.defaultPrevented && narrow) {
-              event.preventDefault();
-              goBack();
-            }
-          }}
-          className={cn(
-            "min-h-0 min-w-0 transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            "@min-[520px]:m-3 @min-[520px]:ms-0 @min-[520px]:max-h-[calc(100%-24px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)]",
-            SCROLL,
-            "@max-[519px]:group-data-[view=list]/body:pointer-events-none @max-[519px]:group-data-[view=list]/body:absolute @max-[519px]:group-data-[view=list]/body:inset-x-0 @max-[519px]:group-data-[view=list]/body:top-0 @max-[519px]:group-data-[view=list]/body:translate-x-[calc(var(--flip,1)*104%)] @max-[519px]:group-data-[view=list]/body:opacity-0",
-            "[--flip:1] rtl:[--flip:-1]",
-          )}
-        >
-          <div className="px-3 pt-2 @min-[520px]:hidden">
-            <button
-              ref={back}
-              type="button"
-              onClick={goBack}
+            <div className="px-3 pt-3 pb-1 @min-[520px]:px-4 @min-[520px]:pt-4 @min-[520px]:pb-2">
+              <TextField
+                id={findId}
+                value={query}
+                onChange={setQuery}
+                label={findLabel}
+                placeholder={findLabel}
+                type="search"
+                autoComplete="off"
+                spellCheck={false}
+                prefix={<SearchIcon size={18} />}
+                clearLabel="Clear the find box"
+                className="h-10"
+                inputClassName="[&::-webkit-search-cancel-button]:appearance-none"
+                onKeyDown={(event) => {
+                  if (event.key === "Escape" && query) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    setQuery("");
+                  } else if (event.key === "ArrowDown" && visible[0]) {
+                    event.preventDefault();
+                    rows.current.get(visible[0].id)?.focus();
+                  } else if (event.key === "Enter" && q && visible[0]) {
+                    event.preventDefault();
+                    pick(visible[0].id);
+                  }
+                }}
+              />
+            </div>
+            <div
+              ref={list}
+              // Disabled, its rows take no focus, and Firefox would then stop Tab on the list itself.
+              tabIndex={disabled ? -1 : undefined}
               className={cn(
-                "-ms-1 inline-flex h-11 cursor-pointer items-center gap-1 rounded-[10px] pe-3 ps-1.5 text-[15px] leading-5 font-medium text-[var(--fu-mute,#BDBDBD)] transition-[color,background-color] duration-200 hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))] hover:text-[var(--fu-text,#F8F5F1)]",
-                FOCUS_RING,
+                "relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 @min-[520px]:px-4 @min-[520px]:pb-8 @min-[520px]:[mask-image:linear-gradient(to_bottom,#000_calc(100%-32px),transparent)]",
+                SCROLL,
+                // Disabled, the list holds still where it is: its rows take no input, so it is a picture, not a scroll box.
+                disabled && "overflow-y-hidden",
               )}
             >
-              <ChevronDownIcon size={18} className="rotate-90 rtl:-rotate-90" />
-              All filters
-            </button>
+              <Highlight list={list} activeId={picked && visible.some((entry) => entry.id === picked) ? `${id}-row-${picked}` : null} />
+              {groups.map((group, index) => {
+                const shown = group.filters.filter((entry) => matchesQuery(entry, q));
+                if (!shown.length) return null;
+                const groupId = `${id}-group-${index}`;
+                return (
+                  <div key={group.label} role="group" aria-labelledby={groupId} className="relative">
+                    <div id={groupId} className="px-3 pt-4 pb-1.5 @min-[520px]:pt-5 @min-[520px]:pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
+                      {group.label}
+                    </div>
+                    {shown.map((entry) => (
+                      <Row
+                        key={entry.id}
+                        id={`${id}-row-${entry.id}`}
+                        entry={entry}
+                        query={q}
+                        picked={entry.id === picked}
+                        tabbable={entry.id === (focusRow && visible.some((e) => e.id === focusRow) ? focusRow : tabRow)}
+                        disabled={disabled}
+                        buttonRef={(node) => {
+                          if (node) rows.current.set(entry.id, node);
+                          else rows.current.delete(entry.id);
+                        }}
+                        onPick={() => pick(entry.id)}
+                        onFocus={() => setFocusRow(entry.id)}
+                        onKeyDown={(event) => moveFocus(event, entry.id)}
+                      />
+                    ))}
+                  </div>
+                );
+              })}
+              {visible.length === 0 && (
+                <p role="status" className="m-0 px-3 pt-6 pb-4 text-center text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
+                  No filter called &ldquo;{query.trim()}&rdquo;.
+                  <span className="block text-[var(--fu-dim,#929292)]">Try another word.</span>
+                </p>
+              )}
+            </div>
           </div>
-          <div ref={pane} className="px-5 pt-2 pb-6 @min-[520px]:px-6 @min-[520px]:pt-6 @min-[520px]:pb-8">
-            {current ? (
-              <>
+
+          <div
+            inert={detailHidden}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !event.defaultPrevented && narrow) {
+                event.preventDefault();
+                goBack();
+              }
+            }}
+            className={cn(
+              "min-h-0 min-w-0 transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "@min-[520px]:m-3 @min-[520px]:ms-0 @min-[520px]:max-h-[calc(100%-24px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)]",
+              SCROLL,
+              disabled && "@min-[520px]:overflow-y-hidden",
+              "@max-[519px]:group-data-[view=list]/body:pointer-events-none @max-[519px]:group-data-[view=list]/body:absolute @max-[519px]:group-data-[view=list]/body:inset-x-0 @max-[519px]:group-data-[view=list]/body:top-0 @max-[519px]:group-data-[view=list]/body:translate-x-[calc(var(--flip,1)*104%)] @max-[519px]:group-data-[view=list]/body:opacity-0",
+              "[--flip:1] rtl:[--flip:-1]",
+            )}
+          >
+            <div className="px-3 pt-2 @min-[520px]:hidden">
+              <button
+                ref={back}
+                type="button"
+                onClick={goBack}
+                className={cn(
+                  "-ms-1 inline-flex h-11 cursor-pointer items-center gap-1 rounded-[10px] pe-3 ps-1.5 text-[15px] leading-5 font-medium text-[var(--fu-mute,#BDBDBD)] transition-[color,background-color] duration-200 hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))] hover:text-[var(--fu-text,#F8F5F1)]",
+                  FOCUS_RING,
+                )}
+              >
+                <ChevronDownIcon size={18} className="rotate-90 rtl:-rotate-90" />
+                All filters
+              </button>
+            </div>
+            <div ref={pane} className="px-5 pt-2 pb-6 @min-[520px]:px-6 @min-[520px]:pt-6 @min-[520px]:pb-8">
+              {current && (
                 <div className="flex min-h-7 items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <PaneHeading className="m-0 text-[20px] leading-7 font-semibold">{current.label}</PaneHeading>
                     {current.hint && <p className="m-0 mt-0.5 text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{current.hint}</p>}
                   </div>
-                  {current.onClear && (current.values?.length ?? 0) > 0 && (
+                  {current.onClear && (current.values?.length ?? 0) > 0 && !disabled && (
                     <button
                       type="button"
                       onClick={current.onClear}
@@ -418,20 +445,26 @@ export function AllFilters({
                     </button>
                   )}
                 </div>
-                <div className="mt-5 max-w-[420px] @min-[520px]:mt-6 @min-[760px]:max-w-[560px]">{current.content}</div>
-              </>
-            ) : (
-              <p className="m-0 grid min-h-[240px] place-items-center text-center text-[15px] leading-6 text-[var(--fu-dim,#929292)]">
-                {/* The list's side, in words, follows the direction. */}
-                <span>
-                  Pick a filter on the <span className="rtl:hidden">left</span>
-                  <span className="hidden rtl:inline">right</span>.
-                </span>
-              </p>
-            )}
+              )}
+              <div className={current ? "mt-5 max-w-[420px] @min-[520px]:mt-6 @min-[760px]:max-w-[560px]" : undefined}>
+                <StatusFrame status={status === "error" ? "error" : "ready"} onRetry={onRetry} errorText={errorText}>
+                  {current ? (
+                    current.content
+                  ) : (
+                    <p className="m-0 grid min-h-[240px] place-items-center text-center text-[15px] leading-6 text-[var(--fu-dim,#929292)]">
+                      {/* The list's side, in words, follows the direction. */}
+                      <span>
+                        Pick a filter on the <span className="rtl:hidden">left</span>
+                        <span className="hidden rtl:inline">right</span>.
+                      </span>
+                    </p>
+                  )}
+                </StatusFrame>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </StatusFrame>
     </section>
   );
 }
@@ -451,14 +484,19 @@ type RowProps = {
   query: string;
   picked: boolean;
   tabbable: boolean;
+  /** The chips' crosses are left out, as they cannot run. */
+  disabled: boolean;
   buttonRef: (node: HTMLButtonElement | null) => void;
   onPick: () => void;
   onFocus: () => void;
   onKeyDown: (event: KeyboardEvent<HTMLButtonElement>) => void;
 };
 
-/** A filter in the list: its name and chevron, then its values as chips. The whole row picks it; a chip's cross removes one value. */
-function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, onKeyDown }: RowProps) {
+/**
+ * A filter in the list: its name and chevron, then its values as chips. The whole row picks it; a chip's cross removes
+ * one value. A long name wraps in the row; a long value wraps in its chip.
+ */
+function Row({ id, entry, query, picked, tabbable, disabled, buttonRef, onPick, onFocus, onKeyDown }: RowProps) {
   const values = entry.values ?? [];
   const set = values.length > 0;
   // A row found by another word says which, so "mileage" finding Kilometres makes sense.
@@ -474,7 +512,7 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
         onFocus={onFocus}
         onKeyDown={onKeyDown}
         className={cn(
-          "flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-[10px] px-3 text-start pointer-coarse:min-h-11 font-[inherit] text-[15px] leading-5 outline-none",
+          "flex min-h-10 w-full cursor-pointer items-center gap-2 rounded-[10px] px-3 py-2.5 text-start pointer-coarse:min-h-11 font-[inherit] text-[15px] leading-5 outline-none",
           "after:absolute after:inset-0 after:rounded-[10px] after:content-['']",
           "focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-solid focus-visible:after:outline-[var(--fu-accent-soft,#8FAAFF)]",
           "transition-[background-color] duration-200",
@@ -484,7 +522,7 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
       >
         <span
           className={cn(
-            "min-w-0 flex-1 truncate font-medium transition-[color] duration-200",
+            "min-w-0 flex-1 font-medium [overflow-wrap:anywhere] transition-[color] duration-200",
             picked ? "text-[var(--fu-accent-pale,#D1DDFF)]" : set ? "text-[var(--fu-text,#F8F5F1)]" : "text-[var(--fu-mute,#BDBDBD)]",
           )}
         >
@@ -506,12 +544,22 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
           )}
         />
       </button>
-      <ValueChips values={values} picked={picked} />
+      <ValueChips values={values} picked={picked} disabled={disabled} />
     </div>
   );
 }
 
 type ChipItem = FilterValue & { gone: boolean };
+
+// While a chip grows in or collapses, its inside keeps its width, so a long value that wraps never rewraps on the way.
+const freeze = (node: HTMLElement) => {
+  const inner = node.firstElementChild;
+  if (inner instanceof HTMLElement) inner.style.cssText = `width:${inner.offsetWidth}px;max-width:none;flex-shrink:0`;
+};
+const thaw = (node: HTMLElement) => {
+  const inner = node.firstElementChild;
+  if (inner instanceof HTMLElement) inner.style.cssText = "";
+};
 
 // Leaving chips keep their place among the ones that stay, so the rest close the gap from where they were.
 function mergeChips(prev: readonly ChipItem[], next: readonly FilterValue[]): ChipItem[] {
@@ -531,7 +579,7 @@ function mergeChips(prev: readonly ChipItem[], next: readonly FilterValue[]): Ch
 }
 
 /** The row's values: a new chip grows in from nothing, a removed one collapses through a blur and the rest close up. */
-function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked: boolean }) {
+function ValueChips({ values, picked, disabled }: { values: readonly FilterValue[]; picked: boolean; disabled: boolean }) {
   const extra = values.length - MAX_CHIPS;
   const wanted: FilterValue[] = extra > 0 ? [...values.slice(0, MAX_CHIPS), { key: "\u0000more", label: `+${extra}`, onRemove: () => {} }] : [...values];
   const signature = wanted.map((value) => `${value.key}\u0000${value.label}`).join("\u0001");
@@ -556,6 +604,7 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
       if (!item.gone && node.dataset.leaving) {
         delete node.dataset.leaving;
         node.getAnimations().forEach((animation) => animation.cancel());
+        thaw(node);
       }
       if (item.gone) {
         if (node.dataset.leaving) continue;
@@ -564,22 +613,27 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
           drop(item.key);
           continue;
         }
+        const width = node.offsetWidth;
+        freeze(node);
         const out = node.animate(
           [
-            { width: `${node.offsetWidth}px`, marginInlineEnd: "6px", opacity: 1, filter: "blur(0)" },
+            { width: `${width}px`, marginInlineEnd: "6px", opacity: 1, filter: "blur(0)" },
             { width: "0px", marginInlineEnd: "0px", opacity: 0, filter: "blur(2px)" },
           ],
           { duration: 280, easing: EASE, fill: "forwards" },
         );
         out.onfinish = () => drop(item.key);
       } else if (before && !before.has(item.key) && !quiet) {
-        node.animate(
+        const width = node.offsetWidth;
+        freeze(node);
+        const into = node.animate(
           [
             { width: "0px", marginInlineEnd: "0px", opacity: 0, filter: "blur(2px)" },
-            { width: `${node.offsetWidth}px`, marginInlineEnd: "6px", opacity: 1, filter: "blur(0)" },
+            { width: `${width}px`, marginInlineEnd: "6px", opacity: 1, filter: "blur(0)" },
           ],
           { duration: 320, easing: EASE },
         );
+        into.onfinish = into.oncancel = () => thaw(node);
       }
     }
   }, [items]);
@@ -607,12 +661,12 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
                   else nodes.current.delete(item.key);
                 }}
                 aria-hidden={more || undefined}
-                className="me-1.5 mb-1.5 inline-flex shrink-0 overflow-hidden rounded-[7px]"
+                className="me-1.5 mb-1.5 inline-flex max-w-full shrink-0 overflow-hidden rounded-[7px]"
               >
                 <span
                   className={cn(
-                    "inline-flex h-6 items-center gap-1.5 rounded-[7px] text-[13px] leading-4 whitespace-nowrap tabular-nums transition-[background-color] duration-200",
-                    more ? "px-2" : "pe-0.5 ps-2",
+                    "inline-flex min-h-6 min-w-0 items-center gap-1.5 rounded-[7px] py-0.5 text-[13px] leading-4 tabular-nums transition-[background-color] duration-200",
+                    more || disabled ? "px-2" : "pe-0.5 ps-2",
                     picked
                       ? "bg-[var(--fu-accent-soft,#8FAAFF)]/15 text-[var(--fu-accent-pale,#D1DDFF)]"
                       : "bg-[var(--fu-selected,#1F2747)] text-[var(--fu-accent-pale,#D1DDFF)]",
@@ -621,8 +675,10 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
                   {value.color && (
                     <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_var(--fu-swatch-edge,rgb(255_255_255/0.2))]" style={{ backgroundColor: value.color }} />
                   )}
-                  {value.label}
-                  {!more && (
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                    <SkeletonText>{value.label}</SkeletonText>
+                  </span>
+                  {!more && !disabled && (
                     <button
                       type="button"
                       tabIndex={-1}
@@ -630,7 +686,7 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
                       disabled={item.gone}
                       onClick={() => value.onRemove()}
                       className={cn(
-                        "pointer-events-auto relative grid size-5 cursor-pointer place-items-center rounded-[5px] text-[var(--fu-accent-soft,#8FAAFF)] transition-[background-color,color] duration-150 hover:bg-[var(--fu-accent-soft,#8FAAFF)]/20 hover:text-[var(--fu-accent-pale,#D1DDFF)]",
+                        "pointer-events-auto relative grid size-5 shrink-0 cursor-pointer place-items-center rounded-[5px] text-[var(--fu-accent-soft,#8FAAFF)] transition-[background-color,color] duration-150 hover:bg-[var(--fu-accent-soft,#8FAAFF)]/20 hover:text-[var(--fu-accent-pale,#D1DDFF)]",
                         "pointer-coarse:after:absolute pointer-coarse:after:-inset-3 pointer-coarse:after:content-['']",
                       )}
                     >

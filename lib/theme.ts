@@ -82,6 +82,9 @@ export const TOKENS = {
   "--fu-share": { dark: "rgb(255 255 255/0.05)", light: "rgb(29 27 24/0.04)" },
   "--fu-share-hover": { dark: "rgb(255 255 255/0.1)", light: "rgb(29 27 24/0.07)" },
   "--fu-well": { dark: "rgb(0 0 0/0.22)", light: "rgb(29 27 24/0.05)" },
+  // A loading placeholder the size of the real content: counts, bars, names, fields. It pulses between this and half of it.
+  "--fu-skeleton": { dark: "rgb(255 255 255/0.12)", light: "rgb(29 27 24/0.09)" },
+  "--fu-skeleton-on": { dark: "rgb(143 170 255/0.3)", light: "rgb(48 73 210/0.18)" },
 
   // Range handles
   "--fu-handle": { dark: "#F8F5F1", light: "#FFFFFF" },

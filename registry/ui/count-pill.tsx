@@ -1,6 +1,9 @@
+"use client";
+
 import type { HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
+import { ARRIVING, SKELETON_FILL, useLoading } from "./skeleton";
 
 export type CountPillProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
   count: number;
@@ -11,9 +14,14 @@ export type CountPillProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> &
   format?: (n: number) => string;
   /** Formats the count when no format is given, e.g. "de-DE" prints 1.234. */
   locale?: string;
+  /** A pulsing placeholder of the pill's own size. Default: the nearest StatusFrame's loading state. */
+  loading?: boolean;
 };
 
-export function CountPill({ count, variant = "default", on = false, format, locale, className, ...props }: CountPillProps) {
+export function CountPill({ count, variant = "default", on = false, format, locale, loading: loadingProp, className, ...props }: CountPillProps) {
+  const state = useLoading();
+  const loading = loadingProp ?? state.loading;
+  const text = (format ?? formatsFor(locale).number)(count);
   return (
     <span
       data-state={on ? "on" : "off"}
@@ -23,16 +31,29 @@ export function CountPill({ count, variant = "default", on = false, format, loca
         variant === "square"
           ? "h-[18px] min-w-5 rounded-[5px] px-[5px] text-[11px] leading-4"
           : "h-5 min-w-[22px] rounded-[6px] px-1.5 text-[12px] leading-4",
-        on
-          ? "bg-[var(--fu-accent,#3B57E6)] text-[var(--fu-on-accent,#FFFFFF)]"
-          : variant === "square"
-            ? "bg-[var(--fu-pill-square,#333333)] text-[var(--fu-pill-text,#C8C8C8)]"
-            : "bg-[var(--fu-pill,rgb(255_255_255/0.1))] text-[var(--fu-pill-text,#C8C8C8)]",
+        loading
+          ? SKELETON_FILL
+          : on
+            ? "bg-[var(--fu-accent,#3B57E6)] text-[var(--fu-on-accent,#FFFFFF)]"
+            : variant === "square"
+              ? "bg-[var(--fu-pill-square,#333333)] text-[var(--fu-pill-text,#C8C8C8)]"
+              : "bg-[var(--fu-pill,rgb(255_255_255/0.1))] text-[var(--fu-pill-text,#C8C8C8)]",
         className,
       )}
       {...props}
     >
-      {(format ?? formatsFor(locale).number)(count)}
+      {/* While loading, the number holds the pill's width unseen; when it arrives it fades in once. */}
+      {loading ? (
+        <span key="skeleton" className="invisible">
+          {text}
+        </span>
+      ) : state.arriving ? (
+        <span key="arrived" className={ARRIVING}>
+          {text}
+        </span>
+      ) : (
+        text
+      )}
     </span>
   );
 }

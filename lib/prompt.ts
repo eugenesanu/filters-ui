@@ -1,5 +1,5 @@
 // Server only: reads the registry sources through registry-files.
-import { FILTER_CARD_PROPS, type PropRow, type RegistryItem } from "../registry/items.ts";
+import { FILTER_CARD_PROPS, type ItemState, type PropRow, type RegistryItem } from "../registry/items.ts";
 import { cssVariablesOf, getExampleSource, getItemFiles, INSTALL_ALIAS, INSTALL_DIR } from "./registry-files.ts";
 import { itemUrl, registryJsonUrl } from "./site.ts";
 import { TOKENS, type TokenName } from "./theme.ts";
@@ -58,6 +58,57 @@ function propLines(rows: readonly PropRow[]) {
     const tail = row.required ? "required" : row.default ? `default ${row.default}` : "optional";
     return `- ${row.name}: ${row.type} (${tail}). ${row.meaning}`;
   });
+}
+
+/**
+ * The prompt's States part, written once: each state's name, what turns it on, and what it shows. An item's own
+ * stateNotes (registry/items.ts) add to the words for loading, error and disabled, which hold for most items, and
+ * replace them for the data states, which look different on each. A { replaces } note for loading, error or disabled
+ * takes the place of `shows` (the look and what takes input) and keeps `said` (what screen readers hear), so an item
+ * that keeps part of itself working never gets two opposite sentences.
+ */
+const STATE_WORDS: Record<Exclude<ItemState, "ready">, { name: string; how: string; shows: string; said?: string }> = {
+  loading: {
+    name: "Loading",
+    how: 'status="loading"',
+    shows: "placeholders the size of the real content pulse softly where the data goes, so nothing moves when it arrives. It takes no input.",
+    said: 'It is aria-busy and says "Loading" once; when status turns back to "ready" the data fades in once. No spinner.',
+  },
+  error: {
+    name: "Error",
+    how: 'status="error", with onRetry and errorText',
+    shows: "one calm line and a Retry button that calls onRetry, in the filter's own place.",
+    said: "The line is read out politely, Retry is never shown disabled, and focus stays inside the component.",
+  },
+  empty: { name: "Empty", how: "no options given, with emptyText", shows: "a quiet line in place of the options." },
+  "zero-results": {
+    name: "Zero results",
+    how: "every count is 0",
+    shows: "every option stays where it is, dimmed, and cannot be turned on; one that is on can still be turned off.",
+  },
+  disabled: { name: "Disabled", how: "disabled", shows: "dimmed, no pointer or keyboard input, and read as unavailable." },
+  "long-labels": { name: "Long labels", how: "data, not a prop", shows: "a name longer than its space wraps; counts never move and are never pushed out." },
+  "many-options": { name: "Many options", how: "data, not a prop", shows: "the list stays short and opens the rest on request." },
+};
+
+const ADDS_TO = new Set<ItemState>(["loading", "error", "disabled"]);
+
+function stateLines(item: RegistryItem, card: boolean) {
+  const lines = item.states.flatMap((state) => {
+    if (state === "ready") return [];
+    const words = STATE_WORDS[state];
+    const note = item.stateNotes?.[state];
+    const own = typeof note === "string" ? note : note?.replaces;
+    const shows = !ADDS_TO.has(state) ? (own ?? words.shows) : typeof note === "object" ? own : [words.shows, note].filter(Boolean).join(" ");
+    return [`- ${words.name} (${words.how}): ${[shows, words.said].filter(Boolean).join(" ")}`];
+  });
+  const fetches = item.states.includes("loading");
+  return [
+    `Keep each of these states as it is.${fetches ? ' Set status from my data fetch: "loading" while it runs, "error" when it fails, with onRetry running it again.' : ""}`,
+    "",
+    ...lines,
+    ...(card && item.states.includes("disabled") ? ["", "While it is disabled, leave FilterCard's onClear out, so the card offers no Clear."] : []),
+  ];
 }
 
 /** Plain text to paste into an AI coding tool. Full works with no web access; short points at the page. */
@@ -120,6 +171,8 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
       ...propLines(FILTER_CARD_PROPS),
     );
   }
+
+  if (item.states.length > 1) add("", "## States", "", ...stateLines(item, hasCard && item.kind === "filter" && item.card !== false));
 
   add(
     "",

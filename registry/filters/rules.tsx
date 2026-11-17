@@ -6,6 +6,8 @@ import { formatsFor, resultsLabel } from "../lib/format";
 import { Button, IconButton } from "../ui/button";
 import { DropdownMenu } from "../ui/dropdown-menu";
 import { ListTreeIcon, PlusIcon, XIcon } from "../ui/icons";
+import { ARRIVING, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextSwap } from "../ui/text-swap";
 
 export type Join = "and" | "or";
@@ -37,7 +39,7 @@ export type RuleField<Item> =
   | { key: string; label: string; kind: "step"; get: (item: Item) => number | null; steps: readonly number[]; format?: (value: number) => string }
   | { key: string; label: string; kind: "list"; get: (item: Item) => string | null; options: readonly string[] };
 
-export type RulesProps<Item> = {
+export type RulesProps<Item> = Omit<StateProps, "emptyText"> & {
   fields: readonly RuleField<Item>[];
   /** Every item, for the counts. */
   items: readonly Item[];
@@ -185,6 +187,8 @@ function NumberPill({
   const [draft, setDraft] = useState(shown);
   const [editing, setEditing] = useState(false);
   if (!editing && draft !== shown) setDraft(shown);
+  // Loading, the field keeps its size and a bar the width of its words stands in for them; they fade in once.
+  const { loading, arriving } = useLoading();
   return (
     // The prefix and the number read as one left-to-right unit ("$45,000"), as formatted prices do in right to left.
     <label dir="ltr" className={PILL}>
@@ -193,7 +197,14 @@ function NumberPill({
           {prefix}
         </span>
       )}
+      <span className="relative inline-flex min-w-0">
+      {loading && (
+        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 inset-s-0 flex items-center font-medium tabular-nums">
+          <SkeletonText loading>{draft || placeholder}</SkeletonText>
+        </span>
+      )}
       <input
+        key={loading ? "loading" : "ready"}
         value={draft}
         aria-label={label}
         placeholder={placeholder}
@@ -221,8 +232,13 @@ function NumberPill({
             setDraft(shown);
           }
         }}
-        className="min-w-0 bg-transparent font-[inherit] font-medium text-[var(--fu-text,#F8F5F1)] tabular-nums outline-none placeholder:font-normal placeholder:text-[var(--fu-mute,#BDBDBD)]"
+        className={cn(
+          "min-w-0 bg-transparent font-[inherit] font-medium text-[var(--fu-text,#F8F5F1)] tabular-nums outline-none placeholder:font-normal placeholder:text-[var(--fu-mute,#BDBDBD)]",
+          loading && "invisible",
+          arriving && ARRIVING,
+        )}
       />
+      </span>
     </label>
   );
 }
@@ -243,6 +259,8 @@ function NamesPills({
   label: string;
   format: (n: number) => string;
 }) {
+  // Loading, each chip is a pulsing pill of its own size.
+  const { loading } = useLoading();
   return (
     <>
       {value.map((name) => (
@@ -252,7 +270,8 @@ function NamesPills({
           aria-label={`Remove ${name}`}
           onClick={() => onValue(value.filter((v) => v !== name))}
           className={cn(
-            "relative flex h-[26px] max-w-full cursor-pointer items-center gap-1 rounded-full border border-[var(--fu-selected,#1F2747)] bg-[var(--fu-selected,#1F2747)] pe-[7px] ps-[10px]",
+            "relative flex h-[26px] max-w-full cursor-pointer items-center gap-1 rounded-full border pe-[7px] ps-[10px]",
+            loading ? cn(SKELETON_FILL, "border-transparent") : "border-[var(--fu-selected,#1F2747)] bg-[var(--fu-selected,#1F2747)]",
             "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-accent-pale,#D1DDFF)]",
             "transition-[background-color,color,border-color,opacity,filter,scale] duration-300 motion-reduce:transition-none",
             SMOOTH,
@@ -262,8 +281,8 @@ function NamesPills({
             "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[9px] pointer-coarse:after:content-['']",
           )}
         >
-          <span className="truncate">{name}</span>
-          <XIcon size={14} className="shrink-0 text-[var(--fu-accent-soft,#8FAAFF)]" />
+          <span className={cn("truncate", loading && "invisible")}>{name}</span>
+          <XIcon size={14} className={cn("shrink-0 text-[var(--fu-accent-soft,#8FAAFF)]", loading && "invisible")} />
         </button>
       ))}
       <DropdownMenu
@@ -320,10 +339,11 @@ function Rail({ at, of, join, onToggle, nested = false }: { at: number; of: numb
             "pointer-coarse:after:absolute pointer-coarse:after:-inset-x-1 pointer-coarse:after:-inset-y-[11px] pointer-coarse:after:content-['']",
           )}
         >
-          {/* A switched word rises in, one stop after another down the rail. */}
+          {/* A switched word rises in, one stop after another down the rail; from the fourth on they come together, so a
+              long rail settles as soon as a short one. */}
           <span
             key={join}
-            style={{ transitionDelay: `${(at - 1) * 70}ms` }}
+            style={{ transitionDelay: `${Math.min(at - 1, 3) * 70}ms` }}
             className={cn("block transition-[opacity,filter,translate] duration-300 motion-reduce:transition-none starting:translate-y-1 starting:opacity-0 starting:blur-[2px]", SMOOTH)}
           >
             {word}
@@ -336,16 +356,21 @@ function Rail({ at, of, join, onToggle, nested = false }: { at: number; of: numb
 
 /** Items left once a row applies, as a count pill: "196 left". */
 function Left({ count, word, format, className }: { count: number; word: string; format: (n: number) => string; className?: string }) {
+  // Loading, the pill pulses at its own size with its words unseen; they fade in once when the count arrives.
+  const { loading, arriving } = useLoading();
   return (
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex h-5 shrink-0 items-center gap-1 justify-self-end rounded-[6px] bg-[var(--fu-pill,rgb(255_255_255/0.1))] px-1.5 text-[12px] leading-4 font-medium text-[var(--fu-pill-text,#C8C8C8)] tabular-nums",
+        "inline-flex h-5 shrink-0 items-center justify-self-end rounded-[6px] px-1.5 text-[12px] leading-4 font-medium text-[var(--fu-pill-text,#C8C8C8)] tabular-nums",
+        loading ? SKELETON_FILL : "bg-[var(--fu-pill,rgb(255_255_255/0.1))]",
         className,
       )}
     >
-      <TextSwap className="text-[var(--fu-text,#F8F5F1)]">{format(count)}</TextSwap>
-      {word}
+      <span key={loading ? "loading" : "ready"} className={cn("inline-flex items-center gap-1", loading && "invisible", arriving && ARRIVING)}>
+        <TextSwap className="text-[var(--fu-text,#F8F5F1)]">{format(count)}</TextSwap>
+        {word}
+      </span>
     </span>
   );
 }
@@ -355,7 +380,7 @@ function Left({ count, word, format, className }: { count: number; word: string;
 // with the cross.
 const ROW = cn(
   "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5",
-  "@min-[440px]/well:grid-cols-[auto_minmax(0,1fr)_auto_auto] @min-[440px]/well:[grid-template-areas:'head_value_left_x']",
+  "@min-[440px]/well:grid-cols-[auto_minmax(min-content,1fr)_auto_auto] @min-[440px]/well:[grid-template-areas:'head_value_left_x']",
 );
 const ROW_AREAS = "[grid-template-areas:'head_left'_'value_x']";
 const NESTED_AREAS = "[grid-template-areas:'head_head'_'value_x']";
@@ -375,6 +400,10 @@ export function Rules<Item>({
   leftLabel = "left",
   formatCount: formatCountProp,
   locale,
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the counts.",
+  disabled = false,
   className,
 }: RulesProps<Item>) {
   const numbers = formatsFor(locale);
@@ -553,7 +582,9 @@ export function Rules<Item>({
   };
 
   return (
-    <div ref={box} role="group" aria-label={label} className={cn("@container/rules w-full", className)}>
+    <div ref={box} role="group" aria-label={label} aria-disabled={disabled || undefined} className={cn("@container/rules w-full", className)}>
+      {/* An error stands where the rows were, lined up with the rows' fields. */}
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled} className={cn(status === "error" && "ps-11")}>
       <ol className="flex flex-col gap-2.5">
         {value.items.map((item, i) => {
           const rail = <Rail at={i} of={value.items.length} join={value.join} onToggle={() => onChange({ ...value, join: value.join === "and" ? "or" : "and" })} />;
@@ -604,50 +635,56 @@ export function Rules<Item>({
                     </li>
                   ))}
                 </ol>
-                <Button
-                  variant="quiet-accent"
-                  size="sm"
-                  before={<PlusIcon />}
-                  onClick={() => {
-                    const rule = newRule(fields, used);
-                    add(rule, value.items.map((other) => (other.id === item.id && isGroup(other) ? { ...other, rules: [...other.rules, rule] } : other)));
-                  }}
-                  className="mt-1.5 ms-7"
-                >
-                  Add condition
-                </Button>
+                {/* Adding cannot run while disabled, so the add buttons are left out; focus on one moves to the frame. */}
+                {!disabled && (
+                  <Button
+                    variant="quiet-accent"
+                    size="sm"
+                    before={<PlusIcon />}
+                    onClick={() => {
+                      const rule = newRule(fields, used);
+                      add(rule, value.items.map((other) => (other.id === item.id && isGroup(other) ? { ...other, rules: [...other.rules, rule] } : other)));
+                    }}
+                    className="mt-1.5 ms-7"
+                  >
+                    Add condition
+                  </Button>
+                )}
               </div>
             </li>
           );
         })}
       </ol>
-      <div className="mt-3 flex flex-wrap items-center gap-1 ps-11">
-        <Button
-          data-add=""
-          variant="secondary"
-          size="sm"
-          before={<PlusIcon />}
-          onClick={() => {
-            const rule = newRule(fields, used);
-            add(rule, [...value.items, rule]);
-          }}
-        >
-          Add rule
-        </Button>
-        <Button
-          variant="quiet"
-          size="sm"
-          before={<ListTreeIcon className="rtl:-scale-x-100" />}
-          onClick={() => {
-            const rule = newRule(fields, used);
-            add(rule, [...value.items, { id: newId(), join: value.join === "and" ? "or" : "and", rules: [rule] }]);
-          }}
-        >
-          Add group
-        </Button>
-      </div>
+      {!disabled && (
+        <div className="mt-3 flex flex-wrap items-center gap-1 ps-11">
+          <Button
+            data-add=""
+            variant="secondary"
+            size="sm"
+            before={<PlusIcon />}
+            onClick={() => {
+              const rule = newRule(fields, used);
+              add(rule, [...value.items, rule]);
+            }}
+          >
+            Add rule
+          </Button>
+          <Button
+            variant="quiet"
+            size="sm"
+            before={<ListTreeIcon className="rtl:-scale-x-100" />}
+            onClick={() => {
+              const rule = newRule(fields, used);
+              add(rule, [...value.items, { id: newId(), join: value.join === "and" ? "or" : "and", rules: [rule] }]);
+            }}
+          >
+            Add group
+          </Button>
+        </div>
+      )}
+      </StatusFrame>
       <p aria-live="polite" className="sr-only">
-        {countLabel(total)}
+        {status === "ready" ? countLabel(total) : ""}
       </p>
     </div>
   );

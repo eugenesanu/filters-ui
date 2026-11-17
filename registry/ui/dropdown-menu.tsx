@@ -4,6 +4,7 @@ import { Fragment, useId, useLayoutEffect, useRef, useState, type KeyboardEvent,
 import { cn } from "../lib/cn";
 import { CheckIcon, ChevronDownIcon } from "./icons";
 import { typesCharacter, keepRowInView, LIST_PANEL, ListCheck, PopoverPanel, RowHighlight, useTypeAhead, type PopoverCloseReason } from "./popover";
+import { ARRIVING, SkeletonText, useLoading } from "./skeleton";
 import { TextSwap } from "./text-swap";
 
 export type MenuOption<V extends string = string> = {
@@ -33,6 +34,8 @@ type SharedProps<V extends string> = {
   align?: "start" | "end";
   /** Text on the trigger instead of the chosen labels. */
   valueLabel?: string;
+  /** The quiet line in the open menu when there are no options and no actions. Default "No choices". */
+  emptyText?: string;
   disabled?: boolean;
   /** Draws the menu open in place, for a still picture. Nothing responds. */
   still?: boolean;
@@ -66,14 +69,19 @@ const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
  * box keeps it open.
  */
 export function DropdownMenu<V extends string = string>(props: DropdownMenuProps<V>) {
-  const { label, prefix, options, actions = [], variant = "filled", align = "start", valueLabel, disabled = false, still = false, className } = props;
+  const { label, prefix, options, actions = [], variant = "filled", align = "start", valueLabel, emptyText = "No choices", disabled = false, still = false, className } = props;
+  // Inside a loading StatusFrame the trigger keeps its box and a bar stands in for the chosen labels.
+  const { loading, arriving } = useLoading();
   const id = useId();
   const menuId = `${id}-menu`;
   const itemId = (index: number) => `${id}-item-${index}`;
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const items = useRef<(HTMLDivElement | null)[]>([]);
+  const nothing = useRef<HTMLDivElement>(null);
   const [isOpen, setOpen] = useState(false);
+  // A menu open when its data starts loading closes: its choices are on their way.
+  if (isOpen && loading) setOpen(false);
   const open = still || isOpen;
   const [active, setActive] = useState<number | null>(null);
   const [pressed, setPressed] = useState(false);
@@ -124,7 +132,8 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
     if (!isOpen) return;
     const checked = usable.find((index) => isChecked(entries[index]));
     const target = opening.current === "menu" ? undefined : opening.current === "last" ? usable.at(-1) : (checked ?? usable[0]);
-    if (target === undefined) panel.current?.focus({ preventScroll: true });
+    // With nothing to choose, focus lands on the line that says so.
+    if (target === undefined) (nothing.current ?? panel.current)?.focus({ preventScroll: true });
     else focusAt(target);
     // Runs once per open; the entries are read as they are then.
   }, [isOpen]);
@@ -303,7 +312,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
   const sections = [...groups.map((group, at) => ({ label: group.label, at })), ...(actions.length ? [{ label: undefined, at: groups.length }] : [])];
 
   return (
-    <div className={cn("relative inline-flex max-w-full", disabled && "pointer-events-none opacity-40", className)}>
+    <div className={cn("relative inline-flex max-w-full", disabled && "pointer-events-none opacity-50", className)}>
       <button
         ref={trigger}
         type="button"
@@ -344,7 +353,15 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         )}
       >
         {prefix ? <span className="shrink-0 text-[var(--fu-mute,#BDBDBD)]">{prefix}</span> : <span className="sr-only">{label}: </span>}
-        <TextSwap data-swap="" className="min-w-0 grid-cols-[minmax(0,1fr)] font-medium text-[var(--fu-text,#F8F5F1)] [&>span]:truncate">{shown}</TextSwap>
+        {loading && valueLabel === undefined ? (
+          <span className="min-w-0 truncate font-medium">
+            <SkeletonText>{shown}</SkeletonText>
+          </span>
+        ) : (
+          <TextSwap data-swap="" className={cn("min-w-0 grid-cols-[minmax(0,1fr)] font-medium text-[var(--fu-text,#F8F5F1)] [&>span]:truncate", arriving && ARRIVING)}>
+            {shown}
+          </TextSwap>
+        )}
         <ChevronDownIcon
           size={16}
           className={cn("ms-0.5 shrink-0 text-[var(--fu-mute,#BDBDBD)] transition-[rotate,color] duration-[480ms] motion-reduce:transition-none", SMOOTH, open && "rotate-180 text-[var(--fu-accent-soft,#8FAAFF)]")}
@@ -374,6 +391,18 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
         className={cn(LIST_PANEL, "min-w-[220px] outline-none")}
       >
         <RowHighlight activeId={open && current !== null ? itemId(current) : null} open={open} pressed={pressed} />
+        {entries.length === 0 && (
+          // An item that cannot be picked, so the menu still holds one and a screen reader says why it is empty.
+          <div
+            ref={nothing}
+            role="menuitem"
+            aria-disabled="true"
+            tabIndex={-1}
+            className="flex min-h-10 items-center rounded-[9px] px-2.5 text-[14px] leading-5 text-[var(--fu-dim,#929292)] outline-none focus-visible:bg-[var(--fu-row-active,rgb(255_255_255/0.07))]"
+          >
+            {emptyText}
+          </div>
+        )}
         {sections.map(({ label: title, at }, n) => {
           const titleId = `${id}-group-${at}`;
           const own = rows.filter((_, index) => entries[index].group === at);

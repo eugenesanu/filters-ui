@@ -5,8 +5,10 @@ import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
 import { RangeChart, type RangeValue } from "../ui/range-chart";
 import { Select } from "../ui/select";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 
-export type RangeSelectProps<V extends number> = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type RangeSelectProps<V extends number> = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  Omit<StateProps, "emptyText"> & {
   /** The values to pick from, in ascending order, e.g. model years. One bar each. */
   options: readonly V[];
   /** [from, to], both inclusive. null is an open end. */
@@ -30,7 +32,6 @@ export type RangeSelectProps<V extends number> = Omit<HTMLAttributes<HTMLDivElem
   barScale?: number;
   /** Formats values and counts by default, e.g. "ar-EG". Default "en-US". */
   locale?: string;
-  disabled?: boolean;
 };
 
 const ANY = "";
@@ -53,7 +54,10 @@ export function RangeSelect<V extends number>({
   countLabel,
   barScale,
   locale,
-  disabled,
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the counts.",
+  disabled = false,
   className,
   ...props
 }: RangeSelectProps<V>) {
@@ -97,50 +101,50 @@ export function RangeSelect<V extends number>({
   ];
   const read = (text: string) => (text === ANY ? null : (options.find((option) => String(option) === text) ?? null));
 
+  // The frame dims and blocks everything while disabled, so the chart and pickers are not dimmed a second time.
   return (
     <div className={cn("pt-1", className)} {...props}>
-      <RangeChart
-        min={0}
-        max={n}
-        step={1}
-        value={edges}
-        onChange={fromEdges}
-        buckets={buckets}
-        format={(edge, handle) => format(options[Math.max(0, Math.min(n - 1, handle === "low" ? edge : edge - 1))])}
-        openLabel={format(options[n - 1])}
-        labels={{ low: lowLabel, high: highLabel }}
-        barScale={barScale}
-        locale={locale}
-        disabled={disabled}
-      />
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Select
-          label={lowLabel}
-          prefix={lowPrefix}
-          options={choicesFor("low")}
-          countLabel={countLabel}
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled}>
+        <RangeChart
+          min={0}
+          max={n}
+          step={1}
+          value={edges}
+          onChange={fromEdges}
+          buckets={buckets}
+          format={(edge, handle) => format(options[Math.max(0, Math.min(n - 1, handle === "low" ? edge : edge - 1))])}
+          openLabel={format(options[n - 1])}
+          labels={{ low: lowLabel, high: highLabel }}
+          barScale={barScale}
           locale={locale}
-          value={value[0] === null ? ANY : String(value[0])}
-          disabled={disabled}
-          onChange={(text) => {
-            const low = read(text);
-            emit([low, low !== null && value[1] !== null && value[1] < low ? low : value[1]]);
-          }}
         />
-        <Select
-          label={highLabel}
-          prefix={highPrefix}
-          options={choicesFor("high")}
-          countLabel={countLabel}
-          locale={locale}
-          value={value[1] === null ? ANY : String(value[1])}
-          disabled={disabled}
-          onChange={(text) => {
-            const high = read(text);
-            emit([high !== null && value[0] !== null && value[0] > high ? high : value[0], high]);
-          }}
-        />
-      </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <Select
+            label={lowLabel}
+            prefix={lowPrefix}
+            options={choicesFor("low")}
+            countLabel={countLabel}
+            locale={locale}
+            value={value[0] === null ? ANY : String(value[0])}
+            onChange={(text) => {
+              const low = read(text);
+              emit([low, low !== null && value[1] !== null && value[1] < low ? low : value[1]]);
+            }}
+          />
+          <Select
+            label={highLabel}
+            prefix={highPrefix}
+            options={choicesFor("high")}
+            countLabel={countLabel}
+            locale={locale}
+            value={value[1] === null ? ANY : String(value[1])}
+            onChange={(text) => {
+              const high = read(text);
+              emit([high !== null && value[0] !== null && value[0] > high ? high : value[0], high]);
+            }}
+          />
+        </div>
+      </StatusFrame>
     </div>
   );
 }

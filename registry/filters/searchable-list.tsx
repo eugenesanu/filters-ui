@@ -6,6 +6,8 @@ import { formatsFor, resultsLabel } from "../lib/format";
 import { SCROLL } from "../lib/scroll";
 import { CountPill } from "../ui/count-pill";
 import { CheckIcon, SearchIcon } from "../ui/icons";
+import { placeholderLabels, SkeletonText, useLoading } from "../ui/skeleton";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
 
 export type SearchableListChild = {
@@ -25,7 +27,8 @@ export type SearchableListPick = {
   children: string[];
 };
 
-export type SearchableListProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type SearchableListProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  StateProps & {
   /** In display order: the first `collapsedCount` make the short list, the rest show after "All N". */
   options: readonly SearchableListOption[];
   value: readonly SearchableListPick[];
@@ -143,23 +146,25 @@ type RowProps = {
   onBlur: () => void;
 };
 
-// The whole row is the checkbox's label. The native box is hidden and drawn again: 18px, 5px radius, the tile's selected fill with an accent check that draws in.
+// The whole row is the checkbox's label. A long name wraps onto more lines; the box and the count stay in the row. The native box is hidden and drawn again: 18px, 5px radius, the tile's selected fill with an accent check that draws in.
 // The panel look draws it 20px with 6px corners, filled with the accent and an --fu-on-accent check once ticked.
 function Row({ label, query, count, checked, disabled, nested, panel, formatCount, countLabel, onToggle, onBlur }: RowProps) {
+  const { loading } = useLoading();
   return (
     <label
       data-state={checked ? "on" : "off"}
       className={cn(
-        "group/row relative flex h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] pe-3 text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]",
+        "group/row relative flex min-h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-[12px] py-2 pe-3 text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]",
         nested ? "ps-[40px]" : "ps-3",
-        panel && "rounded-[10px] pe-2 text-[17px] font-semibold pointer-coarse:h-11",
+        // 17px names on a 24px line, 6px above and below: 36px, as the card look's 20px line with 8px.
+        panel && "rounded-[10px] py-1.5 pe-2 text-[17px] leading-6 font-semibold pointer-coarse:min-h-11",
         panel && (nested ? "ps-[38px]" : "ps-2"),
         "transition-[background-color,opacity] duration-200 motion-reduce:transition-none",
         "[@media(hover:hover)]:has-[input:enabled]:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",
         // Drawn inside the row, so neither the scroll area nor the card can clip it.
         "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:-outline-offset-2 has-[input:focus-visible]:outline-solid has-[input:focus-visible]:outline-[var(--fu-accent-soft,#8FAAFF)]",
         "has-[input:disabled]:cursor-default",
-        count === 0 && !checked && "opacity-40",
+        count === 0 && !checked && !loading && "opacity-40",
       )}
     >
       <input
@@ -193,12 +198,14 @@ function Row({ label, query, count, checked, disabled, nested, panel, formatCoun
           )}
         />
       </span>
-      <span aria-hidden="true" className="min-w-0 flex-1 truncate">
-        <Marked text={label} query={query} panel={panel} />
+      <span aria-hidden="true" className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+        <SkeletonText>
+          <Marked text={label} query={query} panel={panel} />
+        </SkeletonText>
       </span>
       {panel ? (
         <span aria-hidden="true" className="shrink-0 font-normal tabular-nums text-[var(--fu-mute,#BDBDBD)]">
-          {formatCount(count)}
+          <SkeletonText>{formatCount(count)}</SkeletonText>
         </span>
       ) : (
         <CountPill aria-hidden="true" variant="square" on={checked} count={count} format={formatCount} />
@@ -224,6 +231,11 @@ export function SearchableList({
   countLabel: countLabelProp,
   locale,
   variant = "card",
+  status = "ready",
+  onRetry,
+  errorText = `Couldn't load the ${noun}.`,
+  emptyText = `No ${noun} to show.`,
+  disabled = false,
   className,
   ...props
 }: SearchableListProps) {
@@ -285,7 +297,12 @@ export function SearchableList({
     };
   }, []);
 
-  const typed = query.trim().toLowerCase();
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
+  // While the options are on their way, a short list of stand-ins keeps the place they will take.
+  const listed: readonly SearchableListOption[] =
+    loading && options.length === 0 ? placeholderLabels(collapsedCount).map((name) => ({ value: name, label: name, count: 0 })) : options;
+  const typed = loading ? "" : query.trim().toLowerCase();
 
   const parentRow = (option: SearchableListOption, q: string) => {
     const checked = Boolean(pickOf(option.value));
@@ -357,7 +374,7 @@ export function SearchableList({
       );
     });
   } else {
-    rows = options.map((option, i) => {
+    rows = listed.map((option, i) => {
       const item = (
         <>
           {parentRow(option, "")}
@@ -373,118 +390,128 @@ export function SearchableList({
   }
 
   const near = typed && found === 0 ? nearestName(typed, options) : null;
-  const more = options.length > collapsedCount;
+  const more = listed.length > collapsedCount;
 
   return (
     <div className={cn("min-w-0", className)} {...props}>
-      <div ref={field}>
-        <TextField
-          type="search"
-          value={query}
-          onChange={setQuery}
-          label={`Search ${noun}`}
-          placeholder={`Search ${noun}`}
-          prefix={<SearchIcon size={panel ? 20 : 16} className="block" />}
-          clearLabel="Clear search"
-          autoComplete="off"
-          spellCheck={false}
-          className={panel ? "h-12 gap-3 bg-[var(--fu-field-wash,rgb(255_255_255/0.03))] px-3.5 text-[17px]" : undefined}
-          inputClassName="[&::-webkit-search-cancel-button]:appearance-none"
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && query) {
-              event.stopPropagation();
-              event.preventDefault();
-              setQuery("");
-            }
-          }}
-        />
-      </div>
-
-      {/* In the panel look the list reaches 8px past the field on each side, so boxes and counts line up with its edges.
-          The panel scrolls the whole list itself, so there the list neither scrolls in its own box nor holds its height while typing. */}
-      <div className={cn("relative mt-2", panel && "-mx-2")}>
-        <div
-          ref={scroller}
-          id={listId}
-          className={cn(
-            all && !panel && ["max-h-80 scroll-py-7 overflow-y-auto overscroll-contain", SCROLL],
-          )}
-          style={typed && !panel ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
-        >
-          <ul ref={content} aria-label={label} className="m-0 list-none p-0">
-            {rows}
-          </ul>
+      <StatusFrame
+        status={status}
+        onRetry={onRetry}
+        errorText={errorText}
+        empty={options.length === 0}
+        emptyText={emptyText}
+        disabled={disabled}
+        className={cn(panel && "rounded-[14px]")}
+      >
+        <div ref={field}>
+          <TextField
+            type="search"
+            value={query}
+            onChange={setQuery}
+            label={`Search ${noun}`}
+            placeholder={`Search ${noun}`}
+            prefix={<SearchIcon size={panel ? 20 : 16} className="block" />}
+            clearLabel="Clear search"
+            autoComplete="off"
+            spellCheck={false}
+            className={panel ? "h-12 gap-3 bg-[var(--fu-field-wash,rgb(255_255_255/0.03))] px-3.5 text-[17px]" : undefined}
+            inputClassName="[&::-webkit-search-cancel-button]:appearance-none"
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && query) {
+                event.stopPropagation();
+                event.preventDefault();
+                setQuery("");
+              }
+            }}
+          />
         </div>
-        <div
-          aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 h-6 bg-linear-to-b from-[var(--fu-card,#1F1F1F)] to-transparent opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
-            fade.top && "opacity-100",
-          )}
-        />
-        <div
-          aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-linear-to-t from-[var(--fu-card,#1F1F1F)] to-transparent opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
-            fade.bottom && "opacity-100",
-          )}
-        />
-      </div>
 
-      <div role="status" className={cn("text-[14px] leading-5", panel && "text-[15px]")}>
-        {typed && found === 0 && (
-          <div className={cn("px-3 pt-1 pb-1.5", panel && "px-0")}>
-            <p className="flex min-w-0 text-[var(--fu-mute,#BDBDBD)]">
-              <span className="shrink-0">No {noun} match&nbsp;</span>
-              <span className="min-w-0 truncate text-[var(--fu-text,#F8F5F1)]">“{query.trim()}</span>
-              <span className="shrink-0 text-[var(--fu-text,#F8F5F1)]">”</span>
-            </p>
-            {near && (
-              <button
-                type="button"
-                onClick={() => {
-                  setQuery(near);
-                  field.current?.querySelector("input")?.focus();
-                }}
-                className={cn(
-                  "relative mt-1 cursor-pointer rounded-[6px] font-medium text-[var(--fu-accent-soft,#8FAAFF)] before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']",
-                  "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
-                )}
-              >
-                Did you mean {near}?
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {!typed && more && (
-        <button
-          type="button"
-          aria-expanded={all}
-          aria-controls={listId}
-          onClick={() => {
-            if (all) setPinned(tickedLater);
-            setAll(!all);
-          }}
-          className={cn(
-            "group/more relative mt-1.5 ms-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
-            "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
-            panel && "mt-2 ms-0 text-[15px] pointer-coarse:before:-inset-y-3",
-          )}
-        >
-          {/* A 1px line draws in under the words from the start edge while it is hovered or focused. */}
-          <span
+        {/* In the panel look the list reaches 8px past the field on each side, so boxes and counts line up with its edges.
+            The panel scrolls the whole list itself, so there the list neither scrolls in its own box nor holds its height while typing. */}
+        <div className={cn("relative mt-2", panel && "-mx-2")}>
+          <div
+            ref={scroller}
+            id={listId}
             className={cn(
-              "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] rtl:bg-[position:100%_100%] bg-no-repeat pb-px",
-              "transition-[background-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              "[@media(hover:hover)]:group-hover/more:bg-[length:100%_1px] group-focus-visible/more:bg-[length:100%_1px]",
+              all && !panel && ["max-h-80 scroll-py-7 overflow-y-auto overscroll-contain", SCROLL],
+            )}
+            style={typed && !panel ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
+          >
+            <ul ref={content} aria-label={label} className="m-0 list-none p-0">
+              {rows}
+            </ul>
+          </div>
+          <div
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-x-0 top-0 h-6 bg-linear-to-b from-[var(--fu-card,#1F1F1F)] to-transparent opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+              fade.top && "opacity-100",
+            )}
+          />
+          <div
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-linear-to-t from-[var(--fu-card,#1F1F1F)] to-transparent opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
+              fade.bottom && "opacity-100",
+            )}
+          />
+        </div>
+
+        <div role="status" className={cn("text-[14px] leading-5", panel && "text-[15px]")}>
+          {typed && found === 0 && (
+            <div className={cn("px-3 pt-1 pb-1.5", panel && "px-0")}>
+              <p className="flex min-w-0 text-[var(--fu-mute,#BDBDBD)]">
+                <span className="shrink-0">No {noun} match&nbsp;</span>
+                <span className="min-w-0 truncate text-[var(--fu-text,#F8F5F1)]">“{query.trim()}</span>
+                <span className="shrink-0 text-[var(--fu-text,#F8F5F1)]">”</span>
+              </p>
+              {near && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuery(near);
+                    field.current?.querySelector("input")?.focus();
+                  }}
+                  className={cn(
+                    "relative mt-1 cursor-pointer rounded-[6px] font-medium text-[var(--fu-accent-soft,#8FAAFF)] before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']",
+                    "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
+                  )}
+                >
+                  Did you mean {near}?
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {!typed && more && (
+          <button
+            type="button"
+            aria-expanded={all}
+            aria-controls={listId}
+            onClick={() => {
+              if (all) setPinned(tickedLater);
+              setAll(!all);
+            }}
+            className={cn(
+              "group/more relative mt-1.5 ms-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
+              "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
+              panel && "mt-2 ms-0 text-[15px] pointer-coarse:before:-inset-y-3",
             )}
           >
-            {all ? "Show fewer" : `All ${formatCount(options.length)} ${noun}`}
-          </span>
-        </button>
-      )}
+            {/* A 1px line draws in under the words from the start edge while it is hovered or focused. */}
+            <span
+              className={cn(
+                "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] rtl:bg-[position:100%_100%] bg-no-repeat pb-px",
+                "transition-[background-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                "[@media(hover:hover)]:group-hover/more:bg-[length:100%_1px] group-focus-visible/more:bg-[length:100%_1px]",
+              )}
+            >
+              <SkeletonText>{all ? "Show fewer" : `All ${formatCount(listed.length)} ${noun}`}</SkeletonText>
+            </span>
+          </button>
+        )}
+      </StatusFrame>
     </div>
   );
 }

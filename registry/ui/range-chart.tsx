@@ -1,9 +1,11 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { isRtl, readingKey } from "../lib/direction";
 import { formatsFor } from "../lib/format";
+import { EmptyNote } from "./empty-note";
+import { SKELETON_FILL, useLoading } from "./skeleton";
 
 /** [low, high]. null is an open end: no lower or no upper limit. */
 export type RangeValue = [number | null, number | null];
@@ -31,9 +33,24 @@ export type RangeChartProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
   /** Formats values when no format is given, e.g. "de-DE". */
   locale?: string;
   disabled?: boolean;
+  /**
+   * Draws pulsing columns in a calm hill and a pulsing rail, with no handles, in the space the chart takes.
+   * Default: the nearest StatusFrame's loading state.
+   */
+  loading?: boolean;
+  /** Shown, quiet, in the bars' place when buckets is an empty list. Default "No items to show." */
+  emptyText?: ReactNode;
 };
 
 const HANDLE = 20;
+/** Columns a loading chart draws when it has no buckets yet. */
+const PLACEHOLDER_BARS = 20;
+
+/** A loading column's height in percent: a soft hill, highest a third of the way along, as many prices are. */
+export const hillAt = (i: number, n: number) => {
+  const x = (i + 0.5) / n;
+  return Math.round(18 + 64 * Math.exp(-(((x - 0.38) / 0.24) ** 2)));
+};
 // A press on a handle becomes a drag only after it travels this far, so a click does not show the tooltip.
 const DRAG_FROM = 3;
 
@@ -63,9 +80,13 @@ export function RangeChart({
   barScale = 1,
   locale,
   disabled = false,
+  loading: loadingProp,
+  emptyText = "No items to show.",
   className,
   ...props
 }: RangeChartProps) {
+  const status = useLoading();
+  const loading = loadingProp ?? status.loading;
   const format: (value: number, handle: Handle) => string = formatProp ?? formatsFor(locale).number;
   const root = useRef<HTMLDivElement>(null);
   const tip = useRef<HTMLSpanElement>(null);
@@ -206,6 +227,7 @@ export function RangeChart({
     `calc(${share}% + ${bump} * var(--lift, 1) * (5px + ${0.13 * share}%))`;
   const lowShown = single ? 0 : shown.low;
   const handles: Handle[] = single ? ["high"] : ["low", "high"];
+  const columns = buckets?.length || PLACEHOLDER_BARS;
 
   return (
     <div
@@ -214,7 +236,7 @@ export function RangeChart({
       data-disabled={disabled || undefined}
       className={cn(
         "group/range relative cursor-pointer touch-pan-y select-none [-webkit-tap-highlight-color:transparent]",
-        "data-[dragging]:cursor-grabbing data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+        "data-[dragging]:cursor-grabbing data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}
       onPointerDown={press}
@@ -228,49 +250,78 @@ export function RangeChart({
       }}
       {...props}
     >
-      {buckets && buckets.length > 0 && (
-        <div data-bars aria-hidden className="mx-[10px] flex h-14 items-end gap-[2px] motion-reduce:[--lift:0]">
-          {buckets.map((count, i) => {
-            const start = i / buckets.length;
-            const end = (i + 1) / buckets.length;
-            const cover = clamp((Math.min(end, shown.high) - Math.max(start, lowShown)) / (end - start), 0, 1);
-            const lit = cover > 0 ? Math.round((0.35 + 0.65 * cover) * 100) : 0;
-            const narrow = barScale !== 1;
-            const bar = (
-              <span
-                key={i}
-                className={cn(
-                  "min-w-0 rounded-t-[3px]",
-                  narrow ? "flex-none" : "flex-1",
-                  "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                  "group-data-[dragging]/range:duration-[140ms,0ms]",
-                )}
-                style={{
-                  height: heightOf(Math.max(count ? 8 : 3, (count / tallest) * 100), bumpOf(i)),
-                  backgroundColor: `color-mix(in srgb, var(--fu-accent-soft,#8FAAFF) ${lit}%, var(--fu-bar-out,#4A4A4A))`,
-                  // The bar a denser chart would draw: its slot plus one 2px gap, scaled, less the gap.
-                  width: narrow ? `calc((100% + 2px) * ${barScale} - 2px)` : undefined,
-                } as CSSProperties}
-              />
-            );
-            return narrow ? (
-              <span key={i} className="flex h-full min-w-0 flex-1 items-end justify-center">
-                {bar}
-              </span>
-            ) : (
-              bar
-            );
-          })}
+      {buckets && buckets.length === 0 && !loading && (
+        <EmptyNote className="mx-[10px] h-14 justify-center">{emptyText}</EmptyNote>
+      )}
+      {buckets && (buckets.length > 0 || loading) && (
+        <div
+          data-bars
+          aria-hidden
+          className="mx-[10px] flex h-14 items-end gap-[2px] motion-reduce:[--lift:0]"
+          // Many bars close their gaps up, a 2px gap at most and a quarter of a bar's slot at least, so bars never vanish.
+          style={columns > 40 ? { gap: `min(2px, calc(100% / ${columns * 4}))` } : undefined}
+        >
+          {loading
+            ? Array.from({ length: columns }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "min-w-0 flex-1 rounded-t-[3px]",
+                    SKELETON_FILL,
+                    "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                  )}
+                  style={{ height: `${hillAt(i, columns)}%` }}
+                />
+              ))
+            : buckets.map((count, i) => {
+                const start = i / buckets.length;
+                const end = (i + 1) / buckets.length;
+                const cover = clamp((Math.min(end, shown.high) - Math.max(start, lowShown)) / (end - start), 0, 1);
+                const lit = cover > 0 ? Math.round((0.35 + 0.65 * cover) * 100) : 0;
+                const narrow = barScale !== 1;
+                const bar = (
+                  <span
+                    key={i}
+                    className={cn(
+                      "min-w-0 rounded-t-[3px]",
+                      narrow ? "flex-none" : "flex-1",
+                      "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                      "group-data-[dragging]/range:duration-[140ms,0ms]",
+                    )}
+                    style={{
+                      height: heightOf(Math.max(count ? 8 : 3, (count / tallest) * 100), bumpOf(i)),
+                      backgroundColor: `color-mix(in srgb, var(--fu-accent-soft,#8FAAFF) ${lit}%, var(--fu-bar-out,#4A4A4A))`,
+                      // The bar a denser chart would draw: its slot plus one 2px gap, scaled, less the gap.
+                      width: narrow ? `calc((100% + 2px) * ${barScale} - 2px)` : undefined,
+                    } as CSSProperties}
+                  />
+                );
+                return narrow ? (
+                  <span key={i} className="flex h-full min-w-0 flex-1 items-end justify-center">
+                    {bar}
+                  </span>
+                ) : (
+                  bar
+                );
+              })}
         </div>
       )}
 
       <div className="relative h-6">
-        <span aria-hidden className="absolute inset-x-0 top-[10px] h-1 rounded-[2px] bg-[var(--fu-rail,#4A4A4A)]" />
+        <span
+          aria-hidden
+          className={cn(
+            "absolute inset-x-0 top-[10px] h-1 rounded-[2px] transition-[background-color] duration-200 motion-reduce:transition-none",
+            loading ? SKELETON_FILL : "bg-[var(--fu-rail,#4A4A4A)]",
+          )}
+        />
         <span
           aria-hidden
           className={cn(
             "absolute top-[10px] h-1 rounded-[2px] bg-[var(--fu-accent-soft,#8FAAFF)]",
-            "transition-[left,right] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            // While loading the fill and handles are hidden; they fade in with the data.
+            loading && "opacity-0",
+            "transition-[left,right,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
             "group-data-[dragging]/range:transition-none",
           )}
           style={{ insetInlineStart: single ? 0 : along(lowShown), insetInlineEnd: along(1 - shown.high) }}
@@ -306,9 +357,10 @@ export function RangeChart({
                 data-handle={handle}
                 data-grabbed={grabbed || undefined}
                 className={cn(
+                  loading && "opacity-0",
                   "absolute top-[2px] -ms-[10px] size-5 cursor-grab touch-none rounded-full bg-[var(--fu-handle,#F8F5F1)]",
                   "shadow-[0_0_0_0_color-mix(in_srgb,var(--fu-accent-soft,#8FAAFF)_28%,transparent),0_0_0_1px_var(--fu-handle-edge,rgb(0_0_0/0.25)),0_2px_6px_var(--fu-shadow,rgb(0_0_0/0.5))]",
-                  "transition-[left,scale,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                  "transition-[left,scale,box-shadow,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                   "before:absolute before:-inset-[10px] before:rounded-full before:content-['']",
                   "hover:scale-[1.15]",
                   "peer-focus-visible:z-[1] data-[grabbed]:z-[1] data-[grabbed]:scale-[1.15] data-[grabbed]:cursor-grabbing",

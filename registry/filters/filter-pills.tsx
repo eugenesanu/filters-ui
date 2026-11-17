@@ -8,6 +8,8 @@ import { SCROLL } from "../lib/scroll";
 import { CountPill } from "../ui/count-pill";
 import { ClearAllButton, ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, XIcon } from "../ui/icons";
+import { SkeletonText, useLoading } from "../ui/skeleton";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextSwap } from "../ui/text-swap";
 
 export type FilterPill = {
@@ -28,7 +30,8 @@ export type FilterPill = {
   content: ReactNode;
 };
 
-export type FilterPillsProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
+export type FilterPillsProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> &
+  Omit<StateProps, "emptyText"> & {
   pills: readonly FilterPill[];
   /** Accessible name of the bar. Default "Filters". */
   label?: string;
@@ -76,6 +79,8 @@ const FOCUS_RING =
  * into a 24px card under it while the filter rises in from a 6px blur, and folds back into the pill on close. A set
  * pill shows its value and a cross; "Clear all" fades in at the end. The bar wraps; on phones a pill opens a sheet
  * from the bottom instead. Filters apply as they change, so the panel's button only closes it.
+ * While loading each pill keeps its size with its words as placeholders; an error shows its line and Retry in place
+ * of the pills; disabled turns every pill off and leaves the crosses and Clear all out. No panel opens in any of them.
  */
 export function FilterPills({
   pills,
@@ -89,6 +94,10 @@ export function FilterPills({
   onShow,
   formatCount: formatCountProp,
   locale,
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the filters.",
+  disabled = false,
   className,
   ...props
 }: FilterPillsProps) {
@@ -97,7 +106,11 @@ export function FilterPills({
   const groups = useRef(new Map<string, HTMLDivElement>());
   const triggers = useRef(new Map<string, HTMLButtonElement>());
   const [inner, setInner] = useState<string | null>(defaultOpen);
-  const openId = openProp === undefined ? inner : openProp;
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
+  // While loading, failed or disabled no panel shows: the open pill's panel folds away and comes back once ready.
+  const shown = !loading && status === "ready" && !disabled;
+  const openId = shown ? (openProp === undefined ? inner : openProp) : null;
   const [how, setHow] = useState({ mode: "panel" as Mode, focus: false, back: false });
   const counter = useRef(1);
   const [layers, setLayers] = useState<Layer[]>(() =>
@@ -105,16 +118,21 @@ export function FilterPills({
   );
 
   // Each change of the open pill closes the panel that was open (it folds back into its pill) and opens the new one.
+  // A change of state hides or brings back a panel as a first render shows it: in place, leaving focus where it is.
+  const [wasShown, setWasShown] = useState(shown);
+  const byState = wasShown !== shown;
+  if (byState) setWasShown(shown);
   const [seen, setSeen] = useState(openId);
   if (seen !== openId) {
     setSeen(openId);
+    const next = byState ? { mode: "panel" as Mode, focus: false, back: false } : how;
     setLayers((list) => {
       const out = list.flatMap((layer) => {
         if (layer.closing) return layer.id === openId ? [] : [layer];
-        return layer.id === openId ? [layer] : [{ ...layer, closing: true, back: how.back }];
+        return layer.id === openId ? [layer] : [{ ...layer, closing: true, back: next.back }];
       });
       if (openId && !out.some((layer) => layer.id === openId)) {
-        out.push({ id: openId, key: counter.current++, mode: how.mode, focus: how.focus, closing: false, back: false });
+        out.push({ id: openId, key: counter.current++, mode: next.mode, focus: next.focus, closing: false, back: false });
       }
       return out;
     });
@@ -182,55 +200,58 @@ export function FilterPills({
   const anySet = pills.some((pill) => Boolean(pill.summary) || (pill.count ?? 0) > 0);
 
   return (
-    <div role="group" aria-label={label} className={cn("not-prose w-full", className)} {...props}>
-      <div className="relative flex flex-wrap items-center gap-2">
-        {pills.map((pill) => {
-          const layer = layers.find((l) => l.id === pill.id && !l.closing) ?? layers.find((l) => l.id === pill.id);
-          return (
-            <Pill
-              key={pill.id}
-              pill={pill}
-              panelId={`${id}-${pill.id}`}
-              isOpen={current?.id === pill.id}
-              handoff={Boolean(current) && current?.id !== pill.id}
-              layer={layer}
-              showLabel={showLabel}
-              formatCount={formatCount}
-              groupRef={(node) => {
-                if (node) groups.current.set(pill.id, node);
-                else groups.current.delete(pill.id);
+    <div role="group" aria-label={label} aria-disabled={disabled || undefined} className={cn("not-prose w-full", className)} {...props}>
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled}>
+        <div className="relative flex flex-wrap items-center gap-2">
+          {pills.map((pill) => {
+            const layer = layers.find((l) => l.id === pill.id && !l.closing) ?? layers.find((l) => l.id === pill.id);
+            return (
+              <Pill
+                key={pill.id}
+                pill={pill}
+                panelId={`${id}-${pill.id}`}
+                isOpen={current?.id === pill.id}
+                handoff={Boolean(current) && current?.id !== pill.id}
+                layer={layer}
+                showLabel={showLabel}
+                formatCount={formatCount}
+                disabled={disabled}
+                groupRef={(node) => {
+                  if (node) groups.current.set(pill.id, node);
+                  else groups.current.delete(pill.id);
+                }}
+                triggerRef={(node) => {
+                  if (node) triggers.current.set(pill.id, node);
+                  else triggers.current.delete(pill.id);
+                }}
+                onToggle={(focus) => (current?.id === pill.id ? close(focus) : openPill(pill.id, focus))}
+                onClose={close}
+                onShow={() => {
+                  onShow?.();
+                  close(true);
+                }}
+                onGone={gone}
+              />
+            );
+          })}
+          {onClearAll && anySet && !disabled && (
+            <ClearAllButton
+              onClick={() => {
+                onClearAll();
+                const first = pills[0];
+                if (first) triggers.current.get(first.id)?.focus({ preventScroll: true });
               }}
-              triggerRef={(node) => {
-                if (node) triggers.current.set(pill.id, node);
-                else triggers.current.delete(pill.id);
-              }}
-              onToggle={(focus) => (current?.id === pill.id ? close(focus) : openPill(pill.id, focus))}
-              onClose={close}
-              onShow={() => {
-                onShow?.();
-                close(true);
-              }}
-              onGone={gone}
-            />
-          );
-        })}
-        {onClearAll && anySet && (
-          <ClearAllButton
-            onClick={() => {
-              onClearAll();
-              const first = pills[0];
-              if (first) triggers.current.get(first.id)?.focus({ preventScroll: true });
-            }}
-            className={cn(
-              "transition-[background-color,color,scale,opacity,filter,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
-              "text-[var(--fu-accent-soft,#8FAAFF)] hover:text-[var(--fu-accent-pale,#D1DDFF)] starting:translate-x-1 rtl:starting:-translate-x-1 starting:opacity-0 starting:blur-[2px]",
-              "relative pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[3px] pointer-coarse:after:content-['']",
-            )}
-          >
-            {clearAllLabel}
-          </ClearAllButton>
-        )}
-      </div>
+              className={cn(
+                "transition-[background-color,color,scale,opacity,filter,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "text-[var(--fu-accent-soft,#8FAAFF)] hover:text-[var(--fu-accent-pale,#D1DDFF)] starting:translate-x-1 rtl:starting:-translate-x-1 starting:opacity-0 starting:blur-[2px]",
+                "relative pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[3px] pointer-coarse:after:content-['']",
+              )}
+            >
+              <SkeletonText>{clearAllLabel}</SkeletonText>
+            </ClearAllButton>
+          )}
+        </div>
+      </StatusFrame>
     </div>
   );
 }
@@ -244,6 +265,8 @@ type PillProps = {
   layer: Layer | undefined;
   showLabel: string;
   formatCount?: (n: number) => string;
+  /** The cross is left out, as it cannot run. */
+  disabled: boolean;
   groupRef: (node: HTMLDivElement | null) => void;
   triggerRef: (node: HTMLButtonElement | null) => void;
   onToggle: (focus: boolean) => void;
@@ -252,7 +275,7 @@ type PillProps = {
   onGone: (layer: Layer) => void;
 };
 
-function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, groupRef, triggerRef, onToggle, onClose, onShow, onGone }: PillProps) {
+function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, disabled, groupRef, triggerRef, onToggle, onClose, onShow, onGone }: PillProps) {
   const group = useRef<HTMLDivElement | null>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
   const skipClick = useRef(false);
@@ -260,7 +283,7 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, g
   const count = pill.count ?? 0;
   const valued = Boolean(pill.summary);
   const set = valued || count > 0;
-  const clearable = valued && Boolean(pill.onClear);
+  const clearable = valued && Boolean(pill.onClear) && !disabled;
   const raised = Boolean(layer && layer.mode === "panel");
 
   // The last value stays in place while the cross and the value leave after a clear.
@@ -379,26 +402,32 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, g
             {pill.icon}
           </span>
         )}
+        {/* A long label stops at 200px, and gives way before the value does; the whole words stay in the button's name.
+            The words take their own direction, so an English label on a right-to-left page loses its end, not its start. */}
         <span
+          dir="auto"
           className={cn(
-            "min-w-0 shrink-0 transition-[color] duration-200",
+            "min-w-0 max-w-[200px] truncate transition-[color] duration-200",
             set ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-text,#F8F5F1)]",
           )}
         >
-          {pill.label}
+          <SkeletonText>{pill.label}</SkeletonText>
         </span>
         {pill.summary && <span className="sr-only">, {pill.summary}</span>}
         {count > 0 && <span className="sr-only">, {count} set</span>}
         {valued && (
           <>
             <span aria-hidden="true" className="h-4 w-px shrink-0 bg-[var(--fu-accent-soft,#8FAAFF)]/30" />
-            <TextSwap
-              aria-hidden="true"
-              data-swap=""
-              className="min-w-0 grid-cols-[minmax(0,1fr)] font-normal text-[var(--fu-accent-soft,#8FAAFF)] tabular-nums [&>span]:truncate"
-            >
-              {pill.summary || lastSummary}
-            </TextSwap>
+            <SkeletonText className="min-w-0 max-w-[200px] shrink-[0.25]">
+              <TextSwap
+                aria-hidden="true"
+                data-swap=""
+                dir="auto"
+                className="min-w-0 max-w-[200px] shrink-[0.25] grid-cols-[minmax(0,1fr)] font-normal text-[var(--fu-accent-soft,#8FAAFF)] tabular-nums [&>span]:truncate"
+              >
+                {pill.summary || lastSummary}
+              </TextSwap>
+            </SkeletonText>
           </>
         )}
         {count > 0 && <CountPill aria-hidden="true" on count={count} format={formatCount} className="-mx-0.5" />}
@@ -719,8 +748,16 @@ function PillSheet({ id, titleId, title, summary, open, onClose, footer, onGone,
     const node = dialog.current;
     if (open || !node) return;
     setShown(false);
+    const lost = (el: Element | null) => !el || el === document.body || el.matches(":disabled") || Boolean(el.closest("[inert]"));
     const finish = () => {
+      const was = document.activeElement;
+      const held = lost(was) || node.contains(was);
       if (node.open) node.close();
+      // Closed by a change of state (loading or disabled), the sheet's own pill cannot take focus back, and the modal
+      // sheet kept the status frame from taking it: the frame takes it now, so focus is never lost to the page.
+      if (held && (lost(document.activeElement) || node.contains(document.activeElement))) {
+        node.closest<HTMLElement>("[data-status-frame]")?.focus({ preventScroll: true });
+      }
       done.current();
     };
     if (reducedMotion()) {

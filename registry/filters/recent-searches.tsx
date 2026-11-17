@@ -6,6 +6,7 @@ import { resultsLabel } from "../lib/format";
 import { countOf, type Token, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
 import { CheckIcon, HistoryIcon, StarIcon, XIcon } from "../ui/icons";
+import { ARRIVING, placeholderLabels, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
 import { SentenceSearch, type OwnRow, type OwnRowProps, type SentenceSearchProps } from "./sentence-search";
 
 /** A search kept by the page: in Recent, or in Saved with a name. */
@@ -23,6 +24,8 @@ export type RecentSearchesProps<Item, State> = Omit<SentenceSearchProps<Item, St
   onForget: (id: string) => void;
   /** How many recent searches show. */
   recentLimit?: number;
+  /** The quiet line in the list while there are no recent and no saved searches. Default "No recent searches yet." */
+  emptyText?: string;
 };
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
@@ -196,6 +199,31 @@ function Leaving({ top, height, onDone, children }: { top: number; height: numbe
   );
 }
 
+/** A filter of a recent search. While the searches load it is a pulsing pill of its own size; its words fade in once. */
+function Chip({ children }: { children: string }) {
+  const { loading, arriving } = useLoading();
+  return (
+    <span
+      className={cn(
+        "block h-6 max-w-full min-w-0 truncate rounded-full px-2.5 text-[13px] leading-6 whitespace-nowrap",
+        loading
+          ? cn(SKELETON_FILL, "text-transparent")
+          : cn(
+              "bg-[var(--fu-pill,rgb(255_255_255/0.1))] text-[var(--fu-text,#F8F5F1)] transition-[background-color,color] duration-200 motion-reduce:transition-none",
+              SMOOTH,
+              "group-aria-selected/row:bg-[var(--fu-selected,#1F2747)] group-aria-selected/row:text-[var(--fu-accent-pale,#D1DDFF)]",
+            ),
+      )}
+    >
+      {arriving ? <span className={ARRIVING}>{children}</span> : children}
+    </span>
+  );
+}
+
+/** Stand-in searches while the lists are on their way: three saved, two recent. Never shown; only their widths are. */
+const LOADING_SAVED = 3;
+const LOADING_RECENT = 2;
+
 const TITLE = "px-3 pt-2 pb-1 text-[13px] leading-[18px] text-[var(--fu-mute,#BDBDBD)]";
 const EMPTY = "px-3 pb-2 text-[14px] leading-5 text-[var(--fu-dim,#929292)]";
 
@@ -216,6 +244,9 @@ export function RecentSearches<Item, State>({
   onSave,
   onForget,
   recentLimit = 4,
+  emptyText = "No recent searches yet.",
+  status = "ready",
+  errorText = "Couldn't load your searches.",
   defaultOpen = false,
   formatCount,
   countLabel: countLabelProp,
@@ -231,6 +262,8 @@ export function RecentSearches<Item, State>({
   const [open, setOpen] = useState(defaultOpen);
   const [said, setSaid] = useState("");
   const [leaving, setLeaving] = useState<{ key: string; top: number; height: number; body: ReactNode } | null>(null);
+  // Its own status, or the loading frame of an item around it.
+  const loading = useLoading().loading || status === "loading";
 
   const tokens = vocabulary.tokens(value);
   const sig = signatureOf(vocabulary, value);
@@ -307,8 +340,12 @@ export function RecentSearches<Item, State>({
           <StarIcon size={16} className="fill-current" />
         </Glyph>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] leading-5 font-medium text-[var(--fu-text,#F8F5F1)]">{entry.name ?? nameOf(own)}</span>{" "}
-          <span className="block truncate text-[13px] leading-[18px] text-[var(--fu-mute,#BDBDBD)]">{wordsOf(own)}</span>
+          <span className="line-clamp-2 text-[15px] leading-5 font-medium [overflow-wrap:anywhere] text-[var(--fu-text,#F8F5F1)]">
+            <SkeletonText>{entry.name ?? nameOf(own)}</SkeletonText>
+          </span>{" "}
+          <span className="line-clamp-2 text-[13px] leading-[18px] [overflow-wrap:anywhere] text-[var(--fu-mute,#BDBDBD)]">
+            <SkeletonText>{wordsOf(own)}</SkeletonText>
+          </span>
         </span>
       </>
     );
@@ -322,16 +359,7 @@ export function RecentSearches<Item, State>({
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
         {vocabulary.tokens(entry.value).map((token) => (
           <Fragment key={`${token.key}-${token.label}`}>
-            <span
-              className={cn(
-                "block h-6 max-w-full min-w-0 truncate rounded-full bg-[var(--fu-pill,rgb(255_255_255/0.1))] px-2.5 text-[13px] leading-6 whitespace-nowrap text-[var(--fu-text,#F8F5F1)]",
-                "transition-[background-color,color] duration-200 motion-reduce:transition-none",
-                SMOOTH,
-                "group-aria-selected/row:bg-[var(--fu-selected,#1F2747)] group-aria-selected/row:text-[var(--fu-accent-pale,#D1DDFF)]",
-              )}
-            >
-              {token.label}
-            </span>{" "}
+            <Chip>{token.label}</Chip>{" "}
           </Fragment>
         ))}
       </span>
@@ -383,6 +411,9 @@ export function RecentSearches<Item, State>({
 
   if (!sig) {
     rows = [...saved.map((entry) => pickRow(entry, "saved")), ...recents.map((entry) => pickRow(entry, "recent"))];
+    // Lists still on their way: stand-in rows hold their place under the headings.
+    const standing = loading && rows.length === 0;
+    const words = placeholderLabels(LOADING_SAVED + LOADING_RECENT * 2);
     render = (option) => (
       <div ref={drawn}>
         {leaving && (
@@ -394,7 +425,26 @@ export function RecentSearches<Item, State>({
           <p data-flip="saved-title" className={TITLE}>
             Saved
           </p>
-          {saved.length === 0 && (
+          {standing &&
+            words.slice(0, LOADING_SAVED).map((name, i) => (
+              <div key={i} role="option" aria-selected={false} className="relative flex min-h-[52px] items-center gap-3 rounded-[12px] py-2 pe-3 ps-2">
+                <Glyph tone="accent">
+                  <StarIcon size={16} className="fill-current" />
+                </Glyph>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] leading-5 font-medium">
+                    <SkeletonText>{name}</SkeletonText>
+                  </span>{" "}
+                  <span className="block text-[13px] leading-[18px]">
+                    <SkeletonText>{`${words[i + 1]} · ${words[i + 2]}`}</SkeletonText>
+                  </span>
+                </span>
+                <span aria-hidden="true" className="flex shrink-0 items-center ps-2">
+                  <CountPill count={0} />
+                </span>
+              </div>
+            ))}
+          {saved.length === 0 && !standing && (
             <p data-flip="saved-empty" className={EMPTY}>
               Save a search to keep it here.
             </p>
@@ -423,7 +473,23 @@ export function RecentSearches<Item, State>({
           <p data-flip="recent-title" className={cn(TITLE, "mt-1")}>
             Recent
           </p>
-          {recents.length === 0 && (
+          {standing &&
+            Array.from({ length: LOADING_RECENT }, (_, i) => (
+              <div key={i} role="option" aria-selected={false} className="relative flex min-h-11 items-center gap-3 rounded-[12px] py-1.5 pe-3 ps-2">
+                <Glyph>
+                  <HistoryIcon size={16} />
+                </Glyph>
+                <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                  {words.slice(LOADING_SAVED + i * 2, LOADING_SAVED + i * 2 + 2).map((name) => (
+                    <Chip key={name}>{name}</Chip>
+                  ))}
+                </span>
+                <span aria-hidden="true" className="flex shrink-0 items-center ps-2">
+                  <CountPill count={0} />
+                </span>
+              </div>
+            ))}
+          {recents.length === 0 && !standing && (
             <p data-flip="recent-empty" className={EMPTY}>
               Your searches show here.
             </p>
@@ -517,11 +583,14 @@ export function RecentSearches<Item, State>({
         countLabel={countLabel}
         locale={locale}
         {...(formatCount && { formatCount })}
+        status={status}
+        errorText={errorText}
         emptyRows={{
           rows,
           render,
           replace: !sig,
           ...(!sig && {
+            emptyText,
             keys: [
               { key: "↑↓", label: "Move" },
               { key: "Enter", label: "Search" },

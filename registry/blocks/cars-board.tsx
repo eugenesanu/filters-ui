@@ -43,6 +43,7 @@ import { SegmentedChoice } from "../filters/segmented-choice";
 import { UpperLimit } from "../filters/upper-limit";
 import { FilterCard } from "../ui/filter-card";
 import { FiltersBar, FiltersHead } from "../ui/filters-head";
+import { StatusFrame, StatusLine, useFocusKept, type StateProps } from "../ui/status-frame";
 
 const NOUN = { one: "car", other: "cars" };
 
@@ -67,7 +68,8 @@ function subscribe(onChange: () => void) {
 }
 const columnCount = () => (window.matchMedia(THREE_QUERY).matches ? 3 : window.matchMedia(TWO_QUERY).matches ? 2 : 1);
 
-export type CarsBoardProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & {
+export type CarsBoardProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> &
+  Omit<StateProps, "emptyText"> & {
   cars?: readonly Car[];
   defaultFilters?: CarFilters;
   defaultOpen?: CarFacet[];
@@ -77,10 +79,16 @@ export type CarsBoardProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange"> & 
   locale?: string;
 };
 
+/** The board's error line, unless errorText says otherwise. */
+const BOARD_ERROR = "Couldn't load the cars.";
+
 /**
  * Every car filter on its own card: the head (Filters, Clear all, Show N cars), then the cards in
  * three columns, two from 640px and one below. On phones Clear all and Show move into a bar pinned
  * to the bottom. Tab order runs the head, then each column top to bottom.
+ * status and disabled reach every card's filter through a frame of its own, quiet, as the head says the state once:
+ * loading draws each filter's placeholders and the number in Show; an error shows its line in each open card and once
+ * under the head, with the one Retry; disabled turns every filter off and leaves Clear and Clear all out.
  */
 export function CarsBoard({
   cars = CARS,
@@ -89,13 +97,19 @@ export function CarsBoard({
   onShow,
   headingLevel = 2,
   locale,
+  status = "ready",
+  onRetry,
+  errorText = BOARD_ERROR,
+  disabled = false,
   className,
   ...props
 }: CarsBoardProps) {
   const f = carFormats(locale);
+  const loading = status === "loading";
   const [filters, setFilters] = useState(defaultFilters);
   const [open, setOpen] = useState<CarFacet[]>(defaultOpen);
   const [headSeen, setHeadSeen] = useState(true);
+  const root = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLDivElement>(null);
   const columns = useSyncExternalStore(subscribe, columnCount, () => 3);
   const phone = columns === 1;
@@ -259,20 +273,31 @@ export function CarsBoard({
   };
 
   const layout = columns === 3 ? CAR_FACET_COLUMNS : columns === 2 ? TWO_COLUMNS : ONE_COLUMN;
+  // Clear all leaves while disabled, and Retry once it reloads: focus that sat on either moves to the head.
+  useFocusKept(root, `${status}|${disabled}`, head);
 
   return (
     // On phones the bottom padding keeps the last card clear of the floating bar.
-    <div className={cn("w-full", phone && "pb-24", className)} {...props}>
-      <div ref={head}>
+    <div ref={root} className={cn("w-full", phone && "pb-24", className)} {...props}>
+      {/* Retry hands focus to the head, which stays while the board reloads. */}
+      <div
+        ref={head}
+        tabIndex={-1}
+        data-status-frame=""
+        className="rounded-[12px] outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]"
+      >
         <FiltersHead
           locale={locale}
           count={matches.length}
           noun={NOUN}
           onClearAll={clearAll}
+          canClear={!disabled}
           onShow={show}
+          loading={loading}
           headingLevel={headingLevel}
           actionsClassName={phone ? "hidden" : undefined}
         />
+        <StatusLine status={status} onRetry={onRetry} errorText={errorText} className="mt-4 justify-start gap-x-4" />
       </div>
       <div
         className="mt-6 grid items-start gap-4"
@@ -286,12 +311,14 @@ export function CarsBoard({
                   data-facet={facet}
                   title={CAR_FACET_TITLES[facet]}
                   summary={summaryOf(filters, facet, locale)}
-                  onClear={() => setFilters((f) => clearFacet(f, facet))}
+                  onClear={disabled ? undefined : () => setFilters((f) => clearFacet(f, facet))}
                   open={open.includes(facet)}
                   onOpenChange={(next) => setOpen((list) => (next ? [...list, facet] : list.filter((f) => f !== facet)))}
                   headingLevel={headingLevel === 1 ? 2 : 3}
                 >
-                  {bodyOf(facet)}
+                  <StatusFrame status={status} errorText={errorText} disabled={disabled} announce={false}>
+                    {bodyOf(facet)}
+                  </StatusFrame>
                 </FilterCard>
             ))}
           </div>
@@ -303,7 +330,9 @@ export function CarsBoard({
         count={matches.length}
         noun={NOUN}
         onClearAll={clearAll}
+        canClear={!disabled}
         onShow={show}
+        loading={loading}
       />
     </div>
   );
