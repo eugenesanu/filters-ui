@@ -68,7 +68,7 @@ export function RulesStage() {
       </div>
       <div {...frame} className="flex-1 px-4 pb-0 pt-2 sm:px-6 sm:pt-6">
         <div className="mx-auto w-full max-w-[640px]">
-          <Rules locale={locale} key={round} fields={fields} items={CARS} value={rules} onChange={setRules} label="Car rules" countLabel={f.carCount} leftLabel="Cars left" />
+          <Rules locale={locale} key={round} fields={fields} items={CARS} value={rules} onChange={setRules} label="Car rules" countLabel={f.carCount} />
           <p className="mt-5 ps-11 text-[14px] leading-5 text-dim tabular-nums">
             <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
           </p>

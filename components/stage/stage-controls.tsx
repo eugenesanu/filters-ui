@@ -194,7 +194,7 @@ function ControlGroup<K extends keyof StageValues>({ control, value, item }: { c
             type="button"
             aria-pressed={on}
             onClick={() => setValue(control.key, option.value)}
-            className={`${OPTION} ${on ? "bg-wash text-text" : "text-dim hover:bg-wash hover:text-text"}`}
+            className={`${OPTION} ${on ? "text-text" : "text-dim hover:bg-wash hover:text-text"}`}
           >
             {option.label}
           </button>
@@ -211,7 +211,7 @@ export function StageControlRow() {
   const item = { spec, states };
   const shown = CONTROLS.filter((control) => !control.shownFor || control.shownFor(item));
   return (
-    <div role="group" aria-label="Stage settings" className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 pb-3 text-[13px] leading-5">
+    <div role="group" aria-label="Stage settings" className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 px-3 pb-3 text-[13px] leading-5">
       {shown.map((control) => (
         <ControlGroup key={control.key} control={control} value={values[control.key]} item={item} />
       ))}

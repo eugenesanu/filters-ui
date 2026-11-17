@@ -122,7 +122,7 @@ export function AllFiltersStage() {
       keywords: KEYWORDS[facet],
       values: valuesOf(filters, facet, setFilters, locale),
       onClear: () => setFilters((f) => clearFacet(f, facet)),
-      content: <CarFilterBody facet={facet} filters={filters} set={patch} />,
+      content: <CarFilterBody facet={facet} filters={filters} set={patch} locale={locale} />,
     })),
   }));
 
@@ -141,13 +141,13 @@ export function AllFiltersStage() {
           Reset
         </button>
       </div>
-      <div {...frame} className="flex-1 px-4 pb-0 pt-1 sm:px-6">
+      <div {...frame} className="mx-auto w-full max-w-[928px] flex-1 px-4 pb-0 pt-1 sm:px-6">
         <AllFilters
           locale={locale}
           key={round}
           groups={groups}
           defaultPicked="body"
-          height={500}
+          height={540}
           showLabel={`Show ${f.carCount(matches.length)}`}
           onShow={() => setShown(matches.length)}
           onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}

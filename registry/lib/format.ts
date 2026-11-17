@@ -73,12 +73,12 @@ function safeCurrency(currency?: string): string {
   }
 }
 
-// Where weeks start, by region, as CLDR has it; every other region starts on Monday. A table rather than
+// Where weeks start, by region, as CLDR 48 has it; every other region starts on Monday. A table rather than
 // Intl.Locale weekInfo, which not every browser has, so the server and every browser agree.
 const SUNDAY = new Set(
-  "AG AS BD BR BS BT BW BZ CA CN CO DM DO ET GT GU HK HN ID IL IN JM JP KE KH KR LA MH MM MO MT MX MZ NI NP PA PE PH PK PR PT PY SA SG SV TH TT TW UM US VE VI WS YE ZA ZW".split(" "),
+  "AG AS BD BR BS BT BW BZ CA CO DM DO ET GT GU HK HN ID IL IN IS JM JP KE KH KR LA MH MM MO MT MX MZ NI NP PA PE PH PK PR PT PY SA SG SV TH TT TW UM US VE VI WS YE ZA ZW".split(" "),
 );
-const SATURDAY = new Set("AE AF BH DJ DZ EG IQ IR JO KW LY OM QA SD SY".split(" "));
+const SATURDAY = new Set("AF BH DJ DZ EG IQ IR JO KW LY OM QA SD SY".split(" "));
 
 function firstDayOf(locale: string): 0 | 1 | 5 | 6 {
   let region: string | undefined;
@@ -121,7 +121,9 @@ export function formatsFor(locale?: string, options: FormatOptions = {}): Format
   const plain = nf({ useGrouping: false, maximumFractionDigits: 20 });
   const compact = nf({ notation: "compact", maximumFractionDigits: 1 });
   const price = nf({ style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 });
-  const priceShort = nf({ style: "currency", currency, notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: 1 });
+  // One decimal is exact for a 1,000 unit ("$97.5k"); a 10,000 unit such as 万 takes two ("$9.75万").
+  const unitDigits = nf({ notation: "compact", useGrouping: false }).formatToParts(10000).filter((p) => p.type === "integer").map((p) => p.value).join("").length;
+  const priceShort = nf({ style: "currency", currency, notation: "compact", minimumFractionDigits: 0, maximumFractionDigits: Math.max(1, 3 - unitDigits) });
   const distance = nf({ style: "unit", unit, maximumFractionDigits: 0 });
   const percent = nf({ style: "percent", maximumFractionDigits: 2 });
 
@@ -149,6 +151,9 @@ export function formatsFor(locale?: string, options: FormatOptions = {}): Format
       let t = text.replace(/[\s  ‎‏؜]/g, "");
       for (let i = 0; i < 10; i++) t = t.split(digits[i]).join(String(i));
       if (!/\s/.test(group)) t = t.split(group).join("");
+      // Marks typed in place of the locale's own: a Latin or Arabic comma where both marks are Arabic, a curly apostrophe for a straight one.
+      if (!/[.,]/.test(group + decimal)) t = t.replace(/[,\u060c]/g, "");
+      if (group === "'") t = t.split("\u2019").join("");
       if (decimal !== ".") t = t.split(decimal).join(".");
       const match = t.match(/(\d*\.?\d+)([km](?![a-z]))?/i);
       if (!match) return null;
@@ -161,4 +166,4 @@ export function formatsFor(locale?: string, options: FormatOptions = {}): Format
 }
 
 /** "1 result", "1,204 results": the default words for a count, with the number in the locale. */
-export const resultsLabel = (n: number, locale?: string) => (n === 1 ? "1 result" : `${formatsFor(locale).number(n)} results`);
+export const resultsLabel = (n: number, locale?: string) => `${formatsFor(locale).number(n)} ${n === 1 ? "result" : "results"}`;

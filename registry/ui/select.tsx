@@ -243,7 +243,7 @@ export function Select({
           else openAt(start);
         }}
         className={cn(
-          "relative flex h-11 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-transparent pe-9 ps-3 text-start",
+          "relative flex h-11 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-input,rgb(0_0_0/0))] pe-9 ps-3 text-start",
           "font-[inherit] text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] outline-none [-webkit-tap-highlight-color:transparent]",
           "transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none disabled:cursor-default",
           "hover:border-[var(--fu-control-hover,#A3A3A3)] data-[waiting]:not-focus-visible:not-aria-expanded:border-[var(--fu-line,#404040)] data-[waiting]:not-focus-visible:not-aria-expanded:hover:border-[var(--fu-control-border,#737373)]",

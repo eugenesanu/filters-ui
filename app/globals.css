@@ -12,6 +12,10 @@
   --fu-item-hover: #2A2A2A;
   --fu-head-open: #333333;
   --fu-thumb: #404040;
+  --fu-segment-track: #2A2A2A;
+  --fu-input: rgb(0 0 0/0);
+  --fu-search: #2A2A2A;
+  --fu-menu-edge: #737373;
   --fu-bar: rgb(31 31 31/0.94);
   --fu-line: #404040;
   --fu-card-border: #2A2A2A;
@@ -29,6 +33,10 @@
   --fu-accent-soft: #8FAAFF;
   --fu-accent-pale: #D1DDFF;
   --fu-selected: #1F2747;
+  --fu-token: #D1DDFF;
+  --fu-token-edge: #D1DDFF;
+  --fu-token-text: #171717;
+  --fu-bar-out: #4A4A4A;
   --fu-on-accent: #FFFFFF;
   --fu-on-accent-mute: #E1E7FF;
   --fu-link-line: rgb(143 170 255/0.4);
@@ -38,6 +46,7 @@
   --fu-track: rgb(255 255 255/0.06);
   --fu-pill: rgb(255 255 255/0.1);
   --fu-pill-hover: rgb(255 255 255/0.16);
+  --fu-pill-square: #333333;
   --fu-row-active: rgb(255 255 255/0.07);
   --fu-row-hover: rgb(255 255 255/0.1);
   --fu-row-press: rgb(255 255 255/0.12);
@@ -77,42 +86,51 @@
 
 /* Light: a choice stored by the header switch (data-theme, set before first paint), or the system preference. */
 :root[data-theme="light"] {
-  --fu-page: #F4F2EE;
-  --fu-panel: #ECE9E3;
-  --fu-card: #FDFCFA;
-  --fu-card-hover: #F6F4F0;
-  --fu-surface-1: #FDFCFA;
-  --fu-surface-3: #DBD6CD;
-  --fu-hover: #D1CBC1;
-  --fu-item-hover: #EFECE7;
-  --fu-head-open: #E6E2DB;
+  --fu-page: #F5F5F3;
+  --fu-panel: #EDEDEA;
+  --fu-card: #FFFFFF;
+  --fu-card-hover: #F8F8F6;
+  --fu-surface-1: #FFFFFF;
+  --fu-surface-3: rgb(29 27 24/0.07);
+  --fu-hover: rgb(29 27 24/0.11);
+  --fu-item-hover: #F2F2F0;
+  --fu-head-open: #EEEEEC;
   --fu-thumb: #FFFFFF;
-  --fu-bar: rgb(253 252 250/0.94);
-  --fu-line: #C8C1B6;
-  --fu-card-border: #E5E1DA;
-  --fu-rail: #D6D1C8;
-  --fu-control-border: #7D776E;
-  --fu-control-hover: #5F5A53;
+  --fu-segment-track: rgb(29 27 24/0.07);
+  --fu-input: #FFFFFF;
+  --fu-search: #FFFFFF;
+  --fu-menu-edge: #C4C4C0;
+  --fu-bar: rgb(255 255 255/0.94);
+  --fu-line: #C4C4C0;
+  --fu-card-border: #E5E5E2;
+  --fu-rail: #D6D6D2;
+  --fu-control-border: #787874;
+  --fu-control-hover: #5B5B57;
   --fu-swatch-edge: rgb(29 27 24/0.2);
-  --fu-text: #1D1B18;
-  --fu-mute: #48443E;
-  --fu-dim: #5A554E;
-  --fu-pill-text: #403C37;
-  --fu-swatch-text: #3A3632;
+  --fu-text: #1B1B19;
+  --fu-mute: #444442;
+  --fu-dim: #555552;
+  --fu-pill-text: #3C3C3A;
+  --fu-swatch-text: #363634;
   --fu-accent: #3B57E6;
   --fu-accent-hover: #2F4AD0;
   --fu-accent-soft: #3049D2;
   --fu-accent-pale: #253A9E;
   --fu-selected: #E8EDFD;
+  --fu-token: #E8EDFD;
+  --fu-token-edge: #3049D2;
+  --fu-token-text: #3049D2;
+  --fu-bar-out: #C1C8F1;
   --fu-on-accent: #FFFFFF;
   --fu-on-accent-mute: #E1E7FF;
   --fu-link-line: rgb(52 80 216/0.4);
   --fu-wash: rgb(29 27 24/0.05);
   --fu-hover-wash: rgb(29 27 24/0.07);
-  --fu-field-wash: rgb(29 27 24/0.02);
+  --fu-field-wash: #FFFFFF;
   --fu-track: rgb(29 27 24/0.07);
   --fu-pill: rgb(29 27 24/0.06);
   --fu-pill-hover: rgb(29 27 24/0.1);
+  --fu-pill-square: rgb(29 27 24/0.07);
   --fu-row-active: rgb(29 27 24/0.05);
   --fu-row-hover: rgb(29 27 24/0.06);
   --fu-row-press: rgb(29 27 24/0.09);
@@ -123,8 +141,8 @@
   --fu-handle: #FFFFFF;
   --fu-handle-edge: rgb(29 27 24/0.55);
   --fu-rim: rgb(255 255 255/0.7);
-  --fu-shadow: rgb(48 38 26/0.12);
-  --fu-shadow-deep: rgb(48 38 26/0.16);
+  --fu-shadow: rgb(36 36 33/0.12);
+  --fu-shadow-deep: rgb(36 36 33/0.16);
   --fu-scrim: rgb(29 27 24/0.32);
   --fu-glow-blue: #4C6BFF;
   --fu-glow-violet: #8A6CFF;
@@ -132,54 +150,63 @@
   --fu-glow-amber: #F29358;
   --fu-glow-teal: #1FC2AD;
   --fu-selection: #CBD6FF;
-  --fu-selection-text: #1D1B18;
-  --fu-backdrop: #E6E2DB;
-  --fu-backdrop-near: #D8D3CA;
-  --fu-switch-off: #878178;
+  --fu-selection-text: #1B1B19;
+  --fu-backdrop: #E6E6E3;
+  --fu-backdrop-near: #D8D8D4;
+  --fu-switch-off: #82827E;
   --fu-knob-edge: rgb(29 27 24/0.55);
-  --fu-knob-shadow: rgb(48 38 26/0.12);
+  --fu-knob-shadow: rgb(36 36 33/0.12);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --fu-page: #F4F2EE;
-    --fu-panel: #ECE9E3;
-    --fu-card: #FDFCFA;
-    --fu-card-hover: #F6F4F0;
-    --fu-surface-1: #FDFCFA;
-    --fu-surface-3: #DBD6CD;
-    --fu-hover: #D1CBC1;
-    --fu-item-hover: #EFECE7;
-    --fu-head-open: #E6E2DB;
+    --fu-page: #F5F5F3;
+    --fu-panel: #EDEDEA;
+    --fu-card: #FFFFFF;
+    --fu-card-hover: #F8F8F6;
+    --fu-surface-1: #FFFFFF;
+    --fu-surface-3: rgb(29 27 24/0.07);
+    --fu-hover: rgb(29 27 24/0.11);
+    --fu-item-hover: #F2F2F0;
+    --fu-head-open: #EEEEEC;
     --fu-thumb: #FFFFFF;
-    --fu-bar: rgb(253 252 250/0.94);
-    --fu-line: #C8C1B6;
-    --fu-card-border: #E5E1DA;
-    --fu-rail: #D6D1C8;
-    --fu-control-border: #7D776E;
-    --fu-control-hover: #5F5A53;
+      --fu-segment-track: rgb(29 27 24/0.07);
+    --fu-input: #FFFFFF;
+    --fu-search: #FFFFFF;
+    --fu-menu-edge: #C4C4C0;
+    --fu-bar: rgb(255 255 255/0.94);
+    --fu-line: #C4C4C0;
+    --fu-card-border: #E5E5E2;
+    --fu-rail: #D6D6D2;
+    --fu-control-border: #787874;
+    --fu-control-hover: #5B5B57;
     --fu-swatch-edge: rgb(29 27 24/0.2);
-    --fu-text: #1D1B18;
-    --fu-mute: #48443E;
-    --fu-dim: #5A554E;
-    --fu-pill-text: #403C37;
-    --fu-swatch-text: #3A3632;
+    --fu-text: #1B1B19;
+    --fu-mute: #444442;
+    --fu-dim: #555552;
+    --fu-pill-text: #3C3C3A;
+    --fu-swatch-text: #363634;
     --fu-accent: #3B57E6;
     --fu-accent-hover: #2F4AD0;
     --fu-accent-soft: #3049D2;
     --fu-accent-pale: #253A9E;
     --fu-selected: #E8EDFD;
+    --fu-token: #E8EDFD;
+    --fu-token-edge: #3049D2;
+    --fu-token-text: #3049D2;
+    --fu-bar-out: #C1C8F1;
     --fu-on-accent: #FFFFFF;
     --fu-on-accent-mute: #E1E7FF;
     --fu-link-line: rgb(52 80 216/0.4);
     --fu-wash: rgb(29 27 24/0.05);
     --fu-hover-wash: rgb(29 27 24/0.07);
-    --fu-field-wash: rgb(29 27 24/0.02);
+    --fu-field-wash: #FFFFFF;
     --fu-track: rgb(29 27 24/0.07);
     --fu-pill: rgb(29 27 24/0.06);
     --fu-pill-hover: rgb(29 27 24/0.1);
+    --fu-pill-square: rgb(29 27 24/0.07);
     --fu-row-active: rgb(29 27 24/0.05);
     --fu-row-hover: rgb(29 27 24/0.06);
     --fu-row-press: rgb(29 27 24/0.09);
@@ -190,8 +217,8 @@
     --fu-handle: #FFFFFF;
     --fu-handle-edge: rgb(29 27 24/0.55);
     --fu-rim: rgb(255 255 255/0.7);
-    --fu-shadow: rgb(48 38 26/0.12);
-    --fu-shadow-deep: rgb(48 38 26/0.16);
+    --fu-shadow: rgb(36 36 33/0.12);
+    --fu-shadow-deep: rgb(36 36 33/0.16);
     --fu-scrim: rgb(29 27 24/0.32);
     --fu-glow-blue: #4C6BFF;
     --fu-glow-violet: #8A6CFF;
@@ -199,12 +226,12 @@
     --fu-glow-amber: #F29358;
     --fu-glow-teal: #1FC2AD;
     --fu-selection: #CBD6FF;
-    --fu-selection-text: #1D1B18;
-    --fu-backdrop: #E6E2DB;
-    --fu-backdrop-near: #D8D3CA;
-    --fu-switch-off: #878178;
+    --fu-selection-text: #1B1B19;
+    --fu-backdrop: #E6E6E3;
+    --fu-backdrop-near: #D8D8D4;
+    --fu-switch-off: #82827E;
     --fu-knob-edge: rgb(29 27 24/0.55);
-    --fu-knob-shadow: rgb(48 38 26/0.12);
+    --fu-knob-shadow: rgb(36 36 33/0.12);
 
     color-scheme: light;
   }
@@ -319,6 +346,40 @@ body {
 }
 .fu-code pre:focus-visible {
   outline-offset: -2px;
+}
+
+/* Slim scrollbars, the look of SCROLL in registry/lib/scroll.ts, on every .fu-scroll box (the page keeps the system bar): a 6px
+   rounded thumb on a clear track, 12px off each end of a box so it clears the rounded corners. Chromium ignores the
+   ::-webkit-scrollbar parts once scrollbar-width or scrollbar-color is set, so only Firefox, which has no parts, gets those. */
+.fu-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.fu-scroll::-webkit-scrollbar-track,
+.fu-scroll::-webkit-scrollbar-corner {
+  background-color: transparent;
+}
+.fu-scroll::-webkit-scrollbar-track:vertical {
+  margin-block: 12px;
+}
+.fu-scroll::-webkit-scrollbar-track:horizontal {
+  margin-inline: 12px;
+}
+.fu-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-color: var(--fu-line);
+  background-clip: padding-box;
+}
+.fu-scroll::-webkit-scrollbar-thumb:hover,
+.fu-scroll::-webkit-scrollbar-thumb:active {
+  background-color: var(--fu-control-border);
+}
+@supports not selector(::-webkit-scrollbar) {
+  .fu-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--fu-line) transparent;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

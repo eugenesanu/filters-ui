@@ -2,7 +2,7 @@
 
 import { useCallback, useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent } from "react";
 import { cn } from "../lib/cn";
-import { readingKey } from "../lib/direction";
+import { isRtl, readingKey } from "../lib/direction";
 import { XIcon } from "../ui/icons";
 import { TextSwap } from "../ui/text-swap";
 
@@ -73,7 +73,7 @@ export function AppliedFilters({
   const boxes = useRef(new Map<string, Box>());
   const nodes = useRef(new Map<string, HTMLElement>());
   const values = useRef(new Map<string, string>());
-  const last = useRef<{ width: number; height: number } | null>(null);
+  const last = useRef<{ width: number; height: number; rtl: boolean } | null>(null);
   const focusNext = useRef<{ index: number; from: string } | null>(null);
   const [said, setSaid] = useState("");
   const showClear = Boolean(onClearAll) && filters.length > 1;
@@ -115,7 +115,9 @@ export function AppliedFilters({
     const row = list.current;
     if (!wrap || !row) return;
     const width = row.offsetWidth;
-    const animate = last.current !== null && last.current.width === width && !reducedMotion();
+    const rtl = isRtl(row);
+    // A new width or a direction flip moves every chip at once; that is measured again, not played as a move.
+    const animate = last.current !== null && last.current.width === width && last.current.rtl === rtl && !reducedMotion();
     const seen = new Set<string>();
     const entering: HTMLElement[] = [];
     const changed: HTMLElement[] = [];
@@ -191,7 +193,7 @@ export function AppliedFilters({
       const ease = wrap.animate([{ height: `${from}px` }, { height: `${height}px` }], { duration: 420, delay: wait, easing: EASE, fill: "backwards" });
       ease.id = "height";
     }
-    last.current = { width, height };
+    last.current = { width, height, rtl };
   }, [ghost]);
 
   // A value that changes width (its text swaps over ~300ms) moves the chips after it too.

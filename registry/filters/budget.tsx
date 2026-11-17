@@ -64,7 +64,7 @@ type Way = "total" | "monthly";
 
 /**
  * Two radio cards: Total price holds a price chart with typed fields; Monthly payment takes an amount, a term and a down
- * payment and turns them into a top price, drawn as a line across the same bars. The picked card opens; the other folds.
+ * payment and turns them into a top price, marked with a pin on the same bars. The picked card opens; the other folds.
  */
 export function Budget({
   value,
@@ -311,57 +311,68 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
   );
 }
 
-// The price bars with the top price drawn across them. When it moves, the bars it passes light or dim one after another.
+// The price bars, lit up to the top price and dim past it, with a pin standing at the cut. The bars are drawn twice,
+// lit and dim, each clipped at the cut, so the bar that holds the top price splits exactly there; the clips and the pin
+// glide together, so when the top price moves the light runs along the bars with it.
 function CeilingBars({ buckets, min, max, ceiling }: { buckets?: readonly number[]; min: number; max: number; ceiling: number | null }) {
-  const [last, setLast] = useState<{ now: number | null; before: number | null }>({ now: ceiling, before: ceiling });
-  if (last.now !== ceiling) setLast({ now: ceiling, before: last.now });
   if (!buckets?.length) return null;
 
   const span = max - min || 1;
-  const at = (price: number | null) => (price === null ? 0 : Math.min(1, Math.max(0, (price - min) / span)));
-  const fraction = at(ceiling);
-  const from = at(last.before);
+  const fraction = ceiling === null ? 0 : Math.min(1, Math.max(0, (ceiling - min) / span));
   const tallest = Math.max(1, ...buckets);
-  const n = buckets.length;
-
-  return (
-    <div aria-hidden="true" className="relative mt-2">
-      <div className="flex h-12 items-end gap-[2px]">
-        {buckets.map((count, i) => {
-          const cover = Math.min(1, Math.max(0, fraction * n - i));
-          const lit = cover > 0 ? Math.round((0.35 + 0.65 * cover) * 100) : 0;
-          // A bar waits for the line to reach it, so the light runs along the bars instead of switching at once.
-          const centre = (i + 0.5) / n;
-          const travel = Math.abs(centre - from) / Math.max(0.05, Math.abs(fraction - from));
-          const delay = Math.round(Math.min(1, travel) * 360);
-          return (
+  // The lit side runs into the pin; the dim side starts a little past it, so the pin stands clear of the dim bars.
+  const gap = ceiling === null ? 0 : 2.5;
+  const layer = (lit: boolean) => {
+    const fill = lit ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-bar-out,#4A4A4A)]";
+    return (
+      <div
+        className={cn(
+          "transition-[clip-path] duration-[480ms] motion-reduce:transition-none",
+          SMOOTH,
+          lit
+            ? "absolute inset-0 [clip-path:inset(0_var(--past)_0_0)] rtl:[clip-path:inset(0_0_0_var(--past))]"
+            : "[clip-path:inset(0_0_0_var(--upto))] rtl:[clip-path:inset(0_var(--upto)_0_0)]",
+        )}
+      >
+        <div className="flex h-12 items-end gap-[2px]">
+          {buckets.map((count, i) => (
             <span
               key={i}
-              className="min-w-0 flex-1 rounded-t-[3px] transition-[background-color] duration-[260ms] motion-reduce:transition-none"
-              style={{
-                height: `${Math.max(count ? 8 : 3, (count / tallest) * 100)}%`,
-                backgroundColor: `color-mix(in srgb, var(--fu-accent-soft,#8FAAFF) ${lit}%, var(--fu-rail,#4A4A4A))`,
-                transitionDelay: `${delay}ms`,
-              }}
+              className={cn("min-w-0 flex-1 rounded-t-[3px]", fill)}
+              style={{ height: `${Math.max(count ? 8 : 3, (count / tallest) * 100)}%` }}
             />
-          );
-        })}
+          ))}
+        </div>
+        <div className={cn("h-1 rounded-[2px]", fill)} />
       </div>
+    );
+  };
+
+  return (
+    <div
+      aria-hidden="true"
+      className="relative mt-3"
+      style={
+        {
+          "--upto": `calc(${fraction * 100}% + ${gap}px)`,
+          "--past": `${(1 - fraction) * 100}%`,
+        } as CSSProperties
+      }
+    >
+      {layer(false)}
+      {layer(true)}
       <span
         className={cn(
-          "pointer-events-none absolute -top-1 bottom-0 w-0.5 -translate-x-1/2 rtl:translate-x-1/2 rounded-full bg-[var(--fu-accent-pale,#D1DDFF)]",
+          "pointer-events-none absolute -top-1.5 bottom-0 w-0.5 -translate-x-1/2 rtl:translate-x-1/2 rounded-full bg-[var(--fu-accent-soft,#8FAAFF)]",
+          "forced-colors:bg-[Highlight] forced-colors:[forced-color-adjust:none]",
           "transition-[left,right,opacity] duration-[480ms] motion-reduce:transition-none",
           SMOOTH,
           ceiling === null && "opacity-0",
         )}
-        style={{ insetInlineStart: `${fraction * 100}%` } as CSSProperties}
-      />
-      <div className="h-1 rounded-[2px] bg-[var(--fu-rail,#4A4A4A)]">
-        <div
-          className={cn("h-full rounded-[2px] bg-[var(--fu-accent-soft,#8FAAFF)] transition-[width] duration-[480ms] motion-reduce:transition-none", SMOOTH)}
-          style={{ width: `${fraction * 100}%` }}
-        />
-      </div>
+        style={{ insetInlineStart: `${fraction * 100}%` }}
+      >
+        <span className="absolute top-0 left-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-inherit" />
+      </span>
     </div>
   );
 }

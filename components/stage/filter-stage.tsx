@@ -8,7 +8,7 @@ import { FilterCard } from "@/registry/ui/filter-card";
 import { TextSwap } from "@/registry/ui/text-swap";
 import { CarFilterBody } from "@/components/stage/car-filter";
 import { exampleOf } from "@/components/stage/example-of";
-import { carVocabulary } from "@/registry/demo/cars-vocabulary";
+import { carVocabulary, carVocabularyFor } from "@/registry/demo/cars-vocabulary";
 import { SentenceSearch } from "@/registry/filters/sentence-search";
 import { readSentence } from "@/registry/lib/sentence";
 import { SENTENCE_PRESET } from "@/components/tile/presets";
@@ -238,7 +238,7 @@ function SentenceStage() {
       <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 sm:pt-[clamp(8px,6vh,72px)] max-sm:[&_[data-state=open]:has(>[role=listbox])]:static">
         <SentenceSearch
           key={round}
-          vocabulary={carVocabulary}
+          vocabulary={carVocabularyFor(locale)}
           items={CARS}
           value={filters}
           onChange={setFilters}

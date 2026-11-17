@@ -217,10 +217,14 @@ export function RangeChart({
   // While a handle is dragged, the bars it passes rise a little, in a soft wave centred on the handle.
   const bumpAt = dragging && drag && buckets?.length ? drag.fraction * buckets.length - 0.5 : null;
   const bumpOf = (i: number) => {
-    if (bumpAt === null) return 1;
+    if (bumpAt === null) return 0;
     const near = Math.max(0, 1 - Math.abs(i - bumpAt) / 2.4);
-    return 1 + 0.22 * near * near;
+    return near * near;
   };
+  // The rise is a few fixed pixels plus a small share of the bar, so a short bar shows it as clearly as a tall one.
+  // It grows the height rather than scaling the bar, which would squash the rounded top while it plays.
+  const heightOf = (share: number, bump: number) =>
+    `calc(${share}% + ${bump} * var(--lift, 1) * (5px + ${0.13 * share}%))`;
   const lowShown = single ? 0 : shown.low;
   const handles: Handle[] = single ? ["high"] : ["low", "high"];
   const columns = buckets?.length || PLACEHOLDER_BARS;
@@ -253,7 +257,7 @@ export function RangeChart({
         <div
           data-bars
           aria-hidden
-          className="mx-[10px] flex h-14 items-end gap-[2px]"
+          className="mx-[10px] flex h-14 items-end gap-[2px] motion-reduce:[--lift:0]"
           // Many bars close their gaps up, a 2px gap at most and a quarter of a bar's slot at least, so bars never vanish.
           style={columns > 40 ? { gap: `min(2px, calc(100% / ${columns * 4}))` } : undefined}
         >
@@ -281,14 +285,12 @@ export function RangeChart({
                     className={cn(
                       "min-w-0 rounded-t-[3px]",
                       narrow ? "flex-none" : "flex-1",
-                      "origin-bottom [scale:1_var(--bump,1)] motion-reduce:[scale:none]",
-                      "transition-[height,background-color,scale] duration-[420ms,200ms,360ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                      "group-data-[dragging]/range:duration-[420ms,0ms,140ms]",
+                      "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                      "group-data-[dragging]/range:duration-[140ms,0ms]",
                     )}
                     style={{
-                      "--bump": bumpOf(i),
-                      height: `${Math.max(count ? 8 : 3, (count / tallest) * 100)}%`,
-                      backgroundColor: `color-mix(in srgb, var(--fu-accent-soft,#8FAAFF) ${lit}%, var(--fu-rail,#4A4A4A))`,
+                      height: heightOf(Math.max(count ? 8 : 3, (count / tallest) * 100), bumpOf(i)),
+                      backgroundColor: `color-mix(in srgb, var(--fu-accent-soft,#8FAAFF) ${lit}%, var(--fu-bar-out,#4A4A4A))`,
                       // The bar a denser chart would draw: its slot plus one 2px gap, scaled, less the gap.
                       width: narrow ? `calc((100% + 2px) * ${barScale} - 2px)` : undefined,
                     } as CSSProperties}

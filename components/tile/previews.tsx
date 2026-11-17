@@ -67,11 +67,10 @@ const TILE_RULES: RuleSet = {
   items: [
     { id: "price", field: "price", op: "atMost", value: 45000 },
     { id: "fuel", field: "fuel", op: "anyOf", value: ["Hybrid"] },
-    { id: "year", field: "year", op: "atLeast", value: 2022 },
   ],
 };
 
-/** Three rules short enough to keep each value on one line at tile width, so the falling counts read as a funnel. */
+/** Two rules, so the whole set fits the tile and the falling count reads as a funnel. */
 function RulesPreview() {
   return <Rules fields={CAR_RULE_FIELDS} items={CARS} value={TILE_RULES} onChange={still} label="Car rules" countLabel={formatCarCount} />;
 }

@@ -2,10 +2,12 @@
 
 import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
+import type { StageProps } from "@/components/stage/stage-controls";
 
 // A tile with no car preset shows its own example. next/dynamic needs literal paths at module top level,
 // so every example is listed here; scripts/check-registry.mjs fails when an item's example is missing.
-const EXAMPLES: Record<string, ComponentType> = {
+// Typed with StageProps so an example whose props do not take the stage's (say locale as a number) fails to compile.
+const EXAMPLES: Record<string, ComponentType<StageProps>> = {
   "sentence-search": dynamic(() => import("@/registry/examples/sentence-search")),
   "range-histogram": dynamic(() => import("@/registry/examples/range-histogram")),
   "range-select": dynamic(() => import("@/registry/examples/range-select")),
@@ -34,6 +36,6 @@ const EXAMPLES: Record<string, ComponentType> = {
 
 const Missing = () => null;
 
-export function exampleOf(slug: string): ComponentType {
+export function exampleOf(slug: string): ComponentType<StageProps> {
   return EXAMPLES[slug] ?? Missing;
 }

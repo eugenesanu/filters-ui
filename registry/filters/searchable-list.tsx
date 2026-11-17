@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor, resultsLabel } from "../lib/format";
+import { SCROLL } from "../lib/scroll";
 import { CountPill } from "../ui/count-pill";
 import { CheckIcon, SearchIcon } from "../ui/icons";
 import { placeholderLabels, SkeletonText, useLoading } from "../ui/skeleton";
@@ -431,7 +432,7 @@ export function SearchableList({
             ref={scroller}
             id={listId}
             className={cn(
-              all && !panel && "max-h-80 scroll-py-7 overflow-y-auto overscroll-contain [scrollbar-color:var(--fu-line,#404040)_transparent] [scrollbar-width:thin]",
+              all && !panel && ["max-h-80 scroll-py-7 overflow-y-auto overscroll-contain", SCROLL],
             )}
             style={typed && !panel ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
           >

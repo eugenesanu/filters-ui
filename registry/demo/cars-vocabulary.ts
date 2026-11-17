@@ -7,16 +7,13 @@
 // "good in snow"). The reader in ../lib/sentence.ts knows none of it.
 // ---------------------------------------------------------------------------------------------------
 
+import { formatsFor, type Formats } from "../lib/format";
 import type { Facet, Rule, Term, Token, Vocabulary } from "../lib/sentence";
 import { BODIES, COLORS, COLOR_PAINTS, DRIVES, FUELS, MAKES, MODELS_OF, THIS_YEAR, type Car, type Color } from "./cars";
-import { EMPTY_CAR_FILTERS, carFacets, formatKm, type CarFilters, type MakePick } from "./cars-facets";
+import { EMPTY_CAR_FILTERS, carFacets, carFormats, type CarFilters, type MakePick } from "./cars-facets";
 
 type CarRule = Rule<Car, CarFilters>;
 type CarTerm = Term<CarFilters>;
-
-const integer = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-/** "$30k" for whole thousands, "$25,500" and "$950" otherwise. */
-const moneyShort = (value: number) => (value >= 1000 && value % 1000 === 0 ? `$${value / 1000}k` : `$${integer.format(value)}`);
 
 const pushed = <T,>(list: readonly T[], value: T) => (list.includes(value) ? [...list] : [...list, value]);
 const union = <T,>(a: readonly T[], b: readonly T[]) => [...new Set([...a, ...b])];
@@ -102,25 +99,74 @@ const YEAR_STEPS = [2, 4, 6, 8].map((back) => THIS_YEAR - back);
 /** Newest first. */
 const YEARS_BACK = Array.from({ length: 10 }, (_, i) => THIS_YEAR - i);
 
-function priceLabel(min: number | null, max: number | null) {
-  if (min !== null && max !== null) return `${moneyShort(min)} to ${moneyShort(max)}`;
-  if (max !== null) return `Under ${moneyShort(max)}`;
-  return min !== null ? `Over ${moneyShort(min)}` : null;
+/** How one locale writes the numbers in a phrase and reads them back, with the pattern parts that find them. */
+type Numerals = {
+  /** "$30k" for whole thousands, "$25,500" and "$950" otherwise; "30.000 $" in de-DE. */
+  money: (value: number) => string;
+  km: (value: number) => string;
+  plain: (value: number) => string;
+  /** A typed number: "30,000", or "30.000" in de-DE and "٣٠٬٠٠٠" in ar-EG. */
+  read: (digits: string) => number;
+  /** The locale's digits written as 0 to 9. */
+  latin: (text: string) => string;
+  /** One character of a typed number. */
+  num: string;
+  digit: string;
+  year: string;
+  /** The edges of a number, as \b is for 0 to 9. */
+  before: string;
+  after: string;
+};
+
+const inClass = (chars: string) => chars.replace(/[\\\]^-]/g, "\\$&");
+
+function numeralsOf(f: Formats): Numerals {
+  const latin = f.digits === "0123456789";
+  const own = latin ? "" : f.digits;
+  // Group marks a typed number may carry besides the comma, as "." in de-DE.
+  const marks = [".", "'", "’", "٬", "،"].filter((mark) => f.readNumber(`1${mark}000`) === 1000).join("");
+  const digitOf = (i: number) => (latin ? String(i) : `[${i}${f.digits[i]}]`);
+  const digit = latin ? "\\d" : `[\\d${own}]`;
+  return {
+    money: (value) => (value >= 1000 && value < 1e6 && value % 1000 === 0 ? f.priceShort(value) : f.price(value)),
+    km: carFormats(f.locale).km,
+    plain: f.plain,
+    read: (digits) => f.readNumber(digits) ?? 0,
+    latin: (text) => {
+      let out = text;
+      for (let i = 0; i < 10; i++) out = out.split(f.digits[i]).join(String(i));
+      return out;
+    },
+    num: `[\\d,${inClass(marks + own)}]`,
+    digit,
+    year: `(${digitOf(2)}${digitOf(0)}[012${own.slice(0, 3)}]${digit})`,
+    before: latin ? "\\b" : `(?<![\\w${own}])`,
+    after: latin ? "\\b" : `(?![\\w${own}])`,
+  };
 }
 
-function yearLabel(min: number | null, max: number | null) {
-  if (min !== null && min === max) return String(min);
-  if (min !== null && max !== null) return `${min} to ${max}`;
-  if (min !== null) return `${min} or newer`;
-  return max !== null ? `${max} or older` : null;
+function priceLabel(x: Numerals, min: number | null, max: number | null) {
+  if (min !== null && max !== null) return `${x.money(min)} to ${x.money(max)}`;
+  if (max !== null) return `Under ${x.money(max)}`;
+  return min !== null ? `Over ${x.money(min)}` : null;
 }
 
-const yearTerm = (yearMin: number | null, yearMax: number | null): CarTerm =>
-  term(`year-${yearMin}-${yearMax}`, yearLabel(yearMin, yearMax) ?? "", "Year", (f) => ({ ...f, yearMin, yearMax }));
-const priceTerm = (priceMin: number | null, priceMax: number | null): CarTerm =>
-  term(`price-${priceMin}-${priceMax}`, priceLabel(priceMin, priceMax) ?? "", "Price", (f) => ({ ...f, priceMin, priceMax }));
-const kmTerm = (kmMax: number): CarTerm => term(`km-${kmMax}`, `Under ${formatKm(kmMax)}`, "Kilometres", (f) => ({ ...f, kmMax }));
-const seatsTerm = (seatsMin: number): CarTerm => term(`seats-${seatsMin}`, `${seatsMin}+ seats`, "Seats", (f) => ({ ...f, seatsMin }));
+function yearLabel(x: Numerals, min: number | null, max: number | null) {
+  if (min !== null && min === max) return x.plain(min);
+  if (min !== null && max !== null) return `${x.plain(min)} to ${x.plain(max)}`;
+  if (min !== null) return `${x.plain(min)} or newer`;
+  return max !== null ? `${x.plain(max)} or older` : null;
+}
+
+const kmLabel = (x: Numerals, kmMax: number) => `Under ${x.km(kmMax)}`;
+const seatsLabel = (x: Numerals, seatsMin: number) => `${x.plain(seatsMin)}+ seats`;
+
+const yearTerm = (x: Numerals, yearMin: number | null, yearMax: number | null): CarTerm =>
+  term(`year-${yearMin}-${yearMax}`, yearLabel(x, yearMin, yearMax) ?? "", "Year", (f) => ({ ...f, yearMin, yearMax }));
+const priceTerm = (x: Numerals, priceMin: number | null, priceMax: number | null): CarTerm =>
+  term(`price-${priceMin}-${priceMax}`, priceLabel(x, priceMin, priceMax) ?? "", "Price", (f) => ({ ...f, priceMin, priceMax }));
+const kmTerm = (x: Numerals, kmMax: number): CarTerm => term(`km-${kmMax}`, kmLabel(x, kmMax), "Kilometres", (f) => ({ ...f, kmMax }));
+const seatsTerm = (x: Numerals, seatsMin: number): CarTerm => term(`seats-${seatsMin}`, seatsLabel(x, seatsMin), "Seats", (f) => ({ ...f, seatsMin }));
 
 const matching = (cars: readonly Car[], f: CarFilters) => carFacets.filter(cars, f);
 
@@ -134,63 +180,63 @@ function priceSteps(f: CarFilters, cars: readonly Car[]) {
 }
 
 /** "50k" is 50,000. */
-const plain = (digits: string, k?: string) => Number(digits.replace(/,/g, "")) * (k ? 1000 : 1);
+const plain = (x: Numerals, digits: string, k?: string) => x.read(digits) * (k ? 1000 : 1);
 
 /** "30k" and "30" mean $30,000; "30000" means itself. */
-const dollars = (digits: string, k?: string) => {
-  const value = Number(digits.replace(/,/g, ""));
+const dollars = (x: Numerals, digits: string, k?: string) => {
+  const value = x.read(digits);
   return k || value < 1000 ? value * 1000 : value;
 };
 
 /** Suggestions for a typed number; each shape of number means something of its own. */
-function numberTerms(typed: string, f: CarFilters, cars: readonly Car[]): CarTerm[] {
+function numberTerms(x: Numerals, typed: string, f: CarFilters, cars: readonly Car[]): CarTerm[] {
+  typed = x.latin(typed);
   const years = typed.match(/^(20[012]\d)\s*(?:-|to)\s*(20[012]\d)?$/);
   if (years) {
     const from = Number(years[1]);
     const ends = years[2] ? [Number(years[2])] : [from + 2, from + 4, from + 6].filter((year) => year <= THIS_YEAR);
-    return ends.filter((end) => end >= from).map((end) => yearTerm(from, end));
+    return ends.filter((end) => end >= from).map((end) => yearTerm(x, from, end));
   }
   if (/^20[012]\d$/.test(typed)) {
     const year = Number(typed);
-    return [yearTerm(year, year), yearTerm(year, null), yearTerm(null, year)];
+    return [yearTerm(x, year, year), yearTerm(x, year, null), yearTerm(x, null, year)];
   }
   if (/^20[012]?$/.test(typed)) {
     return YEARS_BACK.filter((year) => String(year).startsWith(typed) && year % 2 === 0)
       .slice(0, 4)
-      .map((year) => yearTerm(year, null));
+      .map((year) => yearTerm(x, year, null));
   }
 
-  const between = typed.match(/^\$?\s*(\d[\d,]*)\s*(k)?\s*(?:-|to)\s*\$?\s*(\d[\d,]*)?\s*(k)?$/);
+  const between = typed.match(new RegExp(`^\\$?\\s*(\\d${x.num}*)\\s*(k)?\\s*(?:-|to)\\s*\\$?\\s*(\\d${x.num}*)?\\s*(k)?$`));
   if (between) {
-    const from = dollars(between[1], between[2]);
-    const ends = between[3] ? [dollars(between[3], between[4])] : [from + 5000, from + 10000, from + 20000];
-    return ends.filter((end) => end > from).map((end) => priceTerm(from, end));
+    const from = dollars(x, between[1], between[2]);
+    const ends = between[3] ? [dollars(x, between[3], between[4])] : [from + 5000, from + 10000, from + 20000];
+    return ends.filter((end) => end > from).map((end) => priceTerm(x, from, end));
   }
 
   const side = typed.match(/^(under|below|max|up to|less than|over|above|more than|min)\b\s*/);
   const over = side !== null && /over|above|more|min/.test(side[1]);
   const rest = side ? typed.slice(side[0].length) : typed;
-  if (side && !rest) return over ? priceSteps(f, cars).map((min) => priceTerm(min, null)) : [];
-  if (rest === "$") return priceSteps(f, cars).map((max) => priceTerm(null, max));
+  if (side && !rest) return over ? priceSteps(f, cars).map((min) => priceTerm(x, min, null)) : [];
+  if (rest === "$") return priceSteps(f, cars).map((max) => priceTerm(x, null, max));
 
-  const km = rest.match(/^(\d[\d,]*)\s*(k)?\s*(?:km|kms|kilom\w*)$/);
-  if (km) return [kmTerm(plain(km[1], km[2]))];
+  const km = rest.match(new RegExp(`^(\\d${x.num}*)\\s*(k)?\\s*(?:km|kms|kilom\\w*)$`));
+  if (km) return [kmTerm(x, plain(x, km[1], km[2]))];
 
-  const amount = rest.match(/^\$?\s*(\d[\d,]*)\s*(k)?$/);
+  const amount = rest.match(new RegExp(`^\\$?\\s*(\\d${x.num}*)\\s*(k)?$`));
   if (!amount) return [];
   const bare = !side && !amount[2] && !rest.includes("$");
-  const digits = Number(amount[1].replace(/,/g, ""));
-  if (bare && digits < 10) return digits >= 2 ? [seatsTerm(digits)] : [];
-  const value = dollars(amount[1], amount[2]);
-  if (over) return [priceTerm(value, null)];
-  if (side) return [priceTerm(null, value), kmTerm(value)];
-  return [priceTerm(null, value), priceTerm(value, null), kmTerm(value)];
+  const digits = x.read(amount[1]);
+  if (bare && digits < 10) return digits >= 2 ? [seatsTerm(x, digits)] : [];
+  const value = dollars(x, amount[1], amount[2]);
+  if (over) return [priceTerm(x, value, null)];
+  if (side) return [priceTerm(x, null, value), kmTerm(x, value)];
+  return [priceTerm(x, null, value), priceTerm(x, value, null), kmTerm(x, value)];
 }
 
 // ----- Phrases ---------------------------------------------------------------------------------------
 
 const KM = "(?:km|kms|kilomet\\w+)";
-const YEAR = "(20[012]\\d)";
 /** "30k" and "30 grand" are both 30,000. */
 const K = "(k|grand)";
 const TO = "(?:to|-|–|—)";
@@ -214,32 +260,45 @@ function cheapFor(f: CarFilters, cars: readonly Car[]) {
 }
 
 /** Read in this order, before any name. A phrase's words are used up once it matches. */
-const RULES: CarRule[] = [
-  // Years first, so "from 2019" and "2019 to 2021" are not read as prices.
-  {
-    pattern: new RegExp(`(?:\\bbetween\\s+)?(?<!\\$)\\b${YEAR}\\s*(?:to|-|–|—|or|and)\\s*${YEAR}\\b(?!\\s*k\\b)`),
-    read: (f, m) => ({ ...f, yearMin: Math.min(Number(m[1]), Number(m[2])), yearMax: Math.max(Number(m[1]), Number(m[2])) }),
-  },
-  { pattern: new RegExp(`\\b(?:from|since)\\s+${YEAR}\\b(?!\\s*k\\b)`), read: (f, m) => ({ ...f, yearMin: Number(m[1]) }) },
-  { pattern: new RegExp(`\\b(?:under|below|less than)\\s+([\\d,]+)\\s*(k)?\\s*${KM}\\b`), read: (f, m) => ({ ...f, kmMax: plain(m[1], m[2]) }) },
-  {
-    pattern: new RegExp(
-      `\\$?\\s*\\b([\\d,]+)\\s*${K}?\\s*${TO}\\s*\\$?\\s*([\\d,]+)\\s*${K}\\b(?!\\s*${KM})|\\$\\s*([\\d,]+)\\s*${K}?\\s*${TO}\\s*\\$?\\s*([\\d,]+)\\s*${K}?|\\bbetween\\s+\\$?\\s*([\\d,]+)\\s*${K}?\\s*and\\s+\\$?\\s*([\\d,]+)\\s*${K}?\\b`,
-    ),
-    read: (f, m) => {
-      const at = m[1] !== undefined ? 1 : m[5] !== undefined ? 5 : 9;
-      return { ...f, priceMin: dollars(m[at], m[at + 1]), priceMax: dollars(m[at + 2], m[at + 3]) };
+function rulesOf(x: Numerals): CarRule[] {
+  const { num: N, year: YEAR, before: B, after: A } = x;
+  return [
+    // Years first, so "from 2019" and "2019 to 2021" are not read as prices.
+    {
+      pattern: new RegExp(`(?:\\bbetween\\s+)?(?<!\\$)${B}${YEAR}\\s*(?:to|-|–|—|or|and)\\s*${YEAR}${A}(?!\\s*k\\b)`),
+      read: (f, m) => ({ ...f, yearMin: Math.min(x.read(m[1]), x.read(m[2])), yearMax: Math.max(x.read(m[1]), x.read(m[2])) }),
     },
-  },
-  { pattern: new RegExp(`\\b(?:under|below|less than|max|up to|budget(?: of)?)\\s+\\$?\\s*([\\d,]+)\\s*${K}?\\b${NOT_PRICE}`), read: (f, m) => withPrice(f, null, dollars(m[1], m[2])) },
-  { pattern: new RegExp(`\\b(?:over|above|more than|from)\\s+\\$?\\s*([\\d,]+)\\s*${K}?\\b${NOT_PRICE}`), read: (f, m) => withPrice(f, dollars(m[1], m[2]), null) },
-  // A lone "$30k" or "30k" is a budget.
-  { pattern: new RegExp(`(?:\\$\\s*([\\d,]+)\\s*${K}?|\\b([\\d,]+)\\s*${K})\\b(?!\\s*(?:${KM}|miles?))`), read: (f, m) => withPrice(f, null, m[1] !== undefined ? dollars(m[1], m[2]) : dollars(m[3], m[4])) },
-  { pattern: new RegExp(`\\b${YEAR}\\s*(?:or|and)\\s*(?:older|earlier)\\b`), read: (f, m) => ({ ...f, yearMax: Number(m[1]) }) },
-  { pattern: new RegExp(`\\b(?:older than|before)\\s+${YEAR}\\b`), read: (f, m) => ({ ...f, yearMax: Number(m[1]) - 1 }) },
-  { pattern: new RegExp(`\\b${YEAR}(?:\\s*\\+|\\s*(?:or|and)\\s+(?:newer|later|up)\\b|\\s+(?:and\\s+)?(?:newer|later|up)\\b)`), read: (f, m) => ({ ...f, yearMin: Number(m[1]) }) },
-  { pattern: new RegExp(`\\b(?:newer than|after)\\s+${YEAR}\\b`), read: (f, m) => ({ ...f, yearMin: Number(m[1]) + 1 }) },
-  { pattern: new RegExp(`\\b${YEAR}\\b`), read: (f, m) => ({ ...f, yearMin: Number(m[1]), yearMax: Number(m[1]) }) },
+    { pattern: new RegExp(`\\b(?:from|since)\\s+${YEAR}${A}(?!\\s*k\\b)`), read: (f, m) => ({ ...f, yearMin: x.read(m[1]) }) },
+    { pattern: new RegExp(`\\b(?:under|below|less than)\\s+(${N}+)\\s*(k)?\\s*${KM}\\b`), read: (f, m) => ({ ...f, kmMax: plain(x, m[1], m[2]) }) },
+    {
+      pattern: new RegExp(
+        `\\$?\\s*${B}(${N}+)\\s*${K}?\\s*${TO}\\s*\\$?\\s*(${N}+)\\s*${K}\\b(?!\\s*${KM})|\\$\\s*(${N}+)\\s*${K}?\\s*${TO}\\s*\\$?\\s*(${N}+)\\s*${K}?|\\bbetween\\s+\\$?\\s*(${N}+)\\s*${K}?\\s*and\\s+\\$?\\s*(${N}+)\\s*${K}?${A}`,
+      ),
+      read: (f, m) => {
+        const at = m[1] !== undefined ? 1 : m[5] !== undefined ? 5 : 9;
+        return { ...f, priceMin: dollars(x, m[at], m[at + 1]), priceMax: dollars(x, m[at + 2], m[at + 3]) };
+      },
+    },
+    { pattern: new RegExp(`\\b(?:under|below|less than|max|up to|budget(?: of)?)\\s+\\$?\\s*(${N}+)\\s*${K}?${A}${NOT_PRICE}`), read: (f, m) => withPrice(f, null, dollars(x, m[1], m[2])) },
+    { pattern: new RegExp(`\\b(?:over|above|more than|from)\\s+\\$?\\s*(${N}+)\\s*${K}?${A}${NOT_PRICE}`), read: (f, m) => withPrice(f, dollars(x, m[1], m[2]), null) },
+    // A lone "$30k" or "30k" is a budget.
+    { pattern: new RegExp(`(?:\\$\\s*(${N}+)\\s*${K}?|${B}(${N}+)\\s*${K})${A}(?!\\s*(?:${KM}|miles?))`), read: (f, m) => withPrice(f, null, m[1] !== undefined ? dollars(x, m[1], m[2]) : dollars(x, m[3], m[4])) },
+    { pattern: new RegExp(`${B}${YEAR}\\s*(?:or|and)\\s*(?:older|earlier)\\b`), read: (f, m) => ({ ...f, yearMax: x.read(m[1]) }) },
+    { pattern: new RegExp(`\\b(?:older than|before)\\s+${YEAR}${A}`), read: (f, m) => ({ ...f, yearMax: x.read(m[1]) - 1 }) },
+    { pattern: new RegExp(`${B}${YEAR}(?:\\s*\\+|\\s*(?:or|and)\\s+(?:newer|later|up)\\b|\\s+(?:and\\s+)?(?:newer|later|up)\\b)`), read: (f, m) => ({ ...f, yearMin: x.read(m[1]) }) },
+    { pattern: new RegExp(`\\b(?:newer than|after)\\s+${YEAR}${A}`), read: (f, m) => ({ ...f, yearMin: x.read(m[1]) + 1 }) },
+    { pattern: new RegExp(`${B}${YEAR}${A}`), read: (f, m) => ({ ...f, yearMin: x.read(m[1]), yearMax: x.read(m[1]) }) },
+    ...PLAIN_RULES.slice(0, 3),
+    {
+      pattern: new RegExp(`${B}(${x.digit}|${Object.keys(SEAT_WORDS).join("|")})\\s*-?\\s*(?:seats?|seaters?|passengers?)\\b`),
+      read: (f, m) => ({ ...f, seatsMin: SEAT_WORDS[m[1]] ?? x.read(m[1]) }),
+    },
+    ...PLAIN_RULES.slice(3),
+  ];
+}
+
+/** The phrases with no number to read, the same in every locale. */
+const PLAIN_RULES: CarRule[] = [
   // Everyday words for what a car is good at. Read before the names, since "good on gas" also says gas.
   { pattern: /\b(?:3|three|third|3rd)[- ]?rows?(?:\s+(?:seating|seats?))?\b/g, read: (f) => ({ ...f, seatsMin: 6 }) },
   {
@@ -247,10 +306,6 @@ const RULES: CarRule[] = [
     read: (f) => ({ ...f, fuels: union(f.fuels, ["Hybrid", "Plug-in hybrid", "Electric"]) }),
   },
   { pattern: /\b(?:good (?:in|for) (?:the )?snow|snowy?|winter)\b/g, read: (f) => ({ ...f, drives: union(f.drives, ["AWD", "4WD"]) }) },
-  {
-    pattern: new RegExp(`\\b(\\d|${Object.keys(SEAT_WORDS).join("|")})\\s*-?\\s*(?:seats?|seaters?|passengers?)\\b`),
-    read: (f, m) => ({ ...f, seatsMin: SEAT_WORDS[m[1]] ?? Number(m[1]) }),
-  },
   { pattern: /\blow[- ]?(?:km|kms|kilomet\w+|mileage|miles)\b/g, read: (f) => ({ ...f, kmMax: f.kmMax ?? LOW_KM }) },
   // "family" guesses SUV and Minivan only when no body style is named anywhere in the sentence or set before.
   {
@@ -270,7 +325,7 @@ const RULES: CarRule[] = [
 
 const isSetList = (list: readonly unknown[]) => list.length > 0;
 
-const FACETS: Facet<Car, CarFilters>[] = [
+const facetsOf = (x: Numerals): Facet<Car, CarFilters>[] => [
   { title: "Make", words: ["make", "brand"], options: () => MAKE_TERMS, isSet: (f) => isSetList(f.makes) },
   {
     title: "Model",
@@ -283,14 +338,14 @@ const FACETS: Facet<Car, CarFilters>[] = [
   {
     title: "Year",
     words: ["year", "range", "newer"],
-    options: () => YEAR_STEPS.map((year) => yearTerm(year, null)),
+    options: () => YEAR_STEPS.map((year) => yearTerm(x, year, null)),
     isSet: (f) => f.yearMin !== null || f.yearMax !== null,
     stepped: true,
   },
   {
     title: "Price",
     words: ["price", "budget", "cost", "range", "under"],
-    options: (f, cars) => priceSteps(f, cars).map((max) => priceTerm(null, max)),
+    options: (f, cars) => priceSteps(f, cars).map((max) => priceTerm(x, null, max)),
     isSet: (f) => f.priceMin !== null || f.priceMax !== null,
     stepped: true,
   },
@@ -299,11 +354,11 @@ const FACETS: Facet<Car, CarFilters>[] = [
   {
     title: "Kilometres",
     words: ["km", "kms", "kilometres", "kilometers", "mileage", "odometer", "under"],
-    options: () => KM_LIMITS.map(kmTerm),
+    options: () => KM_LIMITS.map((kmMax) => kmTerm(x, kmMax)),
     isSet: (f) => f.kmMax !== null,
     stepped: true,
   },
-  { title: "Seats", words: ["seat", "seats"], options: () => SEAT_STEPS.map(seatsTerm), isSet: (f) => f.seatsMin !== null, stepped: true },
+  { title: "Seats", words: ["seat", "seats"], options: () => SEAT_STEPS.map((seatsMin) => seatsTerm(x, seatsMin)), isSet: (f) => f.seatsMin !== null, stepped: true },
 ];
 
 // ----- Tokens ----------------------------------------------------------------------------------------
@@ -311,7 +366,7 @@ const FACETS: Facet<Car, CarFilters>[] = [
 const without = <T,>(list: readonly T[], value: T) => list.filter((item) => item !== value);
 
 /** In the order a person would say them: "used white AWD Toyota RAV4, 2020 or newer, under $40k". */
-function tokensOf(f: CarFilters): Token<CarFilters>[] {
+function tokensOf(numerals: Numerals, f: CarFilters): Token<CarFilters>[] {
   const tokens: Token<CarFilters>[] = [];
   const add = (token: Token<CarFilters>) => tokens.push(token);
   if (f.condition) add({ key: `condition-${f.condition}`, label: f.condition, group: "Condition", clear: (x) => ({ ...x, condition: null }) });
@@ -338,11 +393,11 @@ function tokensOf(f: CarFilters): Token<CarFilters>[] {
   if (f.transmission) {
     add({ key: `transmission-${f.transmission}`, label: f.transmission, group: "Transmission", clear: (x) => ({ ...x, transmission: null }) });
   }
-  const year = yearLabel(f.yearMin, f.yearMax);
+  const year = yearLabel(numerals, f.yearMin, f.yearMax);
   if (year) add({ key: "year", label: year, group: "Year", clear: (x) => ({ ...x, yearMin: null, yearMax: null }) });
-  if (f.kmMax !== null) add({ key: "km", label: `Under ${formatKm(f.kmMax)}`, group: "Kilometres", clear: (x) => ({ ...x, kmMax: null }) });
-  if (f.seatsMin !== null) add({ key: "seats", label: `${f.seatsMin}+ seats`, group: "Seats", clear: (x) => ({ ...x, seatsMin: null }) });
-  const price = priceLabel(f.priceMin, f.priceMax);
+  if (f.kmMax !== null) add({ key: "km", label: kmLabel(numerals, f.kmMax), group: "Kilometres", clear: (x) => ({ ...x, kmMax: null }) });
+  if (f.seatsMin !== null) add({ key: "seats", label: seatsLabel(numerals, f.seatsMin), group: "Seats", clear: (x) => ({ ...x, seatsMin: null }) });
+  const price = priceLabel(numerals, f.priceMin, f.priceMax);
   if (price) add({ key: "price", label: price, group: "Price", clear: (x) => ({ ...x, priceMin: null, priceMax: null }) });
   return tokens;
 }
@@ -356,39 +411,58 @@ function mergeMakes(base: readonly MakePick[], extra: readonly MakePick[]) {
   return makes;
 }
 
-export const carVocabulary: Vocabulary<Car, CarFilters> = {
-  empty: EMPTY_CAR_FILTERS,
-  matches: (car, f) => carFacets.matches(car, f),
-  merge: (base, extra) => ({
-    ...withPrice(base, extra.priceMin, extra.priceMax),
-    condition: extra.condition ?? base.condition,
-    makes: mergeMakes(base.makes, extra.makes),
-    bodies: union(base.bodies, extra.bodies),
-    yearMin: extra.yearMin ?? base.yearMin,
-    yearMax: extra.yearMax ?? base.yearMax,
-    kmMax: extra.kmMax ?? base.kmMax,
-    fuels: union(base.fuels, extra.fuels),
-    drives: union(base.drives, extra.drives),
-    transmission: extra.transmission ?? base.transmission,
-    colors: union<Color>(base.colors, extra.colors),
-    seatsMin: extra.seatsMin ?? base.seatsMin,
-  }),
-  tokens: tokensOf,
-  terms: TERMS,
-  rules: RULES,
-  facets: FACETS,
-  firstUp: ["Make", "Body style"],
-  nextUp: ["Model", "Colour", "Year", "Price", "Body style", "Fuel", "Kilometres", "Seats"],
-  numbers: numberTerms,
-  filler:
-    "a an the any some my me i im we you want need looking look for find show get buy with and or of in on at least by to from under over than less more car cars vehicle vehicles one ones please that is it has have".split(
-      " ",
-    ),
-  notTypos:
-    "audio audit carry civil escapee fold fond food fore fork form fort highland mind mine mink mint modesty mustard outpace outrank pacific pacifier ramp rave ream roam rouge sentry shortage spoilage storage transient transmit wrangle wringer".split(
-      " ",
-    ),
-  stopNames: ["car", "cars", "vehicle", "vehicles"],
-  dropLast: ["Make", "Model"],
-  everything: "Every car",
-};
+function vocabularyOf(formats: Formats): Vocabulary<Car, CarFilters> {
+  const x = numeralsOf(formats);
+  return {
+    empty: EMPTY_CAR_FILTERS,
+    matches: (car, f) => carFacets.matches(car, f),
+    merge: (base, extra) => ({
+      ...withPrice(base, extra.priceMin, extra.priceMax),
+      condition: extra.condition ?? base.condition,
+      makes: mergeMakes(base.makes, extra.makes),
+      bodies: union(base.bodies, extra.bodies),
+      yearMin: extra.yearMin ?? base.yearMin,
+      yearMax: extra.yearMax ?? base.yearMax,
+      kmMax: extra.kmMax ?? base.kmMax,
+      fuels: union(base.fuels, extra.fuels),
+      drives: union(base.drives, extra.drives),
+      transmission: extra.transmission ?? base.transmission,
+      colors: union<Color>(base.colors, extra.colors),
+      seatsMin: extra.seatsMin ?? base.seatsMin,
+    }),
+    tokens: (state) => tokensOf(x, state),
+    terms: TERMS,
+    rules: rulesOf(x),
+    facets: facetsOf(x),
+    firstUp: ["Make", "Body style"],
+    nextUp: ["Model", "Colour", "Year", "Price", "Body style", "Fuel", "Kilometres", "Seats"],
+    numbers: (typed, state, items) => numberTerms(x, typed, state, items),
+    filler:
+      "a an the any some my me i im we you want need looking look for find show get buy with and or of in on at least by to from under over than less more car cars vehicle vehicles one ones please that is it has have".split(
+        " ",
+      ),
+    notTypos:
+      "audio audit carry civil escapee fold fond food fore fork form fort highland mind mine mink mint modesty mustard outpace outrank pacific pacifier ramp rave ream roam rouge sentry shortage spoilage storage transient transmit wrangle wringer".split(
+        " ",
+      ),
+    stopNames: ["car", "cars", "vehicle", "vehicles"],
+    dropLast: ["Make", "Model"],
+    everything: "Every car",
+  };
+}
+
+const vocabularies = new Map<string, Vocabulary<Car, CarFilters>>();
+
+/** The vocabulary with prices, kilometres, years and seats written and read the locale's way, e.g. "de-DE". Words stay English. */
+export function carVocabularyFor(locale?: string): Vocabulary<Car, CarFilters> {
+  const f = formatsFor(locale);
+  let known = vocabularies.get(f.locale);
+  if (!known) {
+    known = vocabularyOf(f);
+    vocabularies.set(f.locale, known);
+  }
+  return known;
+}
+
+/** The vocabulary in en-US. */
+export const carVocabulary = carVocabularyFor();

@@ -179,29 +179,49 @@ for (const item of ITEMS) {
   }
 }
 
-// Right to left: layout runs on start and end. A physical-direction class (ml-, pr-, left-, text-right, border-l,
-// rounded-tl…) or a physical style key in a style={{…}} object is a problem, unless a comment holding "physical:"
-// sits on that line or the line above and says why. A centred left-1/2 with -translate-x-1/2 on the same line passes.
-// Right-to-left overrides use Tailwind's rtl: variant. A :dir() selector is out: Tailwind's CSS step rewrites it into a
-// list of :lang() tests for older browsers, which ignores dir="rtl" altogether.
+// Right to left: layout runs on start and end. A physical-direction class (ml-, pr-(--x), left-, text-right, border-l,
+// rounded-tl, [margin-left:…]…) or a physical style key in a style={{…}} object is a problem, unless a comment holding
+// "physical:" sits on that line or the line above and says why. A centred left-1/2 with -translate-x-1/2 on the same
+// line passes. Right-to-left overrides use Tailwind's rtl: variant. A :dir() selector is out: Tailwind's CSS step
+// rewrites it into a list of :lang() tests for older browsers, which ignores dir="rtl" altogether.
+// Not covered, as it would need a parser: a style given as an expression (style={rtl ? {…} : {…}}), and a "//" inside
+// a string that does not follow a ":" (the rest of that line is read as a comment).
 const PHYSICAL_CLASS =
-  /(?<![\w\-[/.])(?:[\w\-[\]&:()=.>*@/~+%,#']+:)*(-?(?:m[lr]|p[lr]|scroll-[mp][lr])-(?:\d|\[|px\b|auto\b)[^\s"'`]*|-?(?:left|right)-(?:\d|\[|px\b|auto\b|full\b|\()[^\s"'`]*|rounded-(?:[lr]|tl|tr|bl|br)(?:-[^\s"'`]+)?|border-[lr](?:-[^\s"'`]+)?|text-(?:left|right)|float-(?:left|right)|clear-(?:left|right))(?![\w-])/g;
+  /(?<![\w\-[/.])(?:[\w\-[\]&:()=.>*@/~+%,#']+:)*(-?(?:m[lr]|p[lr]|scroll-[mp][lr])-(?:\d|\[|\(|px\b|auto\b)[^\s"'`]*|-?(?:left|right)-(?:\d|\[|px\b|auto\b|full\b|\()[^\s"'`]*|\[(?:(?:margin|padding|scroll-margin|scroll-padding|border)-(?:left|right)[\w-]*|border-(?:top|bottom)-(?:left|right)-radius|left|right):[^\s"'`]*|\[(?:text-align|float|clear):(?:left|right)\][^\s"'`]*|rounded-(?:[lr]|tl|tr|bl|br)(?:-[^\s"'`]+)?|border-[lr](?:-[^\s"'`]+)?|text-(?:left|right)|float-(?:left|right)|clear-(?:left|right))(?![\w-])/g;
 const DIR_PSEUDO = /:dir\(/;
-const PHYSICAL_STYLE = /style=\{\{[^}]*?\b(left|right|marginLeft|marginRight|paddingLeft|paddingRight|borderLeft\w*|borderRight\w*)\s*:/g;
+const PHYSICAL_KEY =
+  /\b(left|right|marginLeft|marginRight|paddingLeft|paddingRight|scroll(?:Margin|Padding)(?:Left|Right)|borderLeft\w*|borderRight\w*|border(?:Top|Bottom)(?:Left|Right)Radius)["']?\s*:|\b(?:textAlign|float|clear)\s*:\s*["'](left|right)["']|\[[^\]\n]*["'](left|right)["'][^\]\n]*\]\s*:/g;
+const withoutComments = (text) => text.replace(/(?<!:)\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
 for (const path of registryFiles) {
   if (path === "registry/items.ts") continue;
   const lines = readFileSync(join(ROOT, path), "utf8").split("\n");
-  lines.forEach((text, i) => {
-    const marked = /physical:/.test(text) || /physical:/.test(lines[i - 1] ?? "");
-    if (marked) return;
-    const code = text.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
-    for (const match of code.matchAll(PHYSICAL_CLASS)) {
-      if (/^left-1\/2$/.test(match[1]) && /-translate-x-1\/2/.test(code)) continue;
+  const marked = (i) => /physical:/.test(lines[i]) || /physical:/.test(lines[i - 1] ?? "");
+  const code = lines.map(withoutComments);
+  code.forEach((text, i) => {
+    if (marked(i)) return;
+    for (const match of text.matchAll(PHYSICAL_CLASS)) {
+      if (/^left-1\/2$/.test(match[1]) && /-translate-x-1\/2/.test(text)) continue;
       fail(`${path}:${i + 1}: physical-direction class "${match[0]}" (use ms-/me-/ps-/pe-/inset-s-/inset-e-/text-start/border-s/rounded-s…, or mark it with a "physical:" comment saying why)`);
     }
-    if (DIR_PSEUDO.test(code)) fail(`${path}:${i + 1}: ":dir(" is compiled to :lang() tests and ignores dir="rtl"; use the rtl: variant`);
-    for (const match of code.matchAll(PHYSICAL_STYLE)) fail(`${path}:${i + 1}: physical style key "${match[1]}" (use insetInlineStart, marginInlineEnd…, or a "physical:" comment)`);
+    if (DIR_PSEUDO.test(text)) fail(`${path}:${i + 1}: ":dir(" is compiled to :lang() tests and ignores dir="rtl"; use the rtl: variant`);
   });
+  // A style object may run over several lines: it is read whole, up to its closing braces.
+  const source = code.join("\n");
+  for (const open of source.matchAll(/style=\{\{/g)) {
+    let depth = 2;
+    let end = open.index + open[0].length;
+    while (depth && end < source.length) depth += { "{": 1, "}": -1 }[source[end++]] ?? 0;
+    const first = source.slice(0, open.index).split("\n").length - 1;
+    source
+      .slice(open.index, end)
+      .split("\n")
+      .forEach((text, k) => {
+        if (marked(first + k)) return;
+        for (const match of text.matchAll(PHYSICAL_KEY)) {
+          fail(`${path}:${first + k + 1}: physical style key "${match[1] ?? match[2] ?? match[3]}" (use insetInlineStart, marginInlineEnd…, or a "physical:" comment)`);
+        }
+      });
+  }
 }
 
 // Registry files stay portable: no site code, no theme classes, every colour a --fu-* token whose fallback is its dark value.

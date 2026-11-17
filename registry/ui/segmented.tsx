@@ -124,7 +124,7 @@ export function Segmented<V extends SegmentedValue>({
       aria-label={label}
       aria-disabled={disabled || undefined}
       onKeyDown={onKeyDown}
-      className={cn("@container relative flex h-10 rounded-[12px] bg-[var(--fu-surface-3,#2A2A2A)] p-1", disabled && "opacity-40", className)}
+      className={cn("@container relative flex h-10 rounded-[12px] bg-[var(--fu-segment-track,#2A2A2A)] p-1", disabled && "opacity-40", className)}
       style={style}
       {...props}
     >
@@ -138,7 +138,8 @@ export function Segmented<V extends SegmentedValue>({
         )}
         style={
           measuring
-            ? { [measured?.rtl ? "right" : "left"]: measured?.start, width: measured?.width }
+            ? // physical: the start offset is measured in script from the physical edge that is the start in this direction.
+              { [measured?.rtl ? "right" : "left"]: measured?.start, width: measured?.width }
             : { width: `calc((100% - 8px) / ${options.length})`, translate: `calc(var(--flip,1) * ${Math.max(index, 0) * 100}%) 0` }
         }
       />
@@ -163,9 +164,15 @@ export function Segmented<V extends SegmentedValue>({
               hug ? "flex-none px-2.5 @min-[340px]:flex-1 @min-[340px]:px-0.5" : "flex-1 px-0.5",
               fit === "content" && !hug && "min-w-fit",
               on && measuring && !measured && "bg-[var(--fu-thumb,#404040)]",
-              "transition-[color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
+              "transition-[color,background-color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
-              on ? "text-[var(--fu-text,#F8F5F1)]" : "text-[var(--fu-mute,#BDBDBD)] enabled:hover:text-[var(--fu-text,#F8F5F1)]",
+              // Hover and press fill with a faint thumb, so they preview the pick and still read on any track colour.
+              on
+                ? "text-[var(--fu-text,#F8F5F1)]"
+                : cn(
+                    "text-[var(--fu-mute,#BDBDBD)] enabled:hover:text-[var(--fu-text,#F8F5F1)]",
+                    "enabled:hover:bg-[color-mix(in_srgb,var(--fu-thumb,#404040)_40%,transparent)] enabled:active:bg-[color-mix(in_srgb,var(--fu-thumb,#404040)_70%,transparent)]",
+                  ),
               "disabled:cursor-default",
               off && !disabled && !on && "opacity-40",
             )}

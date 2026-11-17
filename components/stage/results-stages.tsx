@@ -98,7 +98,7 @@ const cheapestFirst = (cars: Car[]) => [...cars].sort((a, b) => a.price - b.pric
 function CarList({ cars, ref }: { cars: Car[]; ref?: Ref<HTMLUListElement> }) {
   const { locale } = useStage();
   const f = carFormats(locale);
-  const n = formatsFor(locale).number;
+  const year = formatsFor(locale).plain;
   return (
     <ul ref={ref} tabIndex={-1} aria-label="Cheapest results" className="rounded-[24px] border border-card-border bg-card p-2 outline-none">
       {cheapestFirst(cars).map((car) => (
@@ -108,8 +108,8 @@ function CarList({ cars, ref }: { cars: Car[]; ref?: Ref<HTMLUListElement> }) {
               {car.make} {car.model}
             </span>
             <span className="block truncate text-[13px] leading-5 text-dim">
-              {car.year}
-              {car.km !== null && <> · {n(car.km)} km</>}
+              {year(car.year)}
+              {car.km !== null && <> · {f.km(car.km)}</>}
               {car.fuel && <> · {car.fuel}</>}
             </span>
           </span>
@@ -200,11 +200,12 @@ export function NoResultsStage() {
 
 const APPLIED_START: CarFilters = { ...EMPTY_CAR_FILTERS, priceMin: 15000, priceMax: 45000, bodies: ["SUV"], fuels: ["Hybrid"], yearMin: 2020 };
 
-const ADDS: { label: string; on: (f: CarFilters) => boolean; toggle: (f: CarFilters) => CarFilters }[] = [
-  { label: "Under 60,000 km", on: (f) => f.kmMax === 60000, toggle: (f) => ({ ...f, kmMax: f.kmMax === 60000 ? null : 60000 }) },
-  { label: "AWD", on: (f) => f.drives.includes("AWD"), toggle: (f) => ({ ...f, drives: f.drives.includes("AWD") ? f.drives.filter((d) => d !== "AWD") : [...f.drives, "AWD"] }) },
-  { label: "White", on: (f) => f.colors.includes("White"), toggle: (f) => ({ ...f, colors: f.colors.includes("White") ? f.colors.filter((c) => c !== "White") : [...f.colors, "White"] }) },
-  { label: "Automatic", on: (f) => f.transmission === "Automatic", toggle: (f) => ({ ...f, transmission: f.transmission === "Automatic" ? null : "Automatic" }) },
+/** Each label takes the locale's distance format, so "Under 60,000 km" reads "Under 60.000 km" in de-DE. */
+const ADDS: { label: (km: (value: number) => string) => string; on: (f: CarFilters) => boolean; toggle: (f: CarFilters) => CarFilters }[] = [
+  { label: (km) => `Under ${km(60000)}`, on: (f) => f.kmMax === 60000, toggle: (f) => ({ ...f, kmMax: f.kmMax === 60000 ? null : 60000 }) },
+  { label: () => "AWD", on: (f) => f.drives.includes("AWD"), toggle: (f) => ({ ...f, drives: f.drives.includes("AWD") ? f.drives.filter((d) => d !== "AWD") : [...f.drives, "AWD"] }) },
+  { label: () => "White", on: (f) => f.colors.includes("White"), toggle: (f) => ({ ...f, colors: f.colors.includes("White") ? f.colors.filter((c) => c !== "White") : [...f.colors, "White"] }) },
+  { label: () => "Automatic", on: (f) => f.transmission === "Automatic", toggle: (f) => ({ ...f, transmission: f.transmission === "Automatic" ? null : "Automatic" }) },
 ];
 
 const ADD_PILL =
@@ -213,6 +214,7 @@ const ADD_PILL =
 /** A results page head: a few filters to add, then the chips they make, over the cars, so chips arrive as well as leave. */
 export function AppliedFiltersStage() {
   const { locale } = useStage();
+  const km = carFormats(locale).km;
   const [filters, setFilters] = useState<CarFilters>(APPLIED_START);
   const found = matchingCars(filters).length;
 
@@ -220,18 +222,18 @@ export function AppliedFiltersStage() {
     <Frame toolbar={<span />}>
       <div role="group" aria-label="Add a filter" className="mb-3 flex flex-wrap items-center gap-2">
         <span className="me-0.5 text-[13px] leading-5 text-dim">Add</span>
-        {ADDS.map((add) => {
+        {ADDS.map((add, i) => {
           const on = add.on(filters);
           return (
             <button
-              key={add.label}
+              key={i}
               type="button"
               aria-pressed={on}
               onClick={() => setFilters(add.toggle)}
               className={`${ADD_PILL} ${on ? "border-selected bg-selected text-accent-pale" : "border-line text-mute hover:border-control-border hover:text-text"}`}
             >
               {on ? <CheckIcon size={14} strokeWidth={2.5} className="text-accent-soft" /> : <PlusIcon size={14} className="text-dim" />}
-              {add.label}
+              {add.label(km)}
             </button>
           );
         })}
