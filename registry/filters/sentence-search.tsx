@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { resultsLabel } from "../lib/format";
+import { SCROLL } from "../lib/scroll";
 import { countOf, ghostOf, matchIn, readSentence, suggest, wholeWord, type Correction, type Suggestion, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
 import { SearchIcon, XIcon } from "../ui/icons";
@@ -310,7 +311,7 @@ export function SentenceSearch<Item, State>({
           }
         }}
         className={cn(
-          "flex cursor-text items-start gap-2 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-surface-3,#2A2A2A)] py-1.5 pe-1.5 ps-3.5",
+          "flex cursor-text items-start gap-2 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-search,#2A2A2A)] py-1.5 pe-1.5 ps-3.5",
           "transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none",
           "hover:border-[var(--fu-control-hover,#A3A3A3)] focus-within:border-[var(--fu-accent-soft,#8FAAFF)] focus-within:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
           "focus-within:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
@@ -338,8 +339,8 @@ export function SentenceSearch<Item, State>({
                   field.current?.focus();
                 }}
                 className={cn(
-                  "relative flex h-[26px] max-w-full cursor-pointer items-center pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[9px] gap-1 rounded-full border border-[var(--fu-accent-pale,#D1DDFF)] bg-[var(--fu-accent-pale,#D1DDFF)] pe-[7px] ps-[11px]",
-                  "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-surface-1,#171717)]",
+                  "relative flex h-[26px] max-w-full cursor-pointer items-center pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[9px] gap-1 rounded-full border border-[var(--fu-token-edge,#D1DDFF)] bg-[var(--fu-token,#D1DDFF)] pe-[7px] ps-[11px]",
+                  "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-token-text,#171717)]",
                   "transition-[background-color,color,border-color,opacity,filter,scale] duration-300 motion-reduce:transition-none",
                   SMOOTH,
                   "starting:scale-[0.82] starting:opacity-0 starting:blur-[3px]",
@@ -443,7 +444,7 @@ export function SentenceSearch<Item, State>({
       <div
         data-state={shown ? "open" : "closed"}
         className={cn(
-          "absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-[16px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-surface-3,#2A2A2A)] shadow-[0_16px_40px_var(--fu-shadow,rgb(0_0_0/0.5))]",
+          "absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-[16px] border border-[var(--fu-menu-edge,#737373)] bg-[var(--fu-search,#2A2A2A)] shadow-[0_16px_40px_var(--fu-shadow,rgb(0_0_0/0.5))]",
           "origin-top transition-[opacity,translate,visibility] duration-[170ms] motion-reduce:transition-none",
           SMOOTH,
           "data-[state=closed]:invisible data-[state=closed]:translate-y-1.5 data-[state=closed]:opacity-0",
@@ -455,7 +456,7 @@ export function SentenceSearch<Item, State>({
           role="listbox"
           aria-label="Suggestions"
           onPointerDown={(event) => event.preventDefault()}
-          className="relative max-h-[min(56dvh,440px)] overflow-y-auto overscroll-contain p-1.5"
+          className={cn("relative max-h-[min(56dvh,440px)] overflow-y-auto overscroll-contain p-1.5", SCROLL)}
         >
           <div
             aria-hidden="true"

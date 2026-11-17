@@ -6,38 +6,54 @@ import { LinkArrow, linkClasses } from "@/registry/ui/link";
 
 const QUIET_LINK = linkClasses({ variant: "quiet", tone: "dim" });
 
-export function PageHead({ item }: { item: RegistryItem }) {
-  const at = ITEMS.findIndex((i) => i.slug === item.slug);
-  const previous = ITEMS[at - 1];
-  const next = ITEMS[at + 1];
+const isBasic = (item: RegistryItem) => item.kind === "basic";
 
+export function PageHead({ item }: { item: RegistryItem }) {
   return (
     <div className="pt-5 sm:pt-6">
-      <div className="flex items-center justify-between gap-4">
-        <Link href={item.kind === "basic" ? "/#basics" : "/#filters"} className={`${QUIET_LINK} -ms-1 pe-2`}>
-          <LinkArrow direction="back" />
-          {item.kind === "basic" ? "Basics" : "Filters"}
-        </Link>
-        {(previous || next) && (
-          <nav aria-label="Previous and next" className="flex items-center gap-6 max-lg:hidden">
-            {previous && (
-              <Link href={itemPath(previous.slug)} className={QUIET_LINK}>
-                <LinkArrow direction="back" />
-                {previous.title}
-              </Link>
-            )}
-            {next && (
-              <Link href={itemPath(next.slug)} className={QUIET_LINK}>
-                {next.title}
-                <LinkArrow />
-              </Link>
-            )}
-          </nav>
-        )}
-      </div>
+      <Link href={isBasic(item) ? "/#basics" : "/#filters"} className={`${QUIET_LINK} -ms-1 pe-2`}>
+        <LinkArrow direction="back" />
+        {isBasic(item) ? "Basics" : "Filters"}
+      </Link>
       <h1 className="mt-4 text-[34px] font-semibold leading-[1.1] tracking-[-0.025em] text-text sm:text-[40px]">{item.title}</h1>
       <p className="mt-3 max-w-[760px] text-[16px] leading-[1.55] text-pretty text-mute sm:text-[17px]">{item.description}</p>
       <p className="mt-2 text-[13px] leading-5 text-dim">Added in v{item.addedIn}</p>
     </div>
+  );
+}
+
+const PAGER_CARD =
+  "group/link flex min-w-0 flex-col gap-1 rounded-[20px] border border-card bg-panel px-5 py-4 outline-none transition-[border-color,scale] duration-200 ease-smooth hover:border-surface-3 active:scale-[0.99] active:duration-75 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-solid focus-visible:outline-accent-soft motion-reduce:transition-none";
+
+/** The items before and after this one in its own section (basics, or filters and blocks), at the end of the page. */
+export function ItemPager({ item }: { item: RegistryItem }) {
+  const section = ITEMS.filter((other) => isBasic(other) === isBasic(item));
+  const at = section.indexOf(item);
+  const previous = section[at - 1];
+  const next = section[at + 1];
+  if (!previous && !next) return null;
+  return (
+    <nav aria-label="Previous and next" className="mt-16 grid grid-cols-2 gap-3 sm:gap-4">
+      {previous ? (
+        <Link href={itemPath(previous.slug)} className={PAGER_CARD}>
+          <span className="text-[13px] leading-5 text-dim">Previous</span>{" "}
+          <span className="flex min-w-0 items-center gap-1 text-[16px] font-medium leading-6 text-text">
+            <LinkArrow direction="back" className="-ms-1" />
+            <span className="truncate">{previous.title}</span>
+          </span>
+        </Link>
+      ) : (
+        <span />
+      )}
+      {next && (
+        <Link href={itemPath(next.slug)} className={`${PAGER_CARD} items-end text-end`}>
+          <span className="text-[13px] leading-5 text-dim">Next</span>{" "}
+          <span className="flex min-w-0 items-center gap-1 text-[16px] font-medium leading-6 text-text">
+            <span className="truncate">{next.title}</span>
+            <LinkArrow className="-me-1" />
+          </span>
+        </Link>
+      )}
+    </nav>
   );
 }

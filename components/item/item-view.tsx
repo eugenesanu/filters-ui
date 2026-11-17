@@ -2,16 +2,16 @@ import { ITEMS, type RegistryItem } from "@/registry/items";
 import { panelDataOf } from "@/lib/panel-data";
 import { CopyPanel } from "@/components/copy/copy-panel";
 import { FilterStage } from "@/components/stage/filter-stage";
-import { PageHead } from "@/components/item/page-head";
+import { ItemPager, PageHead } from "@/components/item/page-head";
 import { ItemDetails } from "@/components/item/item-details";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ItemTile, TileGrid } from "@/components/tile/item-tile";
 
-/** One item's page: head, the live stage beside the copy panel (or above it for a block), then the details. */
+/** One item's page: head, the live stage beside the copy panel (or above it for a block or a wide filter), then the details. */
 export async function ItemView({ item }: { item: RegistryItem }) {
   const data = await panelDataOf(item);
-  const wide = item.kind === "block" && !item.narrow;
+  const wide = (item.kind === "block" && !item.narrow) || item.wide === true;
   // Named related items first, then the next ones in order, so the row always fills three tiles.
   const named = item.related.flatMap((slug) => ITEMS.filter((i) => i.slug === slug));
   const at = ITEMS.indexOf(item);
@@ -49,6 +49,7 @@ export async function ItemView({ item }: { item: RegistryItem }) {
         <div className="mt-20">
           <ItemDetails item={item} />
         </div>
+        <ItemPager item={item} />
         {related.length > 0 && (
           <section aria-labelledby="more-heading" className="mt-12 border-t border-card pt-8">
             <h2 id="more-heading" className="mb-6 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">

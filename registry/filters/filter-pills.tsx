@@ -4,6 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttribute
 import { cn } from "../lib/cn";
 import { isRtl } from "../lib/direction";
 import { formatsFor } from "../lib/format";
+import { SCROLL } from "../lib/scroll";
 import { CountPill } from "../ui/count-pill";
 import { ClearAllButton, ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, XIcon } from "../ui/icons";
@@ -485,7 +486,7 @@ type PanelProps = {
 };
 
 /**
- * The panel under a pill. Its card starts as the pill's own outline and grows into place over 480ms while the filter,
+ * The panel under a pill. Its card starts as the pill's own outline and grows into place over 260ms while the filter,
  * already in its final spot, is uncovered by it and rises 6px out of a 6px blur. Closing runs the other way: the filter
  * blurs out and the card folds back into the pill. Offsets are layout values, so a zoomed or scaled page lines up.
  */
@@ -520,6 +521,16 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
     return { left, top: under + GAP, width: w, height: inner.offsetHeight + 2 };
   };
 
+  // The corner under the pill's start edge keeps the pill's 12px radius when the edges line up: the card reads as grown
+  // out of the pill, and a pill on the next row, which starts at the same spot, never shows its corner behind the card.
+  const panelRadius = (rect: Rect) => {
+    const pill = pillRect();
+    const bar = pillOf()?.parentElement;
+    if (!pill || !bar) return "24px";
+    if (isRtl(bar)) return rect.left + rect.width === pill.left + pill.width ? "24px 12px 24px 24px" : "24px";
+    return rect.left === pill.left ? "12px 24px 24px 24px" : "24px";
+  };
+
   const paint = (rect: Rect, look: "pill" | "panel" | "closed") => {
     const node = surface.current;
     if (!node) return;
@@ -527,7 +538,7 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
     node.style.top = `${rect.top}px`;
     node.style.width = `${rect.width}px`;
     node.style.height = `${rect.height}px`;
-    node.style.borderRadius = look === "panel" ? "24px" : "12px";
+    node.style.borderRadius = look === "panel" ? panelRadius(rect) : "12px";
     node.style.boxShadow = look === "panel" ? PANEL_SHADOW : NO_SHADOW;
     node.style.borderColor = look === "panel" ? PANEL_LINE : look === "pill" ? OPEN_LINE : set ? "var(--fu-selected,#1F2747)" : PANEL_LINE;
     node.style.backgroundColor = look === "panel" ? PANEL_BG : (pillOf() && getComputedStyle(pillOf()!).backgroundColor) || PANEL_BG;
@@ -557,11 +568,11 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
       inner.style.opacity = "0";
       inner.style.filter = "blur(6px)";
       void node.offsetWidth;
-      const move = `480ms ${EASE}`;
+      const move = `260ms ${EASE}`;
       node.style.transition = ["left", "top", "width", "height", "border-radius", "background-color", "border-color", "box-shadow"]
         .map((p) => `${p} ${move}`)
         .join(", ");
-      inner.style.transition = `translate ${move}, opacity 460ms ${REVEAL} 120ms, filter 460ms ${REVEAL} 120ms`;
+      inner.style.transition = `translate ${move}, opacity 220ms ${REVEAL} 40ms, filter 220ms ${REVEAL} 40ms`;
       paint(final, "panel");
       hold(final, final, 0);
       inner.style.opacity = "1";
@@ -621,7 +632,7 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
       const timer = setTimeout(() => done.current(), 170);
       return () => clearTimeout(timer);
     }
-    const fold = `320ms ${FOLD} 50ms`;
+    const fold = `220ms ${FOLD}`;
     node.style.transition = ["left", "top", "width", "height", "border-radius", "background-color", "border-color", "box-shadow"]
       .map((p) => `${p} ${fold}`)
       .join(", ");
@@ -636,7 +647,7 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
       finished = true;
       done.current();
     };
-    const timer = setTimeout(finish, 420);
+    const timer = setTimeout(finish, 280);
     const onEnd = (event: TransitionEvent) => {
       if (event.target === node && event.propertyName === "height") finish();
     };
@@ -659,7 +670,7 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
     >
       {/* physical: moved by a translate measured from the left, as above. */}
       <div ref={content} tabIndex={-1} className="absolute top-0 left-0 flex flex-col text-[var(--fu-text,#F8F5F1)] outline-none will-change-[translate,opacity,filter]">
-        <div className="max-h-[min(560px,70vh)] overflow-y-auto overscroll-contain p-4 [scrollbar-width:thin]">{children}</div>
+        <div className={cn("max-h-[min(560px,70vh)] overflow-y-auto overscroll-contain p-4", SCROLL)}>{children}</div>
         <div className="flex items-center justify-between gap-2 px-4 pt-1 pb-4">{footer}</div>
       </div>
     </div>
@@ -764,7 +775,7 @@ function PillSheet({ id, titleId, title, summary, open, onClose, footer, onGone,
             <XIcon size={20} />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 pb-5">{children}</div>
+        <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-1 pb-5", SCROLL)}>{children}</div>
         <div className="flex items-center gap-2 border-t border-[var(--fu-card-border,#2A2A2A)] px-4 pt-3 pb-[max(16px,env(safe-area-inset-bottom))]">
           {footer}
         </div>

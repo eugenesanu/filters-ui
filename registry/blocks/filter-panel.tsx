@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
+import { SCROLL } from "../lib/scroll";
 import { BodyIcon } from "../demo/body-icons";
 import { BODIES, CARS, COLORS, COLOR_PAINTS, DRIVES, FUELS, type Car, type Condition, type Transmission } from "../demo/cars";
 import {
@@ -573,7 +574,7 @@ export function FilterPanel({
       <div className="relative flex min-h-0 flex-1 flex-col">
         <div
           ref={scroller}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pt-14 scroll-pb-12 [scrollbar-color:var(--fu-line,#404040)_transparent] [scrollbar-width:thin]"
+          className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-pt-14 scroll-pb-12", SCROLL)}
         >
           <div ref={list} className="relative divide-y divide-[var(--fu-line,#404040)]">
             {FILTER_PANEL_FACETS.map((facet) => (

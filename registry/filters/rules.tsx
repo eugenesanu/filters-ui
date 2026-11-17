@@ -47,7 +47,7 @@ export type RulesProps<Item> = {
   label?: string;
   /** Words for a count: "34 cars". */
   countLabel?: (n: number) => string;
-  /** Caption over the column of counts, e.g. "Cars left". */
+  /** Word after each row's count, e.g. "left" in "196 left". */
   leftLabel?: string;
   formatCount?: (n: number) => string;
   /** Formats counts and typed numbers and reads them back ("45.000" in de-DE), e.g. "de-DE". Default "en-US". */
@@ -333,19 +333,19 @@ function Rail({ at, of, join, onToggle, nested = false }: { at: number; of: numb
   );
 }
 
-/** Items left once a row applies: the number over a short hairline bar measured against every item. */
-function Left({ count, total, format, className }: { count: number; total: number; format: (n: number) => string; className?: string }) {
-  const share = total ? count / total : 0;
+/** Items left once a row applies, as a count pill: "196 left". */
+function Left({ count, word, format, className }: { count: number; word: string; format: (n: number) => string; className?: string }) {
   return (
-    <div aria-hidden="true" className={cn("flex w-12 shrink-0 flex-col items-end gap-1.5", className)}>
-      <span className="relative order-2 h-[3px] w-10 overflow-hidden rounded-full bg-[var(--fu-hover,#333333)]">
-        <span
-          className={cn("absolute inset-y-0 inset-s-0 rounded-full bg-[var(--fu-accent-soft,#8FAAFF)] transition-[width] duration-[480ms] motion-reduce:transition-none", SMOOTH)}
-          style={{ width: `${share > 0 ? Math.max(6, share * 100) : 0}%` }}
-        />
-      </span>
-      <TextSwap className="shrink-0 text-[15px] leading-5 font-medium text-[var(--fu-text,#F8F5F1)] tabular-nums">{format(count)}</TextSwap>
-    </div>
+    <span
+      aria-hidden="true"
+      className={cn(
+        "inline-flex h-5 shrink-0 items-center gap-1 justify-self-end rounded-[6px] bg-[var(--fu-pill,rgb(255_255_255/0.1))] px-1.5 text-[12px] leading-4 font-medium text-[var(--fu-pill-text,#C8C8C8)] tabular-nums",
+        className,
+      )}
+    >
+      <TextSwap className="text-[var(--fu-text,#F8F5F1)]">{format(count)}</TextSwap>
+      {word}
+    </span>
   );
 }
 
@@ -371,7 +371,7 @@ export function Rules<Item>({
   onChange,
   label = "Rules",
   countLabel: countLabelProp,
-  leftLabel = "Left",
+  leftLabel = "left",
   formatCount: formatCountProp,
   locale,
   className,
@@ -553,9 +553,6 @@ export function Rules<Item>({
 
   return (
     <div ref={box} role="group" aria-label={label} className={cn("@container/rules w-full", className)}>
-      <p aria-hidden="true" className="hidden pe-[44px] pb-2 text-end text-[12px] leading-4 text-[var(--fu-dim,#929292)] @min-[484px]/rules:block">
-        {leftLabel}
-      </p>
       <ol className="flex flex-col gap-2.5">
         {value.items.map((item, i) => {
           const rail = <Rail at={i} of={value.items.length} join={value.join} onToggle={() => onChange({ ...value, join: value.join === "and" ? "or" : "and" })} />;
@@ -568,7 +565,7 @@ export function Rules<Item>({
                   {sentence(
                     item,
                     <>
-                      <Left count={after[i]} total={items.length} format={formatCount} className="[grid-area:left]" />
+                      <Left count={after[i]} word={leftLabel} format={formatCount} className="[grid-area:left] me-1" />
                       <IconButton size="sm" label={`Remove rule ${i + 1}`} onClick={() => remove(item.id)} className="h-9 w-8 [grid-area:x]">
                         <XIcon size={16} />
                       </IconButton>
@@ -585,7 +582,7 @@ export function Rules<Item>({
               <div role="group" aria-label={`Group ${i + 1}, ${word.toLowerCase()}. ${leftWords}`} className={cn("@container/well min-w-0 flex-1 p-1.5", WELL)}>
                 <div className="flex min-h-9 items-center gap-2 ps-2.5">
                   <TextSwap className="me-auto text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{word}</TextSwap>
-                  <Left count={after[i]} total={items.length} format={formatCount} />
+                  <Left count={after[i]} word={leftLabel} format={formatCount} className="me-1" />
                   <IconButton size="sm" label={`Remove group ${i + 1}`} onClick={() => remove(item.id)} className="h-9 w-8">
                     <XIcon size={16} />
                   </IconButton>

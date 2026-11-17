@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type
 import { cn } from "../lib/cn";
 import { isRtl } from "../lib/direction";
 import { formatsFor } from "../lib/format";
+import { SCROLL } from "../lib/scroll";
 import { CheckIcon } from "./icons";
 
 export type PopoverCloseReason = "escape" | "outside" | "blur" | "away";
@@ -64,7 +65,7 @@ function hide(node: HTMLElement) {
 
 /** The surface of a menu or list panel: 14px radius, the card colour, a --fu-line hairline, 6px inside, a deep soft shadow. */
 export const LIST_PANEL =
-  "w-max rounded-[14px] border border-[var(--fu-line,#404040)] bg-[var(--fu-card,#1F1F1F)] p-1.5 [scrollbar-width:thin] shadow-[inset_0_1px_0_var(--fu-rim,rgb(255_255_255/0.04)),0_24px_48px_-12px_var(--fu-shadow-deep,rgb(0_0_0/0.8)),0_10px_20px_-8px_var(--fu-shadow,rgb(0_0_0/0.5))]";
+  "w-max rounded-[14px] border border-[var(--fu-line,#404040)] bg-[var(--fu-card,#1F1F1F)] p-1.5 shadow-[inset_0_1px_0_var(--fu-rim,rgb(255_255_255/0.04)),0_24px_48px_-12px_var(--fu-shadow-deep,rgb(0_0_0/0.8)),0_10px_20px_-8px_var(--fu-shadow,rgb(0_0_0/0.5))]";
 
 /**
  * A floating panel for menus and lists. It stays where it is in the DOM, so it inherits fonts and --fu-* variables and
@@ -295,6 +296,7 @@ export function PopoverPanel({
       className={cn(
         // The browser's own popover look is reset: no inset, margin or padding, and these colours, not Canvas.
         "group/popover m-0 box-border overflow-x-hidden overflow-y-auto overscroll-contain text-[var(--fu-text,#F8F5F1)] [-webkit-tap-highlight-color:transparent]",
+        SCROLL,
         still
           ? cn("absolute top-full z-10 mt-1.5", align === "end" ? "inset-e-0" : "inset-s-0", matchWidth && "min-w-full", !open && "hidden")
           : "fixed inset-auto z-50",

@@ -5,15 +5,6 @@ import { itemPath } from "@/lib/site";
 import { cn } from "@/registry/lib/cn";
 import { BoardPreview, TilePreview } from "@/components/tile/previews";
 
-const FIRST_RELEASE = [1, 0, 0];
-
-/** True for an item added after the first release. */
-function isNew(item: RegistryItem) {
-  const parts = item.addedIn.split(".").map(Number);
-  for (let i = 0; i < 3; i++) if (parts[i] !== FIRST_RELEASE[i]) return parts[i] > FIRST_RELEASE[i];
-  return false;
-}
-
 // The link's ::after covers the whole tile, so the tile is one target while the preview stays outside the link.
 function Tile({ item, heading: Heading, stageClassName, className, children }: {
   item: RegistryItem;
@@ -53,9 +44,6 @@ function Tile({ item, heading: Heading, stageClassName, className, children }: {
             {item.title}
           </Link>
         </Heading>
-        {isNew(item) && (
-          <span className="shrink-0 rounded-full bg-surface-3 px-2 py-0.5 text-[12px] font-medium leading-[18px] text-mute">New</span>
-        )}
       </div>
     </div>
   );
