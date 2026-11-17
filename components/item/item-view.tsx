@@ -1,4 +1,6 @@
 import { ITEMS, type RegistryItem } from "@/registry/items";
+import { JsonLd } from "@/components/json-ld";
+import { itemJsonLd } from "@/lib/seo";
 import { panelDataOf } from "@/lib/panel-data";
 import { CopyPanel } from "@/components/copy/copy-panel";
 import { FilterStage } from "@/components/stage/filter-stage";
@@ -23,6 +25,7 @@ export async function ItemView({ item }: { item: RegistryItem }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <JsonLd data={itemJsonLd(item)} />
       <SiteHeader />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pb-24 sm:px-8">
         <PageHead item={item} />

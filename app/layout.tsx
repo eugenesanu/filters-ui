@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeScript } from "@/components/theme-switch";
+import { HOME_SEO } from "@/lib/seo";
+import { site } from "@/lib/site";
 import { THEME_COLOR } from "@/lib/theme";
 
 const outfit = Outfit({
@@ -12,13 +14,14 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://filtersui.com"),
-  title: "FiltersUI",
-  alternates: { canonical: "/" },
-  description:
-    "Free, open-source filter cards for search pages, ready to copy as code or as a prompt.",
-  // remove at launch
-  robots: { index: false, follow: false },
+  metadataBase: new URL(site.url),
+  title: HOME_SEO.title,
+  description: HOME_SEO.description,
+  openGraph: { type: "website", siteName: site.name, locale: "en_US", title: HOME_SEO.title, description: HOME_SEO.description },
+  twitter: { card: "summary_large_image" },
+  applicationName: site.name,
+  authors: [{ name: site.author.name, url: site.author.url }],
+  creator: site.author.name,
 };
 
 export const viewport: Viewport = {

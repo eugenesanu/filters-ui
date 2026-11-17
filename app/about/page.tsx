@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
 import { SiteFooter } from "@/components/site-footer";
 import { GitHubMark, SiteHeader } from "@/components/site-header";
+import { JsonLd } from "@/components/json-ld";
+import { ABOUT_SEO, aboutJsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/lib/site";
 import { buttonClasses } from "@/registry/ui/button-classes";
 
-export const metadata: Metadata = {
-  title: "About · FiltersUI",
-  description: "FiltersUI is made by Eugen Eşanu, a product designer and design engineer.",
-  alternates: { canonical: "/about" },
-};
+export const metadata: Metadata = pageMetadata({ title: ABOUT_SEO.title, description: ABOUT_SEO.description, path: "/about" });
 
 export default function About() {
   return (
     <div className="flex min-h-dvh flex-col">
+      <JsonLd data={aboutJsonLd()} />
       <SiteHeader />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 pb-24 sm:px-8 sm:pb-28">
         <section className="max-w-[640px] pt-14 sm:pt-16">
