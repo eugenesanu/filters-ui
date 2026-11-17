@@ -3,7 +3,9 @@
 import { useCallback, useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent } from "react";
 import { cn } from "../lib/cn";
 import { isRtl, readingKey } from "../lib/direction";
+import { EmptyNote } from "../ui/empty-note";
 import { XIcon } from "../ui/icons";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextSwap } from "../ui/text-swap";
 
 export type AppliedFilter = {
@@ -15,7 +17,8 @@ export type AppliedFilter = {
   value: string;
 };
 
-export type AppliedFiltersProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> & {
+export type AppliedFiltersProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> &
+  Pick<StateProps, "disabled"> & {
   /** The filters in use, in display order. */
   filters: readonly AppliedFilter[];
   /** Called with a filter's key when its chip is pressed. */
@@ -25,6 +28,8 @@ export type AppliedFiltersProps = Omit<HTMLAttributes<HTMLDivElement>, "children
   clearAllLabel?: string;
   /** Accessible name of the list. Default "Applied filters". */
   label?: string;
+  /** The quiet line shown in place of the chips while no filter is in use. Default "No filters applied." */
+  emptyText?: string;
 };
 
 type Box = { x: number; y: number; w: number; h: number };
@@ -56,7 +61,9 @@ function translateOf(node: HTMLElement) {
 /**
  * The filters in use as a row of chips, "Price $15k to $45k" with a cross, and Clear all at the end. A removed chip
  * blurs away where it stood while the chips after it glide into the gap, across lines too, and the row's height
- * eases when a line empties. Clear all takes the chips away one after another from the end.
+ * eases when a line empties. Clear all takes the chips away one after another from the end. With no filter in use a
+ * quiet line takes the row's place, fading in once the last chip has gone. A value too long for the row is cut with
+ * an ellipsis, and the chip then shows it whole on hover.
  */
 export function AppliedFilters({
   filters,
@@ -64,11 +71,16 @@ export function AppliedFilters({
   onClearAll,
   clearAllLabel = "Clear all",
   label = "Applied filters",
+  emptyText = "No filters applied.",
+  disabled = false,
   className,
   ...props
 }: AppliedFiltersProps) {
   const root = useRef<HTMLDivElement>(null);
+  const box = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  const note = useRef<HTMLDivElement>(null);
+  const noteWas = useRef<{ node: HTMLElement; box: Box } | null>(null);
   const ghosts = useRef<HTMLDivElement>(null);
   const boxes = useRef(new Map<string, Box>());
   const nodes = useRef(new Map<string, HTMLElement>());
@@ -78,6 +90,20 @@ export function AppliedFilters({
   const [said, setSaid] = useState("");
   const showClear = Boolean(onClearAll) && filters.length > 1;
   const listKey = filters.map((f) => f.key).join("\n");
+
+  // A chip, or Clear all, that goes away with focus on it because the filters changed elsewhere hands focus on as a
+  // removal does: to the chip now in its place, or to the row.
+  const drawnKey = useRef(listKey);
+  if (drawnKey.current !== listKey) {
+    const active = typeof document === "undefined" ? null : document.activeElement;
+    const item = active instanceof HTMLElement && list.current?.contains(active) ? active.closest<HTMLElement>("[data-key]") : null;
+    const was = drawnKey.current.split("\n");
+    const stays = item?.dataset.key === CLEAR_KEY ? showClear : filters.some((f) => f.key === item?.dataset.key);
+    if (item && !stays && !focusNext.current) {
+      focusNext.current = { index: item.dataset.key === CLEAR_KEY ? was.length : was.indexOf(item.dataset.key ?? ""), from: drawnKey.current };
+    }
+    drawnKey.current = listKey;
+  }
 
   // A chip that leaves is copied into a layer over the row at its old place and fades there; React has already
   // removed the real one, so the row's own layout is always the truth.
@@ -113,7 +139,8 @@ export function AppliedFilters({
   const reflow = useCallback(() => {
     const wrap = root.current;
     const row = list.current;
-    if (!wrap || !row) return;
+    const content = box.current;
+    if (!wrap || !row || !content) return;
     const width = row.offsetWidth;
     const rtl = isRtl(row);
     // A new width or a direction flip moves every chip at once; that is measured again, not played as a move.
@@ -145,6 +172,13 @@ export function AppliedFilters({
         entering.push(node);
       }
       const value = node.dataset.value;
+      // A value cut short by the row shows whole on hover; one that fits needs no tooltip.
+      const text = node.querySelector<HTMLElement>("[data-chip-value] > span");
+      const chip = node.querySelector<HTMLElement>("button");
+      if (text && chip && value !== undefined) {
+        if (text.scrollWidth > text.clientWidth) chip.title = `${node.querySelector("[data-chip-label]")?.textContent ?? ""}: ${value}`;
+        else chip.removeAttribute("title");
+      }
       if (animate && value !== undefined && values.current.get(key) !== value) changed.push(node);
       if (value !== undefined) values.current.set(key, value);
       boxes.current.set(key, next);
@@ -183,13 +217,22 @@ export function AppliedFilters({
       chip.querySelector<HTMLElement>("[data-chip-value]")?.animate([{ color: pale }], { duration: 1600, easing: EASE });
     }
 
-    const height = row.offsetHeight;
+    // The empty line fades in once the leaving chips are gone, and blurs away like a chip when filters come back.
+    const leaving = gone.length ? Math.min(gone.length - 1, 6) * 40 + 140 : 0;
+    const shown = note.current;
+    if (shown && !noteWas.current && animate) {
+      shown.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, delay: leaving, easing: EASE, fill: "backwards" });
+    }
+    if (!shown && noteWas.current && animate) ghost(noteWas.current.node, noteWas.current.box, 0);
+    noteWas.current = shown ? { node: shown, box: { x: shown.offsetLeft, y: shown.offsetTop, w: shown.offsetWidth, h: shown.offsetHeight } } : null;
+
+    const height = content.offsetHeight;
     if (animate && last.current && last.current.height !== height) {
       const running = wrap.getAnimations().find((animation) => animation.id === "height");
       const from = running ? wrap.getBoundingClientRect().height : last.current.height;
       running?.cancel();
       // Shrinking waits for the leaving chips to fade, so what sits below never slides over them.
-      const wait = height < from && gone.length ? Math.min(gone.length - 1, 6) * 40 + 140 : 0;
+      const wait = height < from ? leaving : 0;
       const ease = wrap.animate([{ height: `${from}px` }, { height: `${height}px` }], { duration: 420, delay: wait, easing: EASE, fill: "backwards" });
       ease.id = "height";
     }
@@ -249,60 +292,74 @@ export function AppliedFilters({
     <div ref={root} tabIndex={-1} className={cn("not-prose relative outline-none", className)} {...props}>
       {/* Under the row, so chips that glide into a gap pass over the one fading out. */}
       <div ref={ghosts} aria-hidden="true" className="pointer-events-none absolute inset-0" />
-      <ul ref={list} aria-label={label} onKeyDown={onKeyDown} className="relative m-0 flex list-none flex-wrap items-center gap-2 p-0">
-        {filters.map((filter, index) => (
-          <li key={filter.key} data-key={filter.key} data-value={filter.value} className="flex max-w-full">
-            <button
-              type="button"
-              aria-label={`Remove ${filter.label}: ${filter.value}`}
-              onClick={() => remove(filter, index)}
-              className={cn(
-                "group/chip relative inline-flex h-8 max-w-full cursor-pointer items-center gap-1.5 rounded-[9px] pe-1.5 ps-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
-                "bg-[var(--fu-surface-3,#2A2A2A)] [@media(hover:hover)]:hover:bg-[var(--fu-hover,#333333)]",
-                PRESS,
-                FOCUS,
-                TAP,
-              )}
-            >
-              <span
-                aria-hidden="true"
-                className="shrink-0 text-[var(--fu-dim,#929292)] transition-[color] duration-200 motion-reduce:transition-none [@media(hover:hover)]:group-hover/chip:text-[var(--fu-mute,#BDBDBD)]"
-              >
-                {filter.label}
-              </span>{" "}
-              <TextSwap aria-hidden="true" data-chip-value="" className="min-w-0 font-medium text-[var(--fu-text,#F8F5F1)]">
-                {filter.value}
-              </TextSwap>
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "ms-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--fu-dim,#929292)] transition-[color,background-color] duration-200",
-                  "group-hover/chip:bg-[var(--fu-line,#404040)] group-hover/chip:text-[var(--fu-text,#F8F5F1)] group-focus-visible/chip:text-[var(--fu-text,#F8F5F1)]",
-                )}
-              >
-                <XIcon size={14} strokeWidth={2.25} />
-              </span>
-            </button>
-          </li>
-        ))}
-        {showClear && (
-          <li data-key={CLEAR_KEY} className="flex">
-            <button
-              type="button"
-              onClick={clearAll}
-              className={cn(
-                "relative inline-flex h-8 cursor-pointer items-center rounded-[9px] px-2.5 font-[inherit] text-[14px] font-medium leading-5 whitespace-nowrap",
-                "text-[var(--fu-mute,#BDBDBD)] hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))] hover:text-[var(--fu-text,#F8F5F1)]",
-                PRESS,
-                FOCUS,
-                TAP,
-              )}
-            >
-              {clearAllLabel}
-            </button>
-          </li>
+      <div ref={box}>
+        <StatusFrame disabled={disabled} announce={false}>
+          <ul ref={list} aria-label={label} onKeyDown={onKeyDown} className="relative m-0 flex list-none flex-wrap items-center gap-2 p-0">
+            {filters.map((filter, index) => (
+              <li key={filter.key} data-key={filter.key} data-value={filter.value} className="flex max-w-full">
+                <button
+                  type="button"
+                  aria-label={`Remove ${filter.label}: ${filter.value}`}
+                  onClick={() => remove(filter, index)}
+                  className={cn(
+                    "group/chip relative inline-flex h-8 max-w-full cursor-pointer items-center gap-1.5 rounded-[9px] pe-1.5 ps-3 font-[inherit] text-[14px] leading-5 whitespace-nowrap",
+                    "bg-[var(--fu-surface-3,#2A2A2A)] [@media(hover:hover)]:hover:bg-[var(--fu-hover,#333333)]",
+                    PRESS,
+                    FOCUS,
+                    TAP,
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    data-chip-label=""
+                    className="shrink-0 text-[var(--fu-dim,#929292)] transition-[color] duration-200 motion-reduce:transition-none [@media(hover:hover)]:group-hover/chip:text-[var(--fu-mute,#BDBDBD)]"
+                  >
+                    {filter.label}
+                  </span>{" "}
+                  <TextSwap
+                    aria-hidden="true"
+                    data-chip-value=""
+                    className="min-w-0 grid-cols-[minmax(0,1fr)] font-medium text-[var(--fu-text,#F8F5F1)] [&>span]:truncate"
+                  >
+                    {filter.value}
+                  </TextSwap>
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "ms-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--fu-dim,#929292)] transition-[color,background-color] duration-200",
+                      "group-hover/chip:bg-[var(--fu-line,#404040)] group-hover/chip:text-[var(--fu-text,#F8F5F1)] group-focus-visible/chip:text-[var(--fu-text,#F8F5F1)]",
+                    )}
+                  >
+                    <XIcon size={14} strokeWidth={2.25} />
+                  </span>
+                </button>
+              </li>
+            ))}
+            {showClear && (
+              <li data-key={CLEAR_KEY} className="flex">
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className={cn(
+                    "relative inline-flex h-8 cursor-pointer items-center rounded-[9px] px-2.5 font-[inherit] text-[14px] font-medium leading-5 whitespace-nowrap",
+                    "text-[var(--fu-mute,#BDBDBD)] hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))] hover:text-[var(--fu-text,#F8F5F1)]",
+                    PRESS,
+                    FOCUS,
+                    TAP,
+                  )}
+                >
+                  {clearAllLabel}
+                </button>
+              </li>
+            )}
+          </ul>
+        </StatusFrame>
+        {filters.length === 0 && (
+          <div ref={note}>
+            <EmptyNote>{emptyText}</EmptyNote>
+          </div>
         )}
-      </ul>
+      </div>
       <p className="sr-only" aria-live="polite">
         {said}
       </p>

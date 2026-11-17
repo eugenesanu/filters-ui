@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from "react";
-import { StageControlRow, useStage, useStageFrame } from "@/components/stage/stage-controls";
+import { StageControlRow, useStage, useStageFrame, useStageStatus, type StageStatus } from "@/components/stage/stage-controls";
+import { APPLIED_LONG_TAILS, APPLIED_MANY_FILTERS, NO_RESULTS_LONG } from "@/components/stage/state-data";
 import { formatsFor } from "@/registry/lib/format";
 import { CARS, type Car } from "@/registry/demo/cars";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/registry/demo/cars-facets";
 import { AppliedFilters, type AppliedFilter } from "@/registry/filters/applied-filters";
 import { NoResults } from "@/registry/filters/no-results";
+import type { RelaxMap } from "@/registry/lib/relax";
 import { CheckIcon, PlusIcon } from "@/registry/ui/icons";
 import { TextSwap } from "@/registry/ui/text-swap";
 import { carMatches, carRelax } from "@/components/stage/car-relax";
@@ -30,6 +32,56 @@ const chipsOf = (f: CarFilters, locale?: string): AppliedFilter[] =>
     const value = summaryOf(f, facet, locale);
     return value === null ? [] : [{ key: facet, label: CAR_FACET_TITLES[facet], value }];
   });
+
+/** The list filters, one chip per value ("Make: Toyota", "Make: Honda"), as a page with many filters may show them. */
+const LIST_FACETS = {
+  make: (f: CarFilters) => f.makes.map((pick) => pick.make),
+  body: (f: CarFilters) => f.bodies,
+  fuel: (f: CarFilters) => f.fuels,
+  drive: (f: CarFilters) => f.drives,
+  color: (f: CarFilters) => f.colors,
+} as const satisfies Partial<Record<CarFacet, (f: CarFilters) => readonly string[]>>;
+
+const isListFacet = (facet: CarFacet): facet is keyof typeof LIST_FACETS => facet in LIST_FACETS;
+
+const chipsPerValue = (f: CarFilters, locale?: string): AppliedFilter[] =>
+  CHIP_ORDER.flatMap((facet) =>
+    isListFacet(facet)
+      ? LIST_FACETS[facet](f).map((value) => ({ key: `${facet}:${value}`, label: CAR_FACET_TITLES[facet] === "Make and model" ? "Make" : CAR_FACET_TITLES[facet], value }))
+      : chipsOf(f, locale).filter((chip) => chip.key === facet),
+  );
+
+function removeChip(f: CarFilters, key: string): CarFilters {
+  const [facet, value] = key.split(":") as [CarFacet, string | undefined];
+  if (value === undefined) return clearFacet(f, facet);
+  if (facet === "make") return { ...f, makes: f.makes.filter((pick) => pick.make !== value) };
+  if (facet === "body") return { ...f, bodies: f.bodies.filter((v) => v !== value) };
+  if (facet === "fuel") return { ...f, fuels: f.fuels.filter((v) => v !== value) };
+  if (facet === "drive") return { ...f, drives: f.drives.filter((v) => v !== value) };
+  if (facet === "color") return { ...f, colors: f.colors.filter((v) => v !== value) };
+  return clearFacet(f, facet);
+}
+
+/** The relax map in many more words, for the long-labels state: longer filter names and longer values. */
+function longRelax(relax: RelaxMap<CarFilters>): RelaxMap<CarFilters> {
+  return Object.fromEntries(
+    Object.entries(relax).map(([key, facet]) => {
+      const name = NO_RESULTS_LONG.names[key] ?? facet.label;
+      const words = (value: string) => (value === "Any" ? `Any ${name.toLowerCase()}` : `${value}${NO_RESULTS_LONG.tails[key] ?? ""}`);
+      return [
+        key,
+        {
+          label: name,
+          value: (f: CarFilters) => {
+            const value = facet.value(f);
+            return value === null ? null : words(value);
+          },
+          steps: (f: CarFilters) => facet.steps(f).map((step) => ({ ...step, value: words(step.value) })),
+        },
+      ];
+    }),
+  );
+}
 
 const RESET =
   "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text";
@@ -120,10 +172,23 @@ function CarList({ cars, ref }: { cars: Car[]; ref?: Ref<HTMLUListElement> }) {
   );
 }
 
-/** Shows the cars, or the fixes when there are none. After a fix, focus moves to the cars it found. */
-function Results({ filters, setFilters }: { filters: CarFilters; setFilters: (next: CarFilters) => void }) {
+/**
+ * Shows the cars, or the fixes when there are none. After a fix, focus moves to the cars it found. `states` puts the
+ * fixes in the State switch's state, and `long` words them at length.
+ */
+function Results({
+  filters,
+  setFilters,
+  states,
+  long = false,
+}: {
+  filters: CarFilters;
+  setFilters: (next: CarFilters) => void;
+  states?: Omit<StageStatus, "state">;
+  long?: boolean;
+}) {
   const { locale } = useStage();
-  const relax = useMemo(() => carRelax(locale), [locale]);
+  const relax = useMemo(() => (long ? longRelax(carRelax(locale)) : carRelax(locale)), [locale, long]);
   const found = useMemo(() => matchingCars(filters), [filters]);
   const list = useRef<HTMLUListElement>(null);
   const fixed = useRef(false);
@@ -146,6 +211,7 @@ function Results({ filters, setFilters }: { filters: CarFilters; setFilters: (ne
         relax={relax}
         title="No cars match"
         noun={CAR_NOUN}
+        {...states}
       />
     </Reveal>
   ) : (
@@ -166,6 +232,7 @@ const tryFilters = (i: number): CarFilters => ({ ...EMPTY_CAR_FILTERS, ...TRIES[
 /** Searches that find nothing, the chips they set, and the fixes in place of the results. */
 export function NoResultsStage() {
   const { locale } = useStage();
+  const { state, ...stage } = useStageStatus();
   const [tried, setTried] = useState(0);
   const [filters, setFilters] = useState<CarFilters>(() => tryFilters(0));
   const found = matchingCars(filters).length;
@@ -192,7 +259,7 @@ export function NoResultsStage() {
         onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
         className="mb-4"
       />
-      <Results filters={filters} setFilters={setFilters} />
+      <Results filters={filters} setFilters={setFilters} states={stage} long={state === "long-labels"} />
       <CountLine found={found} onReset={() => start(tried)} />
     </Frame>
   );
@@ -214,9 +281,27 @@ const ADD_PILL =
 /** A results page head: a few filters to add, then the chips they make, over the cars, so chips arrive as well as leave. */
 export function AppliedFiltersStage() {
   const { locale } = useStage();
+  const { state, disabled } = useStageStatus();
   const km = carFormats(locale).km;
-  const [filters, setFilters] = useState<CarFilters>(APPLIED_START);
+  const start = state === "empty" ? EMPTY_CAR_FILTERS : state === "many-options" ? APPLIED_MANY_FILTERS : APPLIED_START;
+  const [filters, setFilters] = useState<CarFilters>(start);
+  // A data state starts again from its own filters, so its chips arrive, or leave, in the same row; Ready and Disabled
+  // share theirs.
+  const [startedFrom, setStartedFrom] = useState(start);
+  if (start !== startedFrom) {
+    setStartedFrom(start);
+    setFilters(start);
+  }
   const found = matchingCars(filters).length;
+  const many = state === "many-options";
+  // The page is drawn as Ready and reads ?state= once it is live; the row is drawn afresh then, so a state in the link
+  // shows as it is rather than playing as a change.
+  const live = useSyncExternalStore(noop, () => true, () => false);
+  const chips = many
+    ? chipsPerValue(filters, locale)
+    : state === "long-labels"
+      ? chipsOf(filters, locale).map((chip) => ({ ...chip, value: `${chip.value}${APPLIED_LONG_TAILS[chip.key] ?? ""}` }))
+      : chipsOf(filters, locale);
 
   return (
     <Frame toolbar={<span />}>
@@ -239,13 +324,15 @@ export function AppliedFiltersStage() {
         })}
       </div>
       <AppliedFilters
-        filters={chipsOf(filters, locale)}
-        onRemove={(key) => setFilters((f) => clearFacet(f, key as CarFacet))}
+        key={live ? "live" : "drawn"}
+        filters={chips}
+        onRemove={(key) => setFilters((f) => (many ? removeChip(f, key) : clearFacet(f, key as CarFacet)))}
         onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
+        disabled={disabled}
         className="mb-4"
       />
       <Results filters={filters} setFilters={setFilters} />
-      <CountLine found={found} onReset={() => setFilters(APPLIED_START)} />
+      <CountLine found={found} onReset={() => setFilters(start)} />
     </Frame>
   );
 }

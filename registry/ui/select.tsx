@@ -57,7 +57,7 @@ const PAGE = 10;
  * tinted with a check that draws in; options with counts show a bar for their share that grows in the first time the list opens.
  * Focus stays on the field: arrows, Home, End, Page Up and Page Down move, typing finds an option by its first letters,
  * Enter or Space picks, Escape closes. The option whose value is "" is the empty choice and shows muted, like a placeholder.
- * Inside a loading StatusFrame the field keeps its box and its value draws as a placeholder bar.
+ * Inside a loading StatusFrame the field keeps its box and a bar stands in for the value, which fades in once when it arrives.
  */
 export function Select({
   value,
@@ -95,7 +95,6 @@ export function Select({
   // Enter and Space are handled on keydown; the click the browser then fires for the button is skipped.
   const skipClick = useRef(false);
   const typeAhead = useTypeAhead();
-  // Inside a loading StatusFrame a bar stands in for the value, which then fades in once.
   const { loading, arriving } = useLoading();
 
   const chosen = options.find((option) => option.value === value);

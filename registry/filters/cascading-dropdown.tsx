@@ -4,11 +4,14 @@ import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "re
 import { cn } from "../lib/cn";
 import { formatsFor, resultsLabel } from "../lib/format";
 import { Select } from "../ui/select";
+import { SKELETON_FILL, SkeletonText } from "../ui/skeleton";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 
 export type CascadeChild = { value: string; label: string; count: number };
 export type CascadeOption = { value: string; label: string; count: number; children: readonly CascadeChild[] };
 
-export type CascadingDropdownProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type CascadingDropdownProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  StateProps & {
   /** The first choices, each with its own second choices, e.g. makes and their models. In display order. */
   options: readonly CascadeOption[];
   /** [first, second], e.g. [make, model]. null is "any". */
@@ -44,6 +47,7 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.
  * in RTL) joins it to the first and draws itself in accent as a first choice is made, and again when it changes. A new first choice
  * clears the second, whose old value blurs out. Under them, the most common second choices sit as quick picks, each
  * with a thin accent bar along its foot for its share; they rise in one after another for each new first choice.
+ * Loading, both fields and the quick picks keep their boxes while their words and counts draw as placeholders.
  */
 export function CascadingDropdown({
   options,
@@ -58,9 +62,15 @@ export function CascadingDropdown({
   formatCount: formatCountProp,
   countLabel: countLabelProp,
   locale,
+  status = "ready",
+  onRetry,
+  errorText,
+  emptyText,
+  disabled = false,
   className,
   ...props
 }: CascadingDropdownProps) {
+  const loading = status === "loading";
   const formatCount = formatCountProp ?? formatsFor(locale).number;
   const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const firstLabel = labels?.first ?? "First";
@@ -105,100 +115,104 @@ export function CascadingDropdown({
 
   return (
     <div className={cn("relative", className)} {...props}>
-      <Select
-        label={firstLabel}
-        prefix={firstLabel}
-        options={firstChoices}
-        value={first ?? ANY}
-        onChange={(next) => onChange([next === ANY ? null : next, null])}
-        formatCount={formatCount}
-        countLabel={countLabel}
-      />
-      <div className="relative mt-3 ps-7">
-        <svg
-          aria-hidden="true"
-          width="28"
-          height="34"
-          viewBox="0 0 28 34"
-          fill="none"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          className="pointer-events-none absolute -top-3 inset-s-0 overflow-visible rtl:-scale-x-100"
-        >
-          <path d="M14 0v26a8 8 0 0 0 8 8h6" className="stroke-[var(--fu-line,#404040)]" />
-          <path
-            ref={elbow}
-            d="M14 0v26a8 8 0 0 0 8 8h6"
-            pathLength={1}
-            strokeDasharray="1"
-            className={cn(
-              "stroke-[var(--fu-accent-soft,#8FAAFF)] transition-[opacity] duration-300 motion-reduce:transition-none",
-              parent ? "opacity-100" : "opacity-0",
-            )}
-          />
-        </svg>
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} empty={options.length === 0} emptyText={emptyText} disabled={disabled}>
         <Select
-          label={secondLabel}
-          prefix={secondLabel}
-          options={secondChoices}
-          value={second ?? ANY}
-          onChange={(next) => onChange([first, next === ANY ? null : next])}
-          placeholder={parent ? undefined : waitingText}
-          waiting={!parent}
-          emptyText={waitingText}
-          heading={parent ? secondHeading(parent) : undefined}
+          label={firstLabel}
+          prefix={firstLabel}
+          options={firstChoices}
+          value={first ?? ANY}
+          onChange={(next) => onChange([next === ANY ? null : next, null])}
           formatCount={formatCount}
           countLabel={countLabel}
         />
-      </div>
-      {picks.length > 0 && (
-        <div ref={chips} role="group" aria-label={popularLabel} className="mt-2.5 flex flex-wrap items-center gap-1.5 ps-7">
-          <span aria-hidden="true" className="me-1 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
-            {popularLabel}
-          </span>
-          {picks.map((child) => {
-            const on = child.value === second;
-            return (
-              <button
-                key={child.value}
-                type="button"
-                aria-pressed={on}
-                aria-label={`${child.label}, ${countLabel(child.count)}`}
-                onClick={() => onChange([first, on ? null : child.value])}
-                className={cn(
-                  "relative isolate inline-flex h-8 min-w-0 cursor-pointer items-center gap-1.5 overflow-hidden rounded-[9px] border px-2.5 text-[13px] leading-5 font-medium",
-                  "transition-[border-color,color] duration-200 motion-reduce:transition-none",
-                  "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
-                  "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:content-['']",
-                  on
-                    ? "border-[var(--fu-accent-soft,#8FAAFF)] text-[var(--fu-accent-pale,#D1DDFF)]"
-                    : "border-[var(--fu-line,#404040)] text-[var(--fu-text,#F8F5F1)] hover:border-[var(--fu-control-border,#737373)]",
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute inset-0 -z-10 bg-[var(--fu-selected,#1F2747)] transition-[opacity] duration-200 motion-reduce:transition-none",
-                    on ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute bottom-0 inset-s-0 h-[2px] transition-[width,background-color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                    on ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-accent-soft,#8FAAFF)]/45",
-                  )}
-                  style={{ width: `${most > 0 ? (child.count / most) * 100 : 0}%` }}
-                />
-                <span className="truncate">{child.label}</span>{" "}
-                <span className={cn("tabular-nums font-normal", on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]")}>
-                  {formatCount(child.count)}
-                </span>
-              </button>
-            );
-          })}
+        <div className="relative mt-3 ps-7">
+          <svg
+            aria-hidden="true"
+            width="28"
+            height="34"
+            viewBox="0 0 28 34"
+            fill="none"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            className="pointer-events-none absolute -top-3 inset-s-0 overflow-visible rtl:-scale-x-100"
+          >
+            <path d="M14 0v26a8 8 0 0 0 8 8h6" className="stroke-[var(--fu-line,#404040)]" />
+            <path
+              ref={elbow}
+              d="M14 0v26a8 8 0 0 0 8 8h6"
+              pathLength={1}
+              strokeDasharray="1"
+              className={cn(
+                "stroke-[var(--fu-accent-soft,#8FAAFF)] transition-[opacity] duration-300 motion-reduce:transition-none",
+                parent ? "opacity-100" : "opacity-0",
+              )}
+            />
+          </svg>
+          <Select
+            label={secondLabel}
+            prefix={secondLabel}
+            options={secondChoices}
+            value={second ?? ANY}
+            onChange={(next) => onChange([first, next === ANY ? null : next])}
+            placeholder={parent ? undefined : waitingText}
+            waiting={!parent}
+            emptyText={waitingText}
+            heading={parent ? secondHeading(parent) : undefined}
+            formatCount={formatCount}
+            countLabel={countLabel}
+          />
         </div>
-      )}
+        {picks.length > 0 && (
+          <div ref={chips} role="group" aria-label={popularLabel} className="mt-2.5 flex flex-wrap items-center gap-1.5 ps-7">
+            <span aria-hidden="true" className="me-1 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
+              {popularLabel}
+            </span>
+            {picks.map((child) => {
+              const on = child.value === second;
+              return (
+                <button
+                  key={child.value}
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={`${child.label}, ${countLabel(child.count)}`}
+                  onClick={() => onChange([first, on ? null : child.value])}
+                  className={cn(
+                    "relative isolate inline-flex h-8 max-w-full min-w-0 cursor-pointer items-center gap-1.5 overflow-hidden rounded-[9px] border px-2.5 text-[13px] leading-5 font-medium",
+                    "transition-[border-color,color] duration-200 motion-reduce:transition-none",
+                    "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
+                    "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5 pointer-coarse:after:content-['']",
+                    on
+                      ? "border-[var(--fu-accent-soft,#8FAAFF)] text-[var(--fu-accent-pale,#D1DDFF)]"
+                      : "border-[var(--fu-line,#404040)] text-[var(--fu-text,#F8F5F1)] hover:border-[var(--fu-control-border,#737373)]",
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute inset-0 -z-10 bg-[var(--fu-selected,#1F2747)] transition-[opacity] duration-200 motion-reduce:transition-none",
+                      on ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute bottom-0 inset-s-0 h-[2px] transition-[width,background-color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                      loading ? SKELETON_FILL : on ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-accent-soft,#8FAAFF)]/45",
+                    )}
+                    style={{ width: `${most > 0 ? (child.count / most) * 100 : 0}%` }}
+                  />
+                  <span className="truncate">
+                    <SkeletonText>{child.label}</SkeletonText>
+                  </span>{" "}
+                  <span className={cn("shrink-0 tabular-nums font-normal", on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]")}>
+                    <SkeletonText>{formatCount(child.count)}</SkeletonText>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </StatusFrame>
     </div>
   );
 }

@@ -46,8 +46,8 @@ const HANDLE = 20;
 /** Columns a loading chart draws when it has no buckets yet. */
 const PLACEHOLDER_BARS = 20;
 
-// A loading column's height in percent: a soft hill, highest a third of the way along, as many prices are.
-const hillAt = (i: number, n: number) => {
+/** A loading column's height in percent: a soft hill, highest a third of the way along, as many prices are. */
+export const hillAt = (i: number, n: number) => {
   const x = (i + 0.5) / n;
   return Math.round(18 + 64 * Math.exp(-(((x - 0.38) / 0.24) ** 2)));
 };

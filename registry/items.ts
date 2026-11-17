@@ -364,6 +364,7 @@ export const ITEMS: RegistryItem[] = [
       ...RANGE_TAIL,
       ...statusProps("\"Couldn't load the counts.\""),
       { ...emptyTextProp("\"No items to show.\""), meaning: "The quiet line shown where the bars go when buckets is an empty list." },
+      { name: "announce", type: "boolean", default: "true", meaning: "Says loading and errors out loud. Turn it off when the chart sits inside another filter that says them once, as in Budget." },
     ],
     does: [
       "Bars show how many items sit along the range; bars inside the range light up.",
@@ -650,7 +651,15 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/cascading-dropdown.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
+    stateNotes: {
+      loading: "Both fields keep their boxes with a placeholder bar for the value, the hairline stays, and each quick pick keeps its place with placeholders for its name, count and bar.",
+      error: "The line and Retry take the place of both fields and the quick picks.",
+      empty: "No first choices: a quiet line in place of both fields.",
+      "zero-results": "Every count is 0: each choice stays in its list, dimmed, and cannot be picked; the chosen ones stay, and the quick picks hide, as no second choice has items.",
+      "long-labels": "A long name wraps in the open list; a field cuts its value short with an ellipsis, and a quick pick is cut at the row's width, read whole by its name.",
+      "many-options": "Many first choices: the open list scrolls inside the screen, and typed letters still find a choice.",
+    },
     value: "[string | null, string | null]: [first, second], e.g. [make, model]. null is any, so [null, null] is no filter.",
     props: [
       { name: "options", type: "readonly { value: string; label: string; count: number; children: { value: string; label: string; count: number }[] }[]", required: true, meaning: "The first choices in display order, each with its own second choices." },
@@ -665,6 +674,9 @@ export const ITEMS: RegistryItem[] = [
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text of each count." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
+      ...statusProps(),
+      { ...emptyTextProp(), meaning: "The quiet line shown in place of both fields when there are no first choices." },
+      DISABLED_PROP,
     ],
     does: [
       "Each list shows every choice with a short bar for its share and its count.",
@@ -677,12 +689,14 @@ export const ITEMS: RegistryItem[] = [
       "Each field is one tab stop. Down, Up, Enter or Space opens its list.",
       "Up and Down move; Home and End jump; typed letters find a choice; Enter picks; Escape closes.",
       "Quick picks are buttons: Tab reaches them, Space or Enter picks one or clears it.",
+      "While disabled neither field nor any quick pick takes focus; in an error Tab reaches Retry.",
     ],
     accessibility: [
       "Both fields are Selects: a combobox with a listbox, named with its visible prefix (\"Make\", \"Model\").",
       "While it waits, the second field reads its waiting text as its value; it is never disabled.",
       "Each choice is read with its count (\"RAV4, 11 cars\"); bars and the hairline are hidden from screen readers.",
       "Quick picks are toggle buttons with aria-pressed in a named group (\"Popular\").",
+      "Loading, it is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the filter. Disabled, both fields and the quick picks are disabled buttons.",
     ],
     related: ["searchable-list", "select"],
   },
@@ -696,7 +710,15 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/bar-list.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
+    stateNotes: {
+      loading: "Each row keeps its checkbox and its tick; its bar pulses at a calm falling width, like a ranking, and its name and count draw as placeholders. With no options yet it draws collapsedCount stand-in rows.",
+      error: "The line and Retry take the list's place, and \"All N\" hides with it. The default line names the noun: \"Couldn't load the makes.\"",
+      empty: "A quiet line in place of the list; the default names the noun: \"No makes to show.\"",
+      "zero-results": "Every count is 0: the bars go, and each row stays in place, dimmed, and cannot be ticked; a ticked row can still be unticked.",
+      "long-labels": "A long name wraps onto more lines; the checkbox and the count stay in the row, and the bar grows with it.",
+      "many-options": "The first collapsedCount rows show; \"All N\" opens the rest under them, and past 11 rows the list scrolls in place with half a row showing at its edge.",
+    },
     value: "V[], where V is a string: the ticked values, in the order of the options. [] is no filter.",
     props: [
       { name: "options", type: "readonly { value: V; label: string; count: number }[]", required: true, meaning: "The rows. Keep the order steady (e.g. by total count) so rows never jump while counts change." },
@@ -708,6 +730,9 @@ export const ITEMS: RegistryItem[] = [
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text of each count." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
+      ...statusProps("\"Couldn't load the <noun>.\""),
+      emptyTextProp("\"No <noun> to show.\""),
+      DISABLED_PROP,
     ],
     does: [
       "A soft bar behind each row shows its count as a share of the largest, so the list reads as a ranking.",
@@ -718,11 +743,13 @@ export const ITEMS: RegistryItem[] = [
     keyboard: [
       "Tab moves through each checkbox, then to \"All N\".",
       "Space ticks the focused row.",
+      "While disabled nothing takes focus; in an error Tab reaches Retry.",
     ],
     accessibility: [
       "Rows are native checkboxes in a named group; each reads as its name and count (\"Ford, 12 cars\").",
       "Bars are hidden from screen readers; the counts carry the meaning.",
       "\"All N\" has aria-expanded; hidden rows are inert. Motion is skipped when reduced motion is asked for.",
+      "Loading, the group is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the filter. Disabled, the group is aria-disabled and every checkbox is disabled.",
     ],
     related: ["searchable-list", "chip-group"],
   },
@@ -736,7 +763,13 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/budget.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "zero-results", "disabled"],
+    stateNotes: {
+      loading: "Both cards keep their titles; in the open one the bars pulse in a soft hill, and the top price and the fields draw as placeholders. Total price draws the price chart's own loading look.",
+      error: "The line and Retry take the place of the open card's fields, inside the card; both cards can still be switched.",
+      "zero-results": "Every bucket is 0: the bars lie flat along the rail, and a budget can still be set either way.",
+      disabled: "Both cards and every field inside are off.",
+    },
     value: "{ by: \"total\"; range: [number | null, number | null] } | { by: \"monthly\"; monthly: number | null; term: number; down: number }: a price range, or a monthly amount with a term in months and a down payment. budgetRange(value, rate) turns either into a price range.",
     props: [
       { name: "value", type: "BudgetValue", required: true, meaning: "The way that is picked and what is set in it." },
@@ -749,6 +782,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "currency", type: "string", default: "\"USD\"", meaning: "The currency of the default money format, as an ISO code such as \"EUR\"." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats money, the rate and the terms, and reads typed money the locale's way: \"45.000\" in de-DE. Words stay English." },
       { name: "label", type: "string", default: "\"Budget\"", meaning: "Accessible name of the two ways." },
+      ...statusProps("\"Couldn't load the prices.\""),
+      DISABLED_PROP,
     ],
     does: [
       "Two radio cards: the picked one opens with its fields; the other folds to its title and a one-line note.",
@@ -761,12 +796,14 @@ export const ITEMS: RegistryItem[] = [
       "The two cards are one tab stop: arrow keys switch between them.",
       "Tab then reaches the open card's handles and fields, or its amounts and the term.",
       "In the term, arrow keys move and pick; a typed amount applies as you type.",
+      "While disabled nothing takes focus; in an error Tab reaches the cards, then Retry in the open one.",
     ],
     accessibility: [
       "The two radios form a radiogroup (it owns only them, not the open card's fields), each described by its one-line note.",
       "The top price is announced politely as it changes.",
       "Every field has a visible name and the same accessible name; the chart's bars are hidden from screen readers.",
       "Motion is skipped when reduced motion is asked for.",
+      "Loading, it is aria-busy and says \"Loading\" once, also for the chart inside; an error is read out politely, and Retry keeps focus in the filter. Disabled, the radiogroup is aria-disabled and every control is disabled.",
     ],
     related: ["range-histogram", "upper-limit", "date-range"],
     connect:
@@ -783,7 +820,13 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/applied-filters.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "empty", "disabled", "long-labels", "many-options"],
+    stateNotes: {
+      empty: "No filter in use: a quiet line, \"No filters applied.\", takes the row's place. After Clear all it fades in once the last chip has gone.",
+      disabled: "Every chip's cross and Clear all are off.",
+      "long-labels": "A value too long for the row is cut with an ellipsis and shows whole on hover; the chip's name holds every word, and Clear all moves to the next line rather than being pushed out.",
+      "many-options": "Chips wrap onto as many lines as they need, with Clear all at the end of the last.",
+    },
     value: "None of its own: it shows the { key, label, value } list you make from your filters and calls onRemove with a key.",
     props: [
       { name: "filters", type: "readonly { key: string; label: string; value: string }[]", required: true, meaning: "The filters in use, in display order: a name (\"Price\") and the value in words (\"$15k to $45k\")." },
@@ -791,6 +834,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "onClearAll", type: "() => void", meaning: "When given, Clear all ends the row while two or more filters are in use." },
       { name: "clearAllLabel", type: "string", default: "\"Clear all\"", meaning: "Text of the Clear all button." },
       { name: "label", type: "string", default: "\"Applied filters\"", meaning: "Accessible name of the list." },
+      { ...emptyTextProp("\"No filters applied.\""), meaning: "The quiet line shown in place of the chips while no filter is in use." },
+      DISABLED_PROP,
     ],
     does: [
       "Each chip reads as the filter's name, dim, then its value, bright: \"Price $15k to $45k\".",
@@ -803,11 +848,13 @@ export const ITEMS: RegistryItem[] = [
       "Each chip is a button: Tab reaches it, Enter or Space removes it.",
       "Left and Right move between chips the way they sit on screen, so in right to left Left moves to the next one; Backspace or Delete removes the one in focus.",
       "After a removal focus moves to the next chip; after Clear all, to the row.",
+      "While disabled no chip and not Clear all takes focus.",
     ],
     accessibility: [
-      "The chips are a named list, and each chip is named \"Remove Price: $15k to $45k\".",
+      "The chips are a named list, and each chip is named \"Remove Price: $15k to $45k\", with the whole value even when it is cut short.",
       "A removal is announced politely: \"Price removed\".",
       "Motion is skipped when reduced motion is asked for.",
+      "Disabled, every chip and Clear all is a disabled button.",
     ],
     related: ["no-results", "sentence-search", "chip-group"],
     connect:
@@ -824,7 +871,13 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/no-results.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "disabled", "long-labels"],
+    stateNotes: {
+      loading: "The title stays; each fix keeps its place with placeholders for its words, its count and its bar. With no items yet it draws limit stand-in fixes.",
+      error: "The line and Retry sit under the title in place of the fixes; Clear all still works.",
+      disabled: "Every fix and Clear all are off; the title stays readable.",
+      "long-labels": "A fix's filter name and new value wrap onto more lines; the old value, crossed out, stays on one line and is cut short. The count and the bar stay at the end, and the row's name holds every word.",
+    },
     value: "State: your own filters object. It reads the filters that find nothing and hands back the filters a fix gives.",
     props: [
       { name: "items", type: "readonly Item[]", required: true, meaning: "Every item, to count what each fix would find." },
@@ -839,6 +892,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "onClearAll", type: "() => void", meaning: "When given, a Clear all button closes the card." },
       { name: "headingLevel", type: "2 | 3 | 4 | 5 | 6", default: "3", meaning: "Level of the title." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
+      ...statusProps("\"Couldn't load the changes.\""),
+      DISABLED_PROP,
     ],
     does: [
       "Loosens each filter in use by its nearest step that finds something: \"Under $20k\" to \"Under $25k\", \"7+\" to \"Any\".",
@@ -849,12 +904,14 @@ export const ITEMS: RegistryItem[] = [
     ],
     keyboard: [
       "Each fix is a button: Tab moves between them, Enter or Space applies one.",
+      "While disabled no fix and not Clear all takes focus; in an error Tab reaches Retry, then Clear all.",
     ],
     accessibility: [
       "Each fix is read in words with its count: \"Seats Any instead of 7+, 8 cars\".",
       "When the card shows, its title and how many fixes it has are announced politely.",
       "After a fix, move focus to the results, as the example does.",
       "Motion is skipped when reduced motion is asked for.",
+      "Loading, it is aria-busy and says \"Loading\" once instead of the fixes; an error is read out politely, and Retry keeps focus in the card. Disabled, every fix and Clear all is a disabled button.",
     ],
     related: ["applied-filters", "sentence-search", "range-histogram"],
     connect:

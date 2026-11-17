@@ -315,3 +315,50 @@ export const manyYearBuckets = (filters: CarFilters) => {
 /** Kilometre bars for the many-options state: the same cars spread over 60 bars instead of 15. */
 export const manyKmBuckets = (filters: CarFilters) =>
   histogram(carFacets.pool(CARS, filters, "km"), (car) => car.km, { min: 0, max: KM_MAX, count: 60 });
+
+/** Applied filters' many-options state: one chip per make, body style, fuel, drive and colour, over twenty in all. */
+export const APPLIED_MANY_FILTERS: CarFilters = {
+  condition: "Used",
+  priceMin: 10000,
+  priceMax: 60000,
+  makes: ["Toyota", "Honda", "Ford", "Hyundai", "Kia"].map((make) => ({ make, models: [] })),
+  bodies: ["SUV", "Sedan", "Hatchback"],
+  yearMin: 2017,
+  yearMax: null,
+  kmMax: 120000,
+  fuels: ["Gas", "Hybrid", "Electric"],
+  drives: ["AWD", "FWD"],
+  transmission: "Automatic",
+  colors: ["White", "Black", "Silver", "Blue"],
+  seatsMin: null,
+  listedMin: null,
+  listedMax: null,
+};
+
+/** Applied filters' long-labels state: words added to each chip's value, by facet, so the numbers still follow the locale. */
+export const APPLIED_LONG_TAILS: Readonly<Record<string, string>> = {
+  price: ", before taxes, dealer fees and delivery to your door",
+  year: ", with one owner and a full service history on record",
+  body: ", crossover or wagon with a raised ride height",
+  fuel: " or plug-in hybrid with a long electric range on a full charge",
+};
+
+/** No results' long-labels state: each filter's name in more words, and words added to every value it takes. */
+export const NO_RESULTS_LONG: { names: Readonly<Record<string, string>>; tails: Readonly<Record<string, string>> } = {
+  names: {
+    price: "Price before taxes, fees and delivery",
+    fuel: "Fuel or power source",
+    seats: "Seats, third row included",
+    body: "Body style and shape",
+    color: "Exterior paint colour",
+    drive: "Drivetrain and driven wheels",
+  },
+  tails: {
+    price: ", delivered to your door",
+    fuel: " as listed by the seller",
+    seats: " with room left for luggage",
+    body: " with a raised ride height",
+    color: " metallic or matte finish",
+    drive: " with a locking differential",
+  },
+};
