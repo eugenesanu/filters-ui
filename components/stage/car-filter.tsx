@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { BodyIcon } from "@/registry/demo/body-icons";
-import { BODIES, COLORS, COLOR_PAINTS, DRIVES, FUELS, type Condition, type Transmission } from "@/registry/demo/cars";
+import { BODIES, COLORS, DRIVES, FUELS, type Condition, type Transmission } from "@/registry/demo/cars";
 import {
   KM_MAX,
   KM_STEP,
@@ -35,7 +35,22 @@ import { SearchableList } from "@/registry/filters/searchable-list";
 import { SegmentedChoice } from "@/registry/filters/segmented-choice";
 import { UpperLimit } from "@/registry/filters/upper-limit";
 import type { StageStatus } from "@/components/stage/stage-controls";
-import { bucketsInState, DRIVE_STATES, FUEL_STATES, MAKE_STATES, manyPriceBuckets, optionsInState } from "@/components/stage/state-data";
+import {
+  BODY_STATES,
+  bodyIconFor,
+  bucketsInState,
+  COLOR_STATES,
+  DRIVE_STATES,
+  FUEL_STATES,
+  MAKE_STATES,
+  MANY_YEARS,
+  manyKmBuckets,
+  manyPriceBuckets,
+  manyYearBuckets,
+  optionsInState,
+  paintFor,
+  segmentsInState,
+} from "@/components/stage/state-data";
 
 type Props = {
   facet: CarFacet;
@@ -74,13 +89,14 @@ export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Pr
       return (
         <RangeSelect
           locale={locale}
-          options={YEARS}
+          options={state === "many-options" ? MANY_YEARS : YEARS}
           value={[filters.yearMin, filters.yearMax]}
           onChange={([yearMin, yearMax]) => set({ yearMin, yearMax })}
-          buckets={yearBuckets(filters)}
+          buckets={bucketsInState(state, yearBuckets(filters), () => manyYearBuckets(filters))}
           pickerOrder="descending"
           labels={{ low: "From year", high: "To year" }}
           countLabel={f.carCount}
+          {...states}
         />
       );
     case "km":
@@ -91,10 +107,12 @@ export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Pr
           step={KM_STEP}
           value={filters.kmMax}
           onChange={(kmMax) => set({ kmMax })}
-          buckets={kmBuckets(filters)}
+          buckets={bucketsInState(state, kmBuckets(filters), () => manyKmBuckets(filters))}
           format={f.km}
           locale={locale}
           label="Maximum kilometres"
+          emptyText="No distances to show."
+          {...states}
         />
       );
     case "seats":
@@ -102,10 +120,11 @@ export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Pr
         <SegmentedChoice<number | null>
           locale={locale}
           label="Seats"
-          options={seatOptions(filters, undefined, locale)}
+          options={segmentsInState(state, seatOptions(filters, undefined, locale))}
           value={filters.seatsMin}
           onChange={(seatsMin) => set({ seatsMin })}
           countLabel={f.carCount}
+          {...states}
         />
       );
     case "condition":
@@ -113,10 +132,11 @@ export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Pr
         <SegmentedChoice<Condition | null>
           locale={locale}
           label="New or used"
-          options={conditionOptions(filters)}
+          options={segmentsInState(state, conditionOptions(filters))}
           value={filters.condition}
           onChange={(condition) => set({ condition })}
           countLabel={f.carCount}
+          {...states}
         />
       );
     case "transmission":
@@ -125,35 +145,42 @@ export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Pr
           locale={locale}
           label="Transmission"
           fit="content"
-          options={transmissionOptions(filters)}
+          options={segmentsInState(state, transmissionOptions(filters))}
           value={filters.transmission}
           onChange={(transmission) => set({ transmission })}
           countLabel={f.carCount}
+          {...states}
         />
       );
     case "body": {
       const counts = bodyCounts(filters);
+      // Many-options adds body styles the demo cars do not have, drawn with the nearest icon; picking one finds no cars.
+      const options = optionsInState(state, BODIES.map((b) => ({ value: b, label: b, count: counts.get(b) ?? 0 })), BODY_STATES);
       return (
-        <IconTiles
+        <IconTiles<string>
           locale={locale}
           label="Body style"
-          options={BODIES.map((b) => ({ value: b, label: b, icon: <BodyIcon body={b} />, count: counts.get(b) ?? 0 }))}
+          options={options.map((o) => ({ ...o, icon: <BodyIcon body={bodyIconFor(o.value)} /> }))}
           value={filters.bodies}
-          onChange={(bodies) => set({ bodies })}
+          onChange={(bodies) => set({ bodies: bodies as CarFilters["bodies"] })}
           countLabel={f.carCount}
+          {...states}
         />
       );
     }
     case "color": {
       const counts = colorCounts(filters);
+      // Many-options adds colours the demo cars do not have; picking one finds no cars.
+      const options = optionsInState(state, COLORS.map((c) => ({ value: c, label: c, count: counts.get(c) ?? 0 })), COLOR_STATES);
       return (
-        <ColorSwatches
+        <ColorSwatches<string>
           locale={locale}
           label="Colour"
-          options={COLORS.map((c) => ({ value: c, label: c, color: COLOR_PAINTS[c], count: counts.get(c) ?? 0 }))}
+          options={options.map((o) => ({ ...o, color: paintFor(o.value) }))}
           value={filters.colors}
-          onChange={(colors) => set({ colors })}
+          onChange={(colors) => set({ colors: colors as CarFilters["colors"] })}
           countLabel={f.carCount}
+          {...states}
         />
       );
     }

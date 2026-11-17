@@ -1,9 +1,11 @@
 "use client";
 
 import type { HTMLAttributes } from "react";
+import type { StateProps } from "../ui/status-frame";
 import { RangeHistogram } from "./range-histogram";
 
-export type UpperLimitProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type UpperLimitProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  StateProps & {
   min: number;
   /** The top of the scale. A limit here, or null, means no limit. */
   max: number;
@@ -27,12 +29,13 @@ export type UpperLimitProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
   label?: string;
   /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
   barScale?: number;
-  disabled?: boolean;
 };
 
 /**
  * One upper limit: a bar chart with a single handle and one typed field under it, kept in step both ways.
  * A typed value snaps to the step and stays at least one step above min; an empty field, or the top, is no limit.
+ * The states (status, onRetry, errorText, emptyText, disabled) are the price range's: "Couldn't load the counts." and
+ * "No items to show." by default.
  */
 export function UpperLimit({
   value,
