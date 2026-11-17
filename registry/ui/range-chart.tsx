@@ -222,9 +222,10 @@ export function RangeChart({
     return near * near;
   };
   // The rise is a few fixed pixels plus a small share of the bar, so a short bar shows it as clearly as a tall one.
-  // It grows the height rather than scaling the bar, which would squash the rounded top while it plays.
+  // It grows the height rather than scaling the bar, and stops at the top of the bar area: a card around the chart
+  // clips anything above it, which would cut the rounded top flat.
   const heightOf = (share: number, bump: number) =>
-    `calc(${share}% + ${bump} * var(--lift, 1) * (5px + ${0.13 * share}%))`;
+    bump ? `min(100%, calc(${share}% + ${bump} * var(--lift, 1) * (5px + ${0.13 * share}%)))` : `${share}%`;
   const lowShown = single ? 0 : shown.low;
   const handles: Handle[] = single ? ["high"] : ["low", "high"];
   const columns = buckets?.length || PLACEHOLDER_BARS;
@@ -286,7 +287,8 @@ export function RangeChart({
                       "min-w-0 rounded-t-[3px]",
                       narrow ? "flex-none" : "flex-1",
                       "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                      "group-data-[dragging]/range:duration-[140ms,0ms]",
+                      // While dragging, the wave follows the handle exactly; it eases back when the handle is let go.
+                      "group-data-[dragging]/range:transition-none",
                     )}
                     style={{
                       height: heightOf(Math.max(count ? 8 : 3, (count / tallest) * 100), bumpOf(i)),
