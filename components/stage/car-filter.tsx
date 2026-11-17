@@ -34,7 +34,8 @@ import { RangeSelect } from "@/registry/filters/range-select";
 import { SearchableList } from "@/registry/filters/searchable-list";
 import { SegmentedChoice } from "@/registry/filters/segmented-choice";
 import { UpperLimit } from "@/registry/filters/upper-limit";
-
+import type { StageStatus } from "@/components/stage/stage-controls";
+import { bucketsInState, DRIVE_STATES, FUEL_STATES, MAKE_STATES, manyPriceBuckets, optionsInState } from "@/components/stage/state-data";
 
 type Props = {
   facet: CarFacet;
@@ -42,11 +43,16 @@ type Props = {
   set: (patch: Partial<CarFilters>) => void;
   /** Numbers, prices and distances follow it. Default en-US. */
   locale?: string;
+  /** The stage's State switch. Left out, the filter is ready. */
+  stage?: StageStatus;
 };
 
+const READY: StageStatus = { state: "ready", status: "ready", disabled: false, onRetry: () => {} };
+
 /** One car filter's body, wired to the demo cars the way the full board wires it. */
-export function CarFilterBody({ facet, filters, set, locale }: Props): ReactNode {
+export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Props): ReactNode {
   const f = carFormats(locale);
+  const { state, ...states } = stage;
   switch (facet) {
     case "price":
       return (
@@ -56,10 +62,12 @@ export function CarFilterBody({ facet, filters, set, locale }: Props): ReactNode
           step={PRICE_STEP}
           value={[filters.priceMin, filters.priceMax]}
           onChange={([priceMin, priceMax]) => set({ priceMin, priceMax })}
-          buckets={priceBuckets(filters)}
+          buckets={bucketsInState(state, priceBuckets(filters), () => manyPriceBuckets(filters))}
           format={f.money}
           locale={locale}
           labels={{ low: "Lowest price", high: "Highest price" }}
+          emptyText="No prices to show."
+          {...states}
         />
       );
     case "year":
@@ -151,27 +159,30 @@ export function CarFilterBody({ facet, filters, set, locale }: Props): ReactNode
     }
     case "fuel": {
       const counts = fuelCounts(filters);
+      // Many-options adds fuels the demo cars do not have; picking one just finds no cars.
       return (
-        <ChipGroup
+        <ChipGroup<string>
           locale={locale}
           label="Fuel"
-          options={FUELS.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
+          options={optionsInState(state, FUELS.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 })), FUEL_STATES)}
           value={filters.fuels}
-          onChange={(fuels) => set({ fuels })}
+          onChange={(fuels) => set({ fuels: fuels as CarFilters["fuels"] })}
           countLabel={f.carCount}
+          {...states}
         />
       );
     }
     case "drive": {
       const counts = driveCounts(filters);
       return (
-        <ChipGroup
+        <ChipGroup<string>
           locale={locale}
           label="Drivetrain"
-          options={DRIVES.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
+          options={optionsInState(state, DRIVES.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 })), DRIVE_STATES)}
           value={filters.drives}
-          onChange={(drives) => set({ drives })}
+          onChange={(drives) => set({ drives: drives as CarFilters["drives"] })}
           countLabel={f.carCount}
+          {...states}
         />
       );
     }
@@ -182,10 +193,11 @@ export function CarFilterBody({ facet, filters, set, locale }: Props): ReactNode
           label="Make and model"
           noun="makes"
           collapsedCount={MAKES_UP_FRONT}
-          options={makeOptions(filters)}
+          options={optionsInState(state, makeOptions(filters), MAKE_STATES)}
           value={filters.makes.map((p) => ({ value: p.make, children: p.models }))}
           onChange={(picks) => set({ makes: picks.map((p) => ({ make: p.value, models: p.children })) })}
           countLabel={f.carCount}
+          {...states}
         />
       );
   }

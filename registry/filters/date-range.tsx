@@ -15,6 +15,8 @@ import { cn } from "../lib/cn";
 import { isRtl, onDirChange, readingKey } from "../lib/direction";
 import { formatsFor, resultsLabel, type Formats } from "../lib/format";
 import { ChevronDownIcon } from "../ui/icons";
+import { Skeleton, SKELETON_FILL, SkeletonText } from "../ui/skeleton";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
 import { TextSwap } from "../ui/text-swap";
 
@@ -33,7 +35,8 @@ export const DEFAULT_DATE_PRESETS: readonly DatePreset[] = [
   { label: "Last 30 days", last: 30 },
 ];
 
-export type DateRangeProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type DateRangeProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  Omit<StateProps, "emptyText"> & {
   value: DateRangeValue;
   onChange: (value: DateRangeValue) => void;
   /** Today as "YYYY-MM-DD". Default: the visitor's own date, read in the browser, so the server never guesses it. */
@@ -260,9 +263,14 @@ export function DateRange({
   formatCount: formatCountProp,
   countLabel: countLabelProp,
   locale,
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the counts.",
+  disabled = false,
   className,
   ...props
 }: DateRangeProps) {
+  const loading = status === "loading";
   const f = formatsFor(locale);
   const weekStartsOn = weekStartsOnProp ?? f.firstDay;
   const formatCount = formatCountProp ?? f.number;
@@ -448,7 +456,7 @@ export function DateRange({
   };
 
   const onGridKeys = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!focused) return;
+    if (!focused || disabled) return;
     const weekday = (weekdayOf(focused) - weekStartsOn + 7) % 7;
     const key = readingKey(event.key, event.currentTarget);
     const moves: Record<string, () => string> = {
@@ -548,7 +556,9 @@ export function DateRange({
           const n = Number(day.slice(8, 10));
           const isToday = day === today;
           const can = pickable(day);
-          const count = countOf && can ? dayCount(day) : null;
+          // While loading, a day's count is a placeholder and its number keeps the plain colour.
+          const count = countOf && can && !loading ? dayCount(day) : null;
+          const countLoading = !!countOf && can && loading;
           const inBand = !!band && day >= band.start && day <= band.end;
           const isStart = !!band && day === band.start;
           const isEnd = !!band && day === band.end;
@@ -565,7 +575,7 @@ export function DateRange({
             <div
               key={c}
               role={live ? "gridcell" : undefined}
-              tabIndex={live ? (day === focused ? 0 : -1) : undefined}
+              tabIndex={live ? (day === focused && !disabled ? 0 : -1) : undefined}
               aria-selected={live ? selected : undefined}
               aria-disabled={live && !can ? true : undefined}
               aria-current={live && isToday ? "date" : undefined}
@@ -638,7 +648,14 @@ export function DateRange({
                     )}
                     style={{ transitionDelay: `${timing.delay}ms` }}
                   >
-                    {count ? formatCount(count) : ""}
+                    {countLoading ? (
+                      <Skeleton className="mx-auto mt-[3px] h-1.5 w-3.5 rounded-full" />
+                    ) : count ? (
+                      // Not a placeholder here: SkeletonText only fades the count in once when it arrives.
+                      <SkeletonText loading={false}>{formatCount(count)}</SkeletonText>
+                    ) : (
+                      ""
+                    )}
                   </span>
                 )}
               </span>
@@ -772,7 +789,7 @@ export function DateRange({
                 tabIndex={i === Math.max(0, checkedIndex) ? 0 : -1}
                 onClick={() => choose(i, true)}
                 className={cn(
-                  "group/preset relative flex h-9 min-w-0 cursor-pointer items-center gap-1.5 rounded-[9px] px-3 text-start text-[14px] leading-5 font-medium pointer-coarse:h-11 @min-[500px]:justify-between @min-[500px]:gap-3",
+                  "group/preset relative flex min-h-9 min-w-0 cursor-pointer items-center gap-1.5 rounded-[9px] px-3 py-2 text-start text-[14px] leading-5 font-medium pointer-coarse:min-h-11 @min-[500px]:justify-between @min-[500px]:gap-3",
                   "transition-[color,background-color,scale] duration-200 active:scale-[0.98] active:duration-75 motion-reduce:transition-none",
                   SMOOTH,
                   FOCUS_RING,
@@ -781,19 +798,28 @@ export function DateRange({
                     : "text-[var(--fu-mute,#BDBDBD)] hover:bg-[var(--fu-item-hover,#2A2A2A)] hover:text-[var(--fu-text,#F8F5F1)]",
                 )}
               >
-                <span className="truncate">{choice.label}</span>
+                {/* A long label wraps; the count stays beside its first line. */}
+                <span className="min-w-0 [overflow-wrap:anywhere]">{choice.label}</span>
                 {choice.count !== null && (
                   <>
                     <span
                       aria-hidden="true"
                       className={cn(
                         "inline-flex h-5 min-w-[22px] shrink-0 items-center justify-center rounded-[6px] px-1.5 text-[12px] leading-4 font-medium tabular-nums transition-[background-color,color] duration-200",
-                        choice.on
-                          ? "bg-[var(--fu-accent,#3B57E6)] text-[var(--fu-on-accent,#FFFFFF)]"
-                          : "bg-[var(--fu-pill,rgb(255_255_255/0.1))] text-[var(--fu-pill-text,#C8C8C8)]",
+                        loading
+                          ? SKELETON_FILL
+                          : choice.on
+                            ? "bg-[var(--fu-accent,#3B57E6)] text-[var(--fu-on-accent,#FFFFFF)]"
+                            : "bg-[var(--fu-pill,rgb(255_255_255/0.1))] text-[var(--fu-pill-text,#C8C8C8)]",
                       )}
                     >
-                      <TextSwap>{formatCount(choice.count)}</TextSwap>
+                      {loading ? (
+                        <span className="invisible">{formatCount(choice.count)}</span>
+                      ) : (
+                        <SkeletonText loading={false}>
+                          <TextSwap>{formatCount(choice.count)}</TextSwap>
+                        </SkeletonText>
+                      )}
                     </span>
                     <span className="sr-only">, {countLabel(choice.count)}</span>
                   </>
@@ -884,6 +910,7 @@ export function DateRange({
                     role="grid"
                     aria-labelledby={monthLabelId}
                     aria-multiselectable="true"
+                    aria-disabled={disabled || undefined}
                     onKeyDown={onGridKeys}
                     onPointerLeave={() => pending && setPreview(null)}
                     className={cn("transition-opacity duration-[480ms] motion-reduce:transition-none", SMOOTH, !shownMonth && "opacity-0")}
@@ -917,7 +944,7 @@ export function DateRange({
                   const covered = !!range && !!first && range.start <= lastDay && range.end >= first;
                   const isShown = shownMonth === first;
                   const holdsToday = !!today && today.slice(0, 7) === first.slice(0, 7);
-                  const count = mode === "months" ? monthCount(m) : null;
+                  const count = mode === "months" && !loading ? monthCount(m) : null;
                   return (
                     <button
                       key={name}
@@ -1001,9 +1028,11 @@ export function DateRange({
 
   return (
     <div ref={root} className={cn("@container", className)} {...props}>
-      <div className="grid gap-4 @min-[500px]:grid-cols-[168px_minmax(0,1fr)] @min-[500px]:gap-6">
-        {wide ? [presetsBlock, calendarBlock] : [calendarBlock, presetsBlock]}
-      </div>
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled}>
+        <div className="grid gap-4 @min-[500px]:grid-cols-[168px_minmax(0,1fr)] @min-[500px]:gap-6">
+          {wide ? [presetsBlock, calendarBlock] : [calendarBlock, presetsBlock]}
+        </div>
+      </StatusFrame>
       <p aria-live="polite" className="sr-only">
         {said}
       </p>

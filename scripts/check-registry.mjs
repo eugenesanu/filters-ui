@@ -1,7 +1,7 @@
 // Checks the rules the registry relies on. Runs in prebuild; exits 1 with every problem listed.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { ITEMS } from "../registry/items.ts";
+import { ITEM_STATES, ITEMS } from "../registry/items.ts";
 import { cssVariablesOf, EXAMPLE_ASSETS, getItemFiles, specifiersOf, varUses } from "../lib/registry-files.ts";
 import { TOKENS } from "../lib/theme.ts";
 
@@ -133,6 +133,49 @@ const stageSpecs = readFileSync(join(ROOT, "components/stage/stage-specs.ts"), "
 for (const item of ITEMS) {
   if (!new RegExp(`^\\s*(?:"${item.slug}"|${item.slug}): \\{ locale: (?:true|false)`, "m").test(stageSpecs)) {
     fail(`${item.slug}: add it to STAGE_SPECS in components/stage/stage-specs.ts`);
+  }
+}
+
+// States: each item lists the states it supports in registry/items.ts (ITEM_STATES order, "ready" first); the stage's
+// State switch and the prompt's States part read that list. A listed state needs its props in the props table, and once
+// an item lists more than "ready", every state prop it documents needs its state listed. loading and error come
+// together (one status prop), and an item that loads or fails draws them with the shared StatusFrame, never its own.
+const STATE_NEEDS = { loading: ["status"], error: ["status", "onRetry", "errorText"], empty: ["emptyText"], disabled: ["disabled"] };
+const PROP_GIVES = { status: ["loading", "error"], onRetry: ["error"], errorText: ["error"], emptyText: ["empty"], disabled: ["disabled"] };
+for (const item of ITEMS) {
+  if (!Array.isArray(item.states)) {
+    fail(`${item.slug}: add states (registry/items.ts), at least ["ready"]`);
+    continue;
+  }
+  const states = item.states;
+  const documented = new Set(item.props.flatMap((row) => row.name.split("/").map((name) => name.trim())));
+  if (states[0] !== "ready") fail(`${item.slug}: states must start with "ready"`);
+  let last = -1;
+  for (const state of states) {
+    const at = ITEM_STATES.indexOf(state);
+    if (at === -1) fail(`${item.slug}: "${state}" is not one of ITEM_STATES`);
+    else if (at <= last) fail(`${item.slug}: states must follow ITEM_STATES order, each once`);
+    last = Math.max(last, at);
+    for (const prop of STATE_NEEDS[state] ?? []) {
+      if (!documented.has(prop)) fail(`${item.slug}: lists the "${state}" state, but its props do not document ${prop}`);
+    }
+  }
+  if (states.includes("loading") !== states.includes("error")) fail(`${item.slug}: loading and error come together (both are status)`);
+  if (states.length > 1) {
+    for (const [prop, needs] of Object.entries(PROP_GIVES)) {
+      if (!documented.has(prop)) continue;
+      for (const state of needs) if (!states.includes(state)) fail(`${item.slug}: documents ${prop}, but its states do not list "${state}"`);
+    }
+  }
+  for (const key of Object.keys(item.stateNotes ?? {})) {
+    if (!states.includes(key)) fail(`${item.slug}: stateNotes has "${key}", which is not one of its states`);
+  }
+  if (states.includes("loading")) {
+    try {
+      if (!getItemFiles(item).files.some((file) => file.path === "registry/ui/status-frame.tsx")) {
+        fail(`${item.slug}: lists loading and error, but does not use StatusFrame (registry/ui/status-frame.tsx)`);
+      }
+    } catch {}
   }
 }
 

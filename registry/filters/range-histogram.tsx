@@ -4,9 +4,11 @@ import { useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
 import { RangeChart, type RangeValue } from "../ui/range-chart";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
 
-export type RangeHistogramProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type RangeHistogramProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  StateProps & {
   min: number;
   max: number;
   step: number;
@@ -33,7 +35,6 @@ export type RangeHistogramProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange
   labels?: { low?: string; high?: string };
   /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
   barScale?: number;
-  disabled?: boolean;
 };
 
 /** A range chart with typed Minimum and Maximum fields under it, kept in step both ways. */
@@ -52,7 +53,11 @@ export function RangeHistogram({
   placeholders,
   labels,
   barScale,
-  disabled,
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the counts.",
+  emptyText = "No items to show.",
+  disabled = false,
   className,
   ...props
 }: RangeHistogramProps) {
@@ -83,45 +88,46 @@ export function RangeHistogram({
     if (next[0] !== value[0] || next[1] !== value[1]) onChange(next);
   };
 
+  // The frame dims and blocks everything while disabled, so the chart and fields are not dimmed a second time.
   return (
     <div className={cn("pt-1", className)} {...props}>
-      <RangeChart
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={onChange}
-        buckets={buckets}
-        format={format}
-        openLabel={openLabel}
-        single={single}
-        labels={{ low: lowLabel, high: highLabel }}
-        barScale={barScale}
-        locale={locale}
-        disabled={disabled}
-      />
-      <div className={cn("mt-3 grid gap-2", single ? "grid-cols-1" : "grid-cols-2")}>
-        {!single && (
+      <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled}>
+        <RangeChart
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={onChange}
+          buckets={buckets}
+          format={format}
+          openLabel={openLabel}
+          single={single}
+          labels={{ low: lowLabel, high: highLabel }}
+          barScale={barScale}
+          locale={locale}
+          emptyText={emptyText}
+        />
+        <div className={cn("mt-3 grid gap-2", single ? "grid-cols-1" : "grid-cols-2")}>
+          {!single && (
+            <RangeField
+              value={value[0]}
+              format={format}
+              parse={parse}
+              label={lowLabel}
+              placeholder={lowPlaceholder}
+              onCommit={(typed) => commit(0, typed)}
+            />
+          )}
           <RangeField
-            value={value[0]}
+            value={value[1]}
             format={format}
             parse={parse}
-            label={lowLabel}
-            placeholder={lowPlaceholder}
-            onCommit={(typed) => commit(0, typed)}
-            disabled={disabled}
+            label={highLabel}
+            placeholder={highPlaceholder}
+            onCommit={(typed) => commit(1, typed)}
           />
-        )}
-        <RangeField
-          value={value[1]}
-          format={format}
-          parse={parse}
-          label={highLabel}
-          placeholder={highPlaceholder}
-          onCommit={(typed) => commit(1, typed)}
-          disabled={disabled}
-        />
-      </div>
+        </div>
+      </StatusFrame>
     </div>
   );
 }
@@ -133,11 +139,10 @@ type RangeFieldProps = {
   label: string;
   placeholder: string;
   onCommit: (value: number | null) => void;
-  disabled?: boolean;
 };
 
 // Shows the formatted value; while focused it holds what the person types, and commits on Enter or blur.
-function RangeField({ value, format, parse, label, placeholder, onCommit, disabled }: RangeFieldProps) {
+function RangeField({ value, format, parse, label, placeholder, onCommit }: RangeFieldProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const shown = value === null ? "" : format(value);
 
@@ -158,7 +163,6 @@ function RangeField({ value, format, parse, label, placeholder, onCommit, disabl
       autoComplete="off"
       enterKeyHint="done"
       value={draft ?? shown}
-      disabled={disabled}
       onChange={setDraft}
       onClear={() => {
         setDraft(null);

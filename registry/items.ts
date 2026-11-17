@@ -14,8 +14,22 @@
 // worked out in script read the direction from the element (registry/lib/direction.ts). An item that prints numbers,
 // prices, distances or dates takes locale?: string (default "en-US") and formats through registry/lib/format.ts, with a
 // "locale" row in its props below. Every item also gets one line in components/stage/stage-specs.ts.
+// States: every item lists the states it supports in `states` (ITEM_STATES order, "ready" first) and documents their
+// props with the shared rows below (statusProps, emptyTextProp, DISABLED_PROP); registry:check enforces both. Loading,
+// error, empty and disabled come from wrapping the content in StatusFrame (registry/ui/status-frame.tsx) and drawing
+// text and counts with SkeletonText and CountPill; the stage shows each state through useStageStatus() and the demo
+// data in components/stage/state-data.ts.
 
 export type ItemKind = "filter" | "basic" | "block";
+
+/**
+ * The states an item can be shown in, in the order of the stage's State switch. "ready" is the item as it normally
+ * is; the others are what a person sees while data loads or fails, with no options, with every count at 0, while it
+ * is turned off, and with long names or very many options. The stage, the prompt and registry:check all read an
+ * item's own list.
+ */
+export const ITEM_STATES = ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"] as const;
+export type ItemState = (typeof ITEM_STATES)[number];
 
 export type PropRow = {
   name: string;
@@ -53,6 +67,13 @@ export type RegistryItem = {
   connect?: string;
   /** A block narrow enough to sit beside the copy panel on its page, as a filter does. */
   narrow?: true;
+  /**
+   * The states it supports, "ready" first, in ITEM_STATES order: the stage offers them in its State switch and the
+   * prompt describes them. Leave a state out where it has no meaning for the item.
+   */
+  states: readonly ItemState[];
+  /** What a state shows on this item, where the shared words in the prompt's States part need more. */
+  stateNotes?: Partial<Record<Exclude<ItemState, "ready">, string>>;
 };
 
 const RANGE_DATA: PropRow[] = [
@@ -62,9 +83,33 @@ const RANGE_DATA: PropRow[] = [
   { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats values by default and reads typed numbers the locale's way: \"45.000\" is forty-five thousand in de-DE. Words stay English." },
 ];
 
+/** The state props, the same in every item that takes them. Pass the item's own default error line. */
+const statusProps = (errorDefault = "\"Couldn't load the options.\""): PropRow[] => [
+  {
+    name: "status",
+    type: "\"ready\" | \"loading\" | \"error\"",
+    default: "\"ready\"",
+    meaning: "\"loading\" draws placeholders the size of the real content, so nothing moves when the data arrives; \"error\" shows errorText and a Retry button in its place.",
+  },
+  { name: "onRetry", type: "() => void", meaning: "Called by Retry in the error state. Without it the error line has no button." },
+  { name: "errorText", type: "string", default: errorDefault, meaning: "The error line, in plain words." },
+];
+const emptyTextProp = (fallback = "\"No options to show.\""): PropRow => ({
+  name: "emptyText",
+  type: "string",
+  default: fallback,
+  meaning: "The quiet line shown in place of the options when there are none.",
+});
+const DISABLED_PROP: PropRow = {
+  name: "disabled",
+  type: "boolean",
+  default: "false",
+  meaning: "Dims the whole filter, blocks pointer and keyboard input and reads as unavailable.",
+};
+
 const RANGE_TAIL: PropRow[] = [
   { name: "barScale", type: "number", default: "1", meaning: "Bar width as a share of its slot, so a chart with few bars keeps the rhythm of a denser one." },
-  { name: "disabled", type: "boolean", default: "false", meaning: "Dims the filter and blocks input." },
+  DISABLED_PROP,
 ];
 
 const CHOICE_SHARED: PropRow[] = [
@@ -95,6 +140,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/icon-tiles.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready"],
     value: "V[], where V is a string: the values that are on. [] is no filter.",
     props: [
       { name: "options", type: "readonly { value: V; label: string; icon: ReactNode; count: number }[]", required: true, meaning: "The tiles. The icon is any SVG drawn in currentColor; var(--tile-bg) is the tile's own background, for cut-outs." },
@@ -127,6 +173,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/color-swatches.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready"],
     value: "V[], where V is a string: the colours that are on. [] is no filter.",
     props: [
       { name: "options", type: "readonly { value: V; label: string; color: string; count: number }[]", required: true, meaning: "The swatches. color is any CSS colour for the dot." },
@@ -161,6 +208,14 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/searchable-list.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
+    stateNotes: {
+      loading: "The search field, the first collapsedCount rows and their counts draw as placeholders; with no options yet it draws stand-in rows.",
+      error: "The default line names the noun: \"Couldn't load the makes.\"",
+      empty: "A quiet line in place of the search and the list; the default names the noun: \"No makes to show.\"",
+      "long-labels": "A long name wraps onto more lines; the checkbox and the count stay in the row.",
+      "many-options": "The short list shows collapsedCount rows; \"All N\" opens the rest in a scroll area, and the search narrows them.",
+    },
     value: "{ value: string; children: string[] }[]: one entry per ticked option, with the sub-options that narrow it. Empty children means the whole option. [] is no filter.",
     props: [
       { name: "options", type: "readonly { value: string; label: string; count: number; children?: { value: string; label: string; count: number }[] }[]", required: true, meaning: "In display order: the first collapsedCount make the short list, the rest show after \"All N\"." },
@@ -173,6 +228,9 @@ export const ITEMS: RegistryItem[] = [
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
       { name: "variant", type: "\"card\" | \"panel\"", default: "\"card\"", meaning: "\"panel\": a 48px search, 20px filled checkboxes, 17px names and plain counts, for a list that sits in a panel rather than a card. The list grows in place and the panel scrolls it." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
+      ...statusProps("\"Couldn't load the <noun>.\""),
+      emptyTextProp("\"No <noun> to show.\""),
+      DISABLED_PROP,
     ],
     does: [
       "Typing filters options and sub-options at once and marks the matching letters.",
@@ -184,11 +242,13 @@ export const ITEMS: RegistryItem[] = [
     keyboard: [
       "Tab moves from the search field through each checkbox, then to \"All N\".",
       "Space ticks the focused row; Escape in the search field clears it.",
+      "While disabled nothing takes focus; in an error Tab reaches Retry.",
     ],
     accessibility: [
       "Rows are native checkboxes; the whole row is the label and reads as name and count.",
       "Sub-options sit in their own list named after their option.",
       "\"No match\" and the suggestion are announced through a status region; \"All N\" has aria-expanded.",
+      "Loading, it is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the filter. Disabled, the field and checkboxes are disabled.",
     ],
     related: ["sentence-search", "chip-group", "icon-tiles"],
   },
@@ -203,6 +263,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/sentence-search.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "State: your own filters object. The vocabulary says how each word changes it, and which tokens it shows.",
     props: [
       { name: "vocabulary", type: "Vocabulary<Item, State>", required: true, meaning: "The words it knows: names (terms), phrases with numbers or meaning (rules), how to merge two values and the tokens a value shows." },
@@ -253,6 +314,13 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/range-histogram.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "many-options"],
+    stateNotes: {
+      loading: "The bars draw as pulsing columns in a soft hill and the rail pulses; the handles hide and each field shows a placeholder bar.",
+      empty: "buckets is an empty list: emptyText sits quietly where the bars go, and the handles and fields still work.",
+      "zero-results": "Every bucket is 0: the bars lie flat along the rail, and the range can still be set.",
+      "many-options": "Many buckets: from 40 bars the gaps narrow, to a quarter of a bar's slot, so no bar vanishes.",
+    },
     value: "[number | null, number | null]: [low, high]. null is an open end, so [null, null] is no limit.",
     props: [
       { name: "min", type: "number", required: true, meaning: "Bottom of the scale." },
@@ -266,6 +334,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "placeholders", type: "{ low?: string; high?: string }", default: "Minimum, Maximum", meaning: "Field placeholders." },
       { name: "labels", type: "{ low?: string; high?: string }", default: "the placeholders", meaning: "Accessible names of the handles and fields, e.g. \"Lowest price\"." },
       ...RANGE_TAIL,
+      ...statusProps("\"Couldn't load the counts.\""),
+      { ...emptyTextProp("\"No items to show.\""), meaning: "The quiet line shown where the bars go when buckets is an empty list." },
     ],
     does: [
       "Bars show how many items sit along the range; bars inside the range light up.",
@@ -278,11 +348,13 @@ export const ITEMS: RegistryItem[] = [
       "Tab reaches each handle, then each field.",
       "Arrow keys move the focused handle by one step; Home and End jump to the ends. Right to left, Left raises the value and Right lowers it.",
       "Enter or leaving a field applies what was typed; Escape puts the field back.",
+      "While disabled the handles and fields leave the tab order; in an error Tab reaches Retry.",
     ],
     accessibility: [
       "Each handle is a native range input with its own name (\"Lowest price\") and a spoken value; an open end reads \"No minimum\" or \"No maximum\".",
       "The fields carry names even though only placeholders show.",
       "The tooltip and bars are hidden from screen readers; the inputs carry the meaning.",
+      "Loading, it is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the filter. Disabled, the handles and fields are disabled inputs.",
     ],
     related: ["upper-limit", "range-select"],
   },
@@ -296,25 +368,39 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/chip-group.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
+    stateNotes: {
+      loading: "Each chip keeps its place while its name and count draw as placeholders; with no options yet it draws five placeholder chips.",
+      "long-labels": "A name longer than the whole row wraps inside its chip; the count stays beside it.",
+      "many-options": "The first 12 chips show (collapsedCount), with any that are on, and \"Show all 30\" opens the rest.",
+    },
     value: "V[], where V is a string: the values that are on, in the order they were picked. [] is no filter.",
     props: [
       { name: "options", type: "readonly { value: V; label: string; count: number }[]", required: true, meaning: "The chips, in display order." },
       { name: "value", type: "readonly V[]", required: true, meaning: "The values that are on." },
       { name: "onChange", type: "(value: V[]) => void", required: true, meaning: "Called with the new list." },
       ...CHOICE_SHARED,
+      { name: "collapsedCount", type: "number", default: "12", meaning: "How many chips show before \"Show all N\". Chips that are on always show. A list only folds when it hides three or more." },
+      ...statusProps(),
+      emptyTextProp(),
+      DISABLED_PROP,
     ],
     does: [
       "Each chip toggles on or off; several can be on.",
       "Chips wrap onto as many rows as they need.",
       "A chip with a count of 0 is dimmed and cannot be turned on, but stays in place so the rows do not shift.",
       "A chip turned off at 0 keeps focus until you leave it.",
+      "A long list shows its first 12 chips and \"Show all N\"; a name longer than the row wraps inside its chip.",
     ],
     keyboard: [
       "Each chip is a button: Tab moves between them, Space or Enter toggles.",
+      "\"Show all N\" is the last stop; while disabled no chip takes focus, and in an error Tab reaches Retry.",
     ],
     accessibility: [
       "Chips are toggle buttons with aria-pressed, inside a named group.",
       "Each chip is read as its name and its count (\"Hybrid, 3 cars\").",
+      "Loading, the group is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the filter.",
+      "Disabled, the group is aria-disabled and every chip is a disabled button; \"Show all N\" has aria-expanded.",
     ],
     related: ["icon-tiles", "color-swatches", "segmented-choice"],
   },
@@ -328,6 +414,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/range-select.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "[V | null, V | null], where V is a number from options: [from, to], both inclusive. null is an open end.",
     props: [
       { name: "options", type: "readonly number[]", required: true, meaning: "The values to pick from, in ascending order, e.g. years. One bar each." },
@@ -372,6 +459,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/upper-limit.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready"],
     value: "number | null: the limit, or null for none.",
     props: [
       { name: "min", type: "number", required: true, meaning: "Bottom of the scale. The handle stops one step above it." },
@@ -412,6 +500,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/segmented-choice.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready"],
     value: "V, where V is string | number | null: the chosen option's value. null is the usual value for Any.",
     props: [
       { name: "options", type: "readonly { value: V; label: ReactNode; count?: number; disabled?: boolean }[]", required: true, meaning: "The choices. Leave count out for no pill, as on Any." },
@@ -446,6 +535,13 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/date-range.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready", "loading", "error", "zero-results", "disabled", "long-labels"],
+    stateNotes: {
+      loading: "Day numbers stay; each day's count, each preset's count and the typed fields draw as placeholders.",
+      "zero-results": "countOf gives 0 for every day: the days show no count and dim, and every preset counts 0.",
+      disabled: "The presets, the month buttons and the fields are disabled, and the calendar's days leave the tab order.",
+      "long-labels": "A long preset label wraps; its count stays beside it.",
+    },
     value: "{ last: number } | { start: string; end: string } | null: the last N days with today (it moves on as days pass), two fixed days as \"YYYY-MM-DD\", both included, or null for any time.",
     props: [
       { name: "value", type: "DateRangeValue", required: true, meaning: "The range: { last: 7 }, { start: \"2026-11-03\", end: \"2026-11-09\" } or null." },
@@ -460,6 +556,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "weekStartsOn", type: "0 | 1 | 2 | 3 | 4 | 5 | 6", default: "the locale's", meaning: "The first day of the week: 0 is Sunday, 1 Monday, 6 Saturday. Default: Sunday in en-US, Monday in de-DE, Saturday in ar-EG." },
       { name: "formatCount / countLabel", type: "(n: number) => string", default: "1,234 / \"6 results\"", meaning: "Text of each count, and its words for screen readers, e.g. \"6 cars\"." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Month and weekday names, the first day of the week, the order of typed dates (\"3.11.\" in de-DE) and the numbers. The presets' words stay as given." },
+      ...statusProps("\"Couldn't load the counts.\""),
+      DISABLED_PROP,
     ],
     does: [
       "Presets pick the last 1, 3, 7 or 30 days in one press; the chosen one is tinted and each shows its count.",
@@ -474,11 +572,13 @@ export const ITEMS: RegistryItem[] = [
       "Right to left the week runs from the right, so Left moves to the next day and Right to the day before.",
       "Enter or Space picks the first day, then the last; Escape drops a half-picked range.",
       "In a date field, Enter or leaving it applies what was typed; Escape puts it back.",
+      "While disabled nothing takes focus and the arrows do nothing; in an error Tab reaches Retry.",
     ],
     accessibility: [
       "The presets are a radiogroup; the calendar is a grid of gridcells, labelled by the month, with aria-selected on the days in the range and aria-current on today.",
       "Each day reads in full with its count (\"Tuesday, November 10, 2026, 4 cars\"); a day after today is aria-disabled.",
       "Every change is announced politely, as words and a count (\"November 3 to 9, 12 cars\").",
+      "Loading, it is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the filter. Disabled, the grid is aria-disabled.",
       "Motion is skipped when reduced motion is asked for.",
     ],
     related: ["range-select", "range-histogram", "budget"],
@@ -495,6 +595,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/cascading-dropdown.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "[string | null, string | null]: [first, second], e.g. [make, model]. null is any, so [null, null] is no filter.",
     props: [
       { name: "options", type: "readonly { value: string; label: string; count: number; children: { value: string; label: string; count: number }[] }[]", required: true, meaning: "The first choices in display order, each with its own second choices." },
@@ -540,6 +641,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/bar-list.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "V[], where V is a string: the ticked values, in the order of the options. [] is no filter.",
     props: [
       { name: "options", type: "readonly { value: V; label: string; count: number }[]", required: true, meaning: "The rows. Keep the order steady (e.g. by total count) so rows never jump while counts change." },
@@ -579,6 +681,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/budget.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "{ by: \"total\"; range: [number | null, number | null] } | { by: \"monthly\"; monthly: number | null; term: number; down: number }: a price range, or a monthly amount with a term in months and a down payment. budgetRange(value, rate) turns either into a price range.",
     props: [
       { name: "value", type: "BudgetValue", required: true, meaning: "The way that is picked and what is set in it." },
@@ -625,6 +728,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/applied-filters.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "None of its own: it shows the { key, label, value } list you make from your filters and calls onRemove with a key.",
     props: [
       { name: "filters", type: "readonly { key: string; label: string; value: string }[]", required: true, meaning: "The filters in use, in display order: a name (\"Price\") and the value in words (\"$15k to $45k\")." },
@@ -665,6 +769,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/no-results.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "State: your own filters object. It reads the filters that find nothing and hands back the filters a fix gives.",
     props: [
       { name: "items", type: "readonly Item[]", required: true, meaning: "Every item, to count what each fix would find." },
@@ -711,6 +816,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/recent-searches.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "State, as in the sentence search: your own filters object. The recent and saved lists are yours too: { id, value, name? }[].",
     props: [
       { name: "vocabulary / items / value / onChange", type: "Vocabulary<Item, State> / readonly Item[] / State / (value: State) => void", required: true, meaning: "As in the sentence search: the words it knows, every item for the counts, and the filters that are set." },
@@ -758,6 +864,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/rules.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "RuleSet: { join: \"and\" | \"or\", items: (Rule | RuleGroup)[] }. A Rule is { id, field, op, value }; a RuleGroup is { id, join, rules }. A rule with no value yet tests nothing.",
     props: [
       { name: "fields", type: "readonly RuleField<Item>[]", required: true, meaning: "What rules can test: { key, label, kind, get }. kind \"number\" is typed (format, parse, prefix), \"step\" is picked from steps, \"list\" ticks names from options." },
@@ -801,6 +908,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/filter-pills.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "None of its own: each pill shows a filter you keep in your own state. open is the id of the open pill, or null.",
     props: [
       { name: "pills", type: "readonly FilterPill[]", required: true, meaning: "One per pill, in order: { id, label, summary?, count?, onClear?, icon?, width?, content }." },
@@ -846,6 +954,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/all-filters.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "None of its own: each entry shows a filter you keep in your own state. picked is the id of the filter open on the right.",
     props: [
       { name: "groups", type: "readonly { label: string; filters: FilterEntry[] }[]", required: true, meaning: "The list, in groups such as \"Price and age\"." },
@@ -888,6 +997,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/dropdown.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "V for one choice, or V[] with multiple, where V is a string: the chosen option values.",
     props: [
       { name: "label", type: "string", required: true, meaning: "Accessible name of the menu, e.g. \"Sort by\"." },
@@ -933,6 +1043,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/select.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "string: the chosen option's value. \"\" is the usual value for an empty choice such as Any.",
     props: [
       { name: "value", type: "string", required: true, meaning: "The chosen value. One that matches no option shows the empty look." },
@@ -979,6 +1090,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/buttons.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready"],
     value: "None. Set busy while a request runs.",
     props: [
       { name: "variant", type: "\"primary\" | \"secondary\" | \"ghost\" | \"quiet\" | \"quiet-accent\"", default: "\"primary\"", meaning: "Accent fill, grey fill, no fill with a wash on hover, or muted text that lights up (accent text for quiet-accent)." },
@@ -1019,6 +1131,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/cars-board.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
+    states: ["ready"],
     value: "The board keeps its own filters. onShow receives the matching cars.",
     props: [
       { name: "cars", type: "readonly Car[]", default: "256 sample cars", meaning: "The listings to filter." },
@@ -1056,6 +1169,7 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/filter-panel.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
+    states: ["ready"],
     value: "The panel keeps its own filters. onShow receives the matching cars.",
     props: [
       { name: "cars", type: "readonly Car[]", default: "256 sample cars", meaning: "The listings to filter." },

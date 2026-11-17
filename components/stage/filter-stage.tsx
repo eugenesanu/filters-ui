@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement, useEffect, useRef, useState, type ReactNode } from "react";
+import { createElement, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { CARS } from "@/registry/demo/cars";
 import { CAR_FACET_TITLES, carFormats, clearFacet, matchingCars, summaryOf, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
 import { CarsBoard } from "@/registry/blocks/cars-board";
@@ -22,8 +22,10 @@ import { RecentSearchesStage } from "@/components/stage/recent-searches-stage";
 import { RulesStage } from "@/components/stage/rules-stage";
 import { FilterPanel } from "@/registry/blocks/filter-panel";
 import { PANEL_PRESET } from "@/components/tile/presets";
-import { StageControlRow, StageControlsProvider, useStage, useStageFrame, useStageProps } from "@/components/stage/stage-controls";
+import { StageControlRow, StageControlsProvider, useStage, useStageFrame, useStageProps, useStageStatus } from "@/components/stage/stage-controls";
+import { StageCount } from "@/components/stage/stage-count";
 import { formatsFor } from "@/registry/lib/format";
+import type { ItemState } from "@/registry/items";
 
 /** Which car filters demonstrate each tile; several make a quiet switch at the stage top-left. A tile with none shows its example. */
 const STAGE_FACETS: Record<string, CarFacet[]> = {
@@ -88,7 +90,7 @@ function ExampleSwitch({ facets, value, onChange }: { facets: CarFacet[]; value:
 
 function CarFilterStage({ slug, facets }: { slug: string; facets: CarFacet[] }) {
   const { locale } = useStage();
-  const n = formatsFor(locale).number;
+  const stage = useStageStatus();
   const [facet, setFacet] = useState(facets[0]);
   const [filters, setFilters] = useState<CarFilters>(() => presetFilters(slug, facets[0]));
   const [open, setOpen] = useState(true);
@@ -123,17 +125,16 @@ function CarFilterStage({ slug, facets }: { slug: string; facets: CarFacet[] }) 
           key={`${facet}-${round}`}
           title={CAR_FACET_TITLES[facet]}
           summary={summaryOf(filters, facet, locale)}
-          onClear={() => setFilters((f) => clearFacet(f, facet))}
+          // A disabled filter cannot be changed, so its card offers no Clear.
+          onClear={stage.disabled ? undefined : () => setFilters((f) => clearFacet(f, facet))}
           open={open}
           onOpenChange={setOpen}
           headingLevel={2}
         >
-          <CarFilterBody facet={facet} filters={filters} set={set} locale={locale} />
+          <CarFilterBody facet={facet} filters={filters} set={set} locale={locale} stage={stage} />
         </FilterCard>
         <div className="mt-3 flex items-center justify-between gap-3 ps-4">
-          <p aria-live="polite" className="text-[14px] leading-5 text-dim tabular-nums">
-            <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
-          </p>
+          <StageCount matches={matches} total={CARS.length} stage={stage} />
           <ResetButton onReset={reset} className="-me-3" />
         </div>
       </div>
@@ -305,19 +306,28 @@ function PanelStage() {
   );
 }
 
+/**
+ * An item drawn by its own example shows Ready as the example; every other state of its State switch is drawn by a
+ * state stage of its own, listed here (additions only). A state stage reads useStageStatus() and draws the real
+ * component with the example's kind of data, or data from components/stage/state-data.ts.
+ */
+const STATE_STAGES: Record<string, ComponentType> = {};
+
 function ExampleStage({ slug }: { slug: string }) {
   const [round, setRound] = useState(0);
   const props = useStageProps();
+  const { state } = useStage();
+  const stateStage = state === "ready" ? undefined : STATE_STAGES[slug];
   return (
     <StagePanel onReset={() => setRound((n) => n + 1)}>
-      {createElement(exampleOf(slug), { key: round, ...props })}
+      {stateStage ? createElement(stateStage, { key: round }) : createElement(exampleOf(slug), { key: round, ...props })}
     </StagePanel>
   );
 }
 
-export function FilterStage({ slug }: { slug: string }) {
+export function FilterStage({ slug, states }: { slug: string; states: readonly ItemState[] }) {
   return (
-    <StageControlsProvider slug={slug}>
+    <StageControlsProvider slug={slug} states={states}>
       <StageFor slug={slug} />
     </StageControlsProvider>
   );
