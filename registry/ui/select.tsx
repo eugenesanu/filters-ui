@@ -51,8 +51,8 @@ const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.Num
 
 /**
  * A select drawn like TextField (44px, 12px radius, #737373 border, 15px text, a chevron) whose list grows out of the
- * field in a panel of its own instead of the system menu. One highlight slides between the rows; the chosen row is
- * tinted with a check that draws in; options with counts show a bar for their share that grows in as the list opens.
+ * field in a panel of its own instead of the system menu. One highlight marks the active row; the chosen row is
+ * tinted with a check that draws in; options with counts show a bar for their share that grows in the first time the list opens.
  * Focus stays on the field: arrows, Home, End, Page Up and Page Down move, typing finds an option by its first letters,
  * Enter or Space picks, Escape closes. The option whose value is "" is the empty choice and shows muted, like a placeholder.
  */

@@ -60,8 +60,8 @@ const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 
 /**
  * A trigger pill ("Sort by Newest") that opens a menu, grown out of the pill, of single-choice options (the chosen one
- * tinted, with a check that draws in), multi-choice options with a box, and plain actions. One highlight slides between
- * the rows; an option may carry a glyph and a hint. Focus moves into the menu: arrows (wrapping), Home, End and first
+ * tinted, with a check that draws in), multi-choice options with a box, and plain actions. One highlight marks
+ * the active row; an option may carry a glyph and a hint. Focus moves into the menu: arrows (wrapping), Home, End and first
  * letters move it, Enter or Space picks, Escape closes back to the trigger. A single choice closes the menu; ticking a
  * box keeps it open.
  */

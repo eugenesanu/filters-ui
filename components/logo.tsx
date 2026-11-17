@@ -1,12 +1,22 @@
 type LogoProps = { className?: string };
 
+// Inside a link with group/logo, hovering slides the knob to the left and the blue fill follows it, held to the track.
+const SLIDE = "transition-[translate] duration-[480ms] ease-smooth group-hover/logo:-translate-x-[16px] motion-reduce:transition-none";
+
 function Slider() {
   return (
     <>
+      <defs>
+        <clipPath id="fu-logo-track">
+          <rect x="10" y="28" width="44" height="8" rx="4" />
+        </clipPath>
+      </defs>
       <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" fill="var(--fu-card)" stroke="var(--fu-card-border)" strokeWidth="1.5" />
       <rect x="10" y="28" width="44" height="8" rx="4" fill="#4A4A4A" />
-      <rect x="10" y="28" width="25" height="8" rx="4" fill="var(--fu-accent-soft)" />
-      <circle cx="35" cy="32" r="9.5" fill="var(--fu-text)" />
+      <g clipPath="url(#fu-logo-track)">
+        <rect x="-6" y="28" width="41" height="8" rx="4" fill="var(--fu-accent-soft)" className={SLIDE} />
+      </g>
+      <circle cx="35" cy="32" r="9.5" fill="var(--fu-text)" className={SLIDE} />
     </>
   );
 }

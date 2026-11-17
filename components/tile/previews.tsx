@@ -125,7 +125,6 @@ function ButtonsPreview() {
 function PanelPreview() {
   return (
     <FilterPanel
-      glow
       headingLevel={3}
       defaultFilters={PANEL_PRESET.filters}
       defaultOpen={PANEL_PRESET.open}

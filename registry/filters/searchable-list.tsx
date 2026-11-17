@@ -463,12 +463,21 @@ export function SearchableList({
             setAll(!all);
           }}
           className={cn(
-            "relative mt-1.5 ml-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
+            "group/more relative mt-1.5 ml-3 cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)] before:absolute before:-inset-x-1 before:-inset-y-2 before:content-['']",
             "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
             panel && "mt-2 ml-0 text-[15px] pointer-coarse:before:-inset-y-3",
           )}
         >
-          {all ? "Show fewer" : `All ${options.length} ${noun}`}
+          {/* A 1px line draws in under the words from the left while it is hovered or focused. */}
+          <span
+            className={cn(
+              "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] bg-no-repeat pb-px",
+              "transition-[background-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              "[@media(hover:hover)]:group-hover/more:bg-[length:100%_1px] group-focus-visible/more:bg-[length:100%_1px]",
+            )}
+          >
+            {all ? "Show fewer" : `All ${options.length} ${noun}`}
+          </span>
         </button>
       )}
     </div>

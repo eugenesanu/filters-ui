@@ -52,7 +52,7 @@ export function CascadingDropdown({
   anyLabels,
   waitingText = "Pick one above first",
   secondHeading = (first) => first.label,
-  popular = 3,
+  popular = 2,
   popularLabel = "Popular",
   formatCount = defaultFormat,
   countLabel = defaultCountLabel,
@@ -71,18 +71,21 @@ export function CascadingDropdown({
   const picks = parent ? [...parent.children].filter((child) => child.count > 0).sort((a, b) => b.count - a.count).slice(0, popular) : [];
   const most = Math.max(0, ...picks.map((child) => child.count));
 
-  // Whenever the first choice changes to a value, the accent elbow draws from the first field down into the second and
-  // the quick picks rise in, one after another.
+  // Whenever the first choice changes to a value, the accent elbow draws from the first field down into the second. The
+  // quick picks rise in, one after another, only the first time they show.
   const elbow = useRef<SVGPathElement>(null);
   const chips = useRef<HTMLDivElement>(null);
   const drawn = useRef(parent?.value ?? null);
+  const risen = useRef(picks.length > 0);
   useLayoutEffect(() => {
     const path = elbow.current;
     const was = drawn.current;
     drawn.current = parent?.value ?? null;
     if (!path || !parent || was === parent.value || reducedMotion()) return;
     const moves = [path.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 560, delay: 60, easing: SMOOTH, fill: "backwards" })];
-    [...(chips.current?.children ?? [])].forEach((chip, i) => {
+    const rise = !risen.current;
+    risen.current = risen.current || (chips.current?.children.length ?? 0) > 0;
+    if (rise) [...(chips.current?.children ?? [])].forEach((chip, i) => {
       moves.push(
         chip.animate(
           [
@@ -107,21 +110,21 @@ export function CascadingDropdown({
         formatCount={formatCount}
         countLabel={countLabel}
       />
-      <div className="relative mt-2 pl-7">
+      <div className="relative mt-3 pl-7">
         <svg
           aria-hidden="true"
           width="28"
-          height="30"
-          viewBox="0 0 28 30"
+          height="34"
+          viewBox="0 0 28 34"
           fill="none"
           strokeWidth="1.5"
           strokeLinecap="round"
-          className="pointer-events-none absolute -top-2 left-0 overflow-visible"
+          className="pointer-events-none absolute -top-3 left-0 overflow-visible"
         >
-          <path d="M14 0v22a8 8 0 0 0 8 8h6" className="stroke-[var(--fu-line,#404040)]" />
+          <path d="M14 0v26a8 8 0 0 0 8 8h6" className="stroke-[var(--fu-line,#404040)]" />
           <path
             ref={elbow}
-            d="M14 0v22a8 8 0 0 0 8 8h6"
+            d="M14 0v26a8 8 0 0 0 8 8h6"
             pathLength={1}
             strokeDasharray="1"
             className={cn(

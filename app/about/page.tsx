@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { GitHubMark, SiteHeader } from "@/components/site-header";
 import { site } from "@/lib/site";
 import { buttonClasses } from "@/registry/ui/button-classes";
 
@@ -62,6 +62,16 @@ export default function About() {
               className={buttonClasses({ variant: "secondary", size: "lg" })}
             >
               Get in touch
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            <a
+              href={site.author.github}
+              target="_blank"
+              rel="noopener"
+              className={buttonClasses({ variant: "secondary", size: "lg", before: true })}
+            >
+              <GitHubMark className="size-5" />
+              GitHub
               <span className="sr-only"> (opens in a new tab)</span>
             </a>
           </div>

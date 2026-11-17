@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { countOf, type Token, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
-import { BookmarkIcon, BookmarkPlusIcon, CheckIcon, HistoryIcon, XIcon } from "../ui/icons";
+import { CheckIcon, HistoryIcon, StarIcon, XIcon } from "../ui/icons";
 import { SentenceSearch, type OwnRow, type OwnRowProps, type SentenceSearchProps } from "./sentence-search";
 
 /** A search kept by the page: in Recent, or in Saved with a name. */
@@ -16,7 +16,7 @@ export type RecentSearchesProps<Item, State> = Omit<SentenceSearchProps<Item, St
   saved: readonly SavedSearch<State>[];
   /** A search worth keeping: called when the field loses focus with filters set, and with the old search when the box is cleared. */
   onSearch: (value: State) => void;
-  /** "Save this search", or the bookmark on a recent row. `name` is read from its tokens: "Blue SUV under $30k". */
+  /** "Save this search", or the star on a recent row. `name` is read from its tokens: "Blue SUV under $30k". */
   onSave: (value: State, name: string) => void;
   /** The cross on a row, or Delete while it is highlighted. */
   onForget: (id: string) => void;
@@ -72,24 +72,79 @@ function Glyph({ children, tone = "dim" }: { children: ReactNode; tone?: "dim" |
   );
 }
 
-/** A small press target inside a row, for the pointer only: the keys reach the same action through the row. */
-function RowAction({ title, onPress, children }: { title: string; onPress: () => void; children: ReactNode }) {
+/**
+ * A small press target inside a row, for the pointer only: the keys reach the same action through the row. A mouse
+ * over it shows its tip above it (below near the top of the window), on the page's top layer, so neither the list's
+ * scroll area nor the folded actions clip it.
+ */
+function RowAction({ tip, onPress, children }: { tip: string; onPress: () => void; children: ReactNode }) {
+  const bubble = useRef<HTMLSpanElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // A removed row takes its open tip with it: the browser closes a popover that leaves the page.
+  useEffect(() => () => clearTimeout(timer.current), []);
+
+  const show = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const node = bubble.current;
+    if (event.pointerType === "touch" || !node) return;
+    clearTimeout(timer.current);
+    if (!node.matches(":popover-open")) {
+      try {
+        node.showPopover();
+      } catch {
+        return;
+      }
+    }
+    const box = event.currentTarget.getBoundingClientRect();
+    const below = box.top < 40;
+    node.style.left = `${box.left + box.width / 2}px`;
+    node.style.top = `${below ? box.bottom + 6 : box.top - 6}px`;
+    node.dataset.side = below ? "below" : "above";
+    // Read the start position before the shown state, so the tip rises in rather than appearing.
+    node.getBoundingClientRect();
+    node.dataset.shown = "";
+  };
+
+  const hide = () => {
+    const node = bubble.current;
+    if (!node) return;
+    delete node.dataset.shown;
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      if (node.matches(":popover-open")) node.hidePopover();
+    }, 150);
+  };
+
   return (
     <span
       aria-hidden="true"
-      title={title}
+      onPointerEnter={show}
+      onPointerLeave={hide}
       onClick={(event) => {
         event.stopPropagation();
+        hide();
         onPress();
       }}
       className={cn(
-        "relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-[8px] text-[var(--fu-dim,#8C8C8C)]",
+        "group/act relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-[8px] text-[var(--fu-dim,#8C8C8C)]",
         "transition-[background-color,color] duration-150 motion-reduce:transition-none",
         "hover:bg-[var(--fu-hover,#333333)] hover:text-[var(--fu-text,#F8F5F1)]",
         "pointer-coarse:after:absolute pointer-coarse:after:-inset-2 pointer-coarse:after:content-['']",
       )}
     >
       {children}
+      <span
+        ref={bubble}
+        popover="manual"
+        className={cn(
+          "pointer-events-none fixed inset-auto m-0 -translate-x-1/2 overflow-visible rounded-[8px] border-0 px-2 py-1 whitespace-nowrap",
+          "bg-[var(--fu-text,#F8F5F1)] text-[12px] leading-4 font-medium text-[var(--fu-surface-1,#171717)]",
+          "opacity-0 transition-[opacity,translate] duration-150 ease-in-out motion-reduce:transition-none data-shown:opacity-100",
+          "data-[side=above]:translate-y-[calc(-100%+4px)] data-[side=above]:data-shown:-translate-y-full",
+          "data-[side=below]:-translate-y-1 data-[side=below]:data-shown:translate-y-0",
+        )}
+      >
+        {tip}
+      </span>
     </span>
   );
 }
@@ -247,7 +302,7 @@ export function RecentSearches<Item, State>({
     return (
       <>
         <Glyph tone="accent">
-          <BookmarkIcon size={16} />
+          <StarIcon size={16} className="fill-current" />
         </Glyph>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[15px] leading-5 font-medium text-[var(--fu-text,#F8F5F1)]">{entry.name ?? nameOf(own)}</span>
@@ -352,7 +407,7 @@ export function RecentSearches<Item, State>({
               {savedBody(entry)}
               <span className="flex shrink-0 items-center">
                 <RowActions width="one">
-                  <RowAction title="Remove" onPress={() => forget(entry, "saved")}>
+                  <RowAction tip="Remove" onPress={() => forget(entry, "saved")}>
                     <XIcon size={16} />
                   </RowAction>
                 </RowActions>
@@ -381,10 +436,10 @@ export function RecentSearches<Item, State>({
               {recentBody(entry)}
               <span className="flex shrink-0 items-center">
                 <RowActions width="two">
-                  <RowAction title="Save" onPress={() => save(entry.value)}>
-                    <BookmarkPlusIcon size={16} />
+                  <RowAction tip="Save" onPress={() => save(entry.value)}>
+                    <StarIcon size={16} className="fill-transparent transition-[fill] duration-150 group-hover/act:fill-current motion-reduce:transition-none" />
                   </RowAction>
-                  <RowAction title="Remove" onPress={() => forget(entry, "recent")}>
+                  <RowAction tip="Remove" onPress={() => forget(entry, "recent")}>
                     <XIcon size={16} />
                   </RowAction>
                 </RowActions>
@@ -426,7 +481,7 @@ export function RecentSearches<Item, State>({
             className="group/row relative flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[12px] py-2 pr-3 pl-2"
           >
             <Glyph tone="accent">
-              <BookmarkPlusIcon size={16} />
+              <StarIcon size={16} />
             </Glyph>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[15px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)]">Save this search</span>

@@ -110,12 +110,12 @@ function RangeField() {
       </defs>
       <g clipPath="url(#fu-hero-feet)" strokeWidth={6} strokeLinejoin="round">
         <path d={columns(rest, base)} fill="url(#fu-hero-near)" stroke="url(#fu-hero-near)" className="fu-hero-rise" />
-        <g fill="#8FAAFF" stroke="#8FAAFF" opacity={0.28} className="fu-hero-tint">
+        <g fill="#A3A3A3" stroke="#A3A3A3" opacity={0.3} className="fu-hero-tint">
           <path d={columns(band, base)} className="fu-hero-rise" style={{ animationDelay: "240ms" }} />
         </g>
       </g>
       <rect y={rail - 2} width={FIELD_W} height={4} rx={2} fill="#1F1F1F" />
-      <rect x={low} y={rail - 2} width={high - low} height={4} fill="#8FAAFF" fillOpacity={0.6} className="fu-hero-open" />
+      <rect x={low} y={rail - 2} width={high - low} height={4} fill="#A3A3A3" fillOpacity={0.5} className="fu-hero-open" />
       {/* On load the handles start near the middle of the band and glide out to its edges. */}
       {[low, high].map((cx, i) => (
         <circle

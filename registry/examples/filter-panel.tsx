@@ -8,7 +8,6 @@ import { EMPTY_CAR_FILTERS } from "../demo/cars-facets";
 export default function FilterPanelExample() {
   return (
     <FilterPanel
-      glow
       className="mx-auto h-[600px] max-w-[400px]"
       defaultFilters={{ ...EMPTY_CAR_FILTERS, priceMax: 45000, makes: [{ make: "Toyota", models: ["RAV4"] }] }}
       defaultOpen={["make"]}

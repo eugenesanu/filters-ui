@@ -279,8 +279,7 @@ function PanelStage() {
       <div className="flex w-full max-w-[400px] flex-col">
         <FilterPanel
           key={round}
-          glow
-          className="h-[min(600px,calc(100dvh-352px))] min-h-[440px]"
+          className="h-[min(860px,calc(100dvh-120px))] min-h-[600px]"
           defaultFilters={PANEL_PRESET.filters}
           defaultOpen={PANEL_PRESET.open}
           onShow={(cars) => setShown(cars.length)}

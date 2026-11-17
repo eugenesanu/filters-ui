@@ -199,20 +199,14 @@ const ADDS: { label: string; on: (f: CarFilters) => boolean; toggle: (f: CarFilt
 const ADD_PILL =
   "relative inline-flex h-8 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[9px] border pl-2 pr-2.5 text-[14px] leading-5 transition-[color,background-color,border-color] duration-200 ease-smooth pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5 outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-soft";
 
-/** A results page head: the chips over the cars, with a few filters to add under them so chips arrive as well as leave. */
+/** A results page head: a few filters to add, then the chips they make, over the cars, so chips arrive as well as leave. */
 export function AppliedFiltersStage() {
   const [filters, setFilters] = useState<CarFilters>(APPLIED_START);
   const found = matchingCars(filters).length;
 
   return (
     <Frame toolbar={<span />}>
-      <AppliedFilters
-        filters={chipsOf(filters)}
-        onRemove={(key) => setFilters((f) => clearFacet(f, key as CarFacet))}
-        onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
-        className="mb-3"
-      />
-      <div role="group" aria-label="Add a filter" className="mb-4 flex flex-wrap items-center gap-2">
+      <div role="group" aria-label="Add a filter" className="mb-3 flex flex-wrap items-center gap-2">
         <span className="mr-0.5 text-[13px] leading-5 text-dim">Add</span>
         {ADDS.map((add) => {
           const on = add.on(filters);
@@ -230,6 +224,12 @@ export function AppliedFiltersStage() {
           );
         })}
       </div>
+      <AppliedFilters
+        filters={chipsOf(filters)}
+        onRemove={(key) => setFilters((f) => clearFacet(f, key as CarFacet))}
+        onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
+        className="mb-4"
+      />
       <Results filters={filters} setFilters={setFilters} />
       <CountLine found={found} onReset={() => setFilters(APPLIED_START)} />
     </Frame>

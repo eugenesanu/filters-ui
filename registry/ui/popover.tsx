@@ -90,6 +90,8 @@ export function PopoverPanel({
 }: PopoverPanelProps) {
   const panel = useRef<HTMLDivElement | null>(null);
   const [phase, setPhase] = useState<"hidden" | "open" | "closing">("hidden");
+  // Counts grow in only the first time the panel opens; after that they are already in place.
+  const [seen, setSeen] = useState(false);
   // Which edges have rows scrolled out of view, so a soft fade there says the list goes on.
   const [more, setMore] = useState({ top: false, bottom: false });
   const side = useRef<"bottom" | "top">("bottom");
@@ -163,6 +165,7 @@ export function PopoverPanel({
         node.style.transition = "";
       }
       setPhase("open");
+      setSeen(true);
     } else if (phase === "open") {
       setPhase(reducedMotion() ? "hidden" : "closing");
     }
@@ -282,6 +285,7 @@ export function PopoverPanel({
       ref={setRef}
       popover={still ? undefined : "manual"}
       data-state={state}
+      data-unseen={!seen && !still && state === "closed" ? "" : undefined}
       // Not while it is opening again before it finished leaving, so focus can move in.
       inert={state === "closing" && !open}
       style={still ? { maxWidth, maxHeight, ...style } : style}
@@ -319,22 +323,20 @@ export function keepRowInView(panel: HTMLElement, row: HTMLElement) {
   else if (bottom > panel.scrollTop + panel.clientHeight) panel.scrollTop = bottom - panel.clientHeight;
 }
 
-type Mark = { top: number; height: number; slide: boolean; shown: boolean };
+type Mark = { top: number; height: number; shown: boolean };
 
 /**
- * The one fill that slides between a list's rows over 260ms, as in the search suggestions. It lies over the rows, a
+ * The one fill that marks a list's active row, moving straight to it. It lies over the rows, a
  * light veil, so it shows on the chosen row's tint too. It fades in where it lands when the list opens, and stays put
  * while the list fades out. Place it first inside the panel.
  */
 export function RowHighlight({ activeId, open, pressed = false }: { activeId: string | null; open: boolean; pressed?: boolean }) {
   const [mark, setMark] = useState<Mark | null>(null);
   const [, remeasure] = useState(0);
-  const last = useRef<string | null>(null);
   const tries = useRef(0);
 
   useLayoutEffect(() => {
     if (!open) {
-      last.current = null;
       tries.current = 0;
       return;
     }
@@ -349,10 +351,9 @@ export function RowHighlight({ activeId, open, pressed = false }: { activeId: st
     }
     tries.current = 0;
     const next: Mark | null = node
-      ? { top: node.offsetTop, height: node.offsetHeight, slide: last.current !== null, shown: true }
-      : mark && { ...mark, slide: false, shown: false };
-    last.current = node ? activeId : null;
-    if (next?.top !== mark?.top || next?.height !== mark?.height || next?.slide !== mark?.slide || next?.shown !== mark?.shown) setMark(next);
+      ? { top: node.offsetTop, height: node.offsetHeight, shown: true }
+      : mark && { ...mark, shown: false };
+    if (next?.top !== mark?.top || next?.height !== mark?.height || next?.shown !== mark?.shown) setMark(next);
   });
 
   return (
@@ -360,7 +361,6 @@ export function RowHighlight({ activeId, open, pressed = false }: { activeId: st
       aria-hidden="true"
       className={cn(
         "pointer-events-none absolute inset-x-1.5 top-0 z-[1] rounded-[9px] transition-[opacity,background-color] duration-150 motion-reduce:transition-none forced-colors:hidden",
-        mark?.slide && "transition-[opacity,background-color,translate,height] duration-[260ms]",
         "ease-[cubic-bezier(0.22,1,0.36,1)]",
         pressed ? "bg-[var(--fu-row-press,rgb(255_255_255/0.12))]" : "bg-[var(--fu-row-active,rgb(255_255_255/0.07))]",
         !mark?.shown && "opacity-0",
@@ -400,7 +400,7 @@ const defaultFormat = (n: number) => new Intl.NumberFormat("en-US").format(n);
 
 /**
  * A row's count as a short bar and a number. The bar is the count's share of `max`; bars grow in from the left as
- * their panel opens, one row after another (`order`), and ease to a new width when the count changes. With bar false
+ * their panel first opens, one row after another (`order`), and ease to a new width when the count changes. With bar false
  * only the number shows, in the same place, e.g. for "Any".
  */
 export function ListCount({
@@ -426,7 +426,7 @@ export function ListCount({
           className={cn(
             "h-1 origin-left rounded-full transition-[scale,width,background-color] duration-[480ms] motion-reduce:transition-none",
             SMOOTH,
-            "group-data-[state=closed]/popover:scale-x-0 group-data-[state=closed]/popover:transition-none",
+            "group-data-[unseen]/popover:scale-x-0 group-data-[unseen]/popover:transition-none",
             on
               ? "bg-[var(--fu-accent-soft,#8FAAFF)]"
               : "bg-[var(--fu-rail,#4A4A4A)] group-data-[active]/row:bg-[var(--fu-control-border,#737373)]",

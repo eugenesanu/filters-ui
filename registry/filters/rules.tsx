@@ -382,13 +382,17 @@ export function Rules<Item>({
   }, [focusNext]);
 
   // Rows that move when one above them goes glide from where they were.
+  // Tops are summed up to the box's own positioned parent: a group still sliding in is, for that moment, the offset
+  // parent of its rows, and a top read against it would make them leap from above on the next change.
   const places = useRef(new Map<string, number>());
   useLayoutEffect(() => {
     const next = new Map<string, number>();
     const moving = !reducedMotion();
+    const stop = box.current?.offsetParent ?? null;
     for (const node of box.current?.querySelectorAll<HTMLElement>("[data-flip]") ?? []) {
       const key = node.dataset.flip!;
-      const top = node.offsetTop;
+      let top = 0;
+      for (let at: Element | null = node; at instanceof HTMLElement && at !== stop; at = at.offsetParent) top += at.offsetTop;
       next.set(key, top);
       const was = places.current.get(key);
       if (moving && was !== undefined && was !== top) node.animate([{ translate: `0 ${was - top}px` }, { translate: "0 0" }], { duration: 380, easing: EASE });

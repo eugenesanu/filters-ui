@@ -448,7 +448,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "formatCount / countLabel", type: "(n: number) => string", default: "1,234 / \"6 results\"", meaning: "Text of each count, and its words for screen readers, e.g. \"6 cars\"." },
     ],
     does: [
-      "Presets pick the last 1, 3, 7 or 30 days in one press; the highlight slides to the chosen one and each shows its count.",
+      "Presets pick the last 1, 3, 7 or 30 days in one press; the chosen one is tinted and each shows its count.",
       "On the calendar, the first pick starts a range and the band follows the pointer day by day until the second pick ends it.",
       "Each day shows how many items it holds; days after today are dimmed and cannot be picked.",
       "The month name opens a twelve-month view; typed dates read \"Nov 3\", \"11/3\" or \"2026-11-03\".",
@@ -489,7 +489,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "anyLabels", type: "{ first?: string; second?: string }", default: "\"Any\"", meaning: "The open choice at the top of each list, e.g. \"Any make\"." },
       { name: "waitingText", type: "string", default: "\"Pick one above first\"", meaning: "What the second field reads, and its list shows, until a first choice is set." },
       { name: "secondHeading", type: "(first: option) => ReactNode", default: "the first choice's label", meaning: "The line over the second list, e.g. \"Toyota models\"." },
-      { name: "popular", type: "number", default: "3", meaning: "How many of the most common second choices show as quick picks under the fields. 0 for none." },
+      { name: "popular", type: "number", default: "2", meaning: "How many of the most common second choices show as quick picks under the fields. 0 for none." },
       { name: "popularLabel", type: "string", default: "\"Popular\"", meaning: "The quick picks' name, shown dim before them and read out, e.g. \"Popular models\"." },
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text of each count." },
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
@@ -697,7 +697,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "recent", type: "readonly { id: string; value: State }[]", required: true, meaning: "Newest first. A search that is also saved shows under Saved only." },
       { name: "saved", type: "readonly { id: string; value: State; name?: string }[]", required: true, meaning: "Saved searches, in your order. Without a name, the row is named from its filters." },
       { name: "onSearch", type: "(value: State) => void", required: true, meaning: "A search worth keeping: when the field loses focus with filters set, and the old search when the box is cleared. remember(vocabulary, list, value) puts it on top of your list once." },
-      { name: "onSave", type: "(value: State, name: string) => void", required: true, meaning: "\"Save this search\" or the bookmark on a recent row. name is read from its filters, e.g. \"Blue SUV under $30k\"." },
+      { name: "onSave", type: "(value: State, name: string) => void", required: true, meaning: "\"Save this search\" or the star on a recent row. name is read from its filters, e.g. \"Blue SUV under $30k\"." },
       { name: "onForget", type: "(id: string) => void", required: true, meaning: "The cross on a row, or Delete while it is highlighted. Remove the id from your lists." },
       { name: "recentLimit", type: "number", default: "4", meaning: "How many recent searches show." },
       { name: "defaultOpen", type: "boolean", default: "false", meaning: "Shows the list on first render, before the field has focus. A press outside closes it, except inside an inert still picture." },
@@ -719,7 +719,7 @@ export const ITEMS: RegistryItem[] = [
     accessibility: [
       "The rows are options in the search's own listbox, so aria-activedescendant follows the highlight and each row is read with its filters and count.",
       "Saved and Recent are named groups that say Delete removes a row.",
-      "Saving and removing are announced politely; the crosses and bookmarks are for the pointer, and the keys do the same.",
+      "Saving and removing are announced politely; the stars and crosses are for the pointer, with a tip on hover, and the keys do the same.",
       "Motion is skipped when reduced motion is asked for.",
     ],
     related: ["sentence-search", "searchable-list", "chip-group"],
@@ -835,7 +835,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "findLabel / height", type: "string / number", default: "\"Find a filter\" / 560", meaning: "The find box's words, and the height of the two columns in px from 520px wide." },
     ],
     does: [
-      "One fill slides from row to row as you pick, and the filter on the right rises in from a blur.",
+      "The picked row is tinted, and the filter on the right rises in from a blur.",
       "Each row carries its values as chips; a new chip grows in, and a removed one collapses while the rest close up.",
       "The find box narrows the list by name or other words (\"mileage\" finds Kilometres) and marks the letters it matched.",
       "Below 520px wide the list and the filter take turns: a row slides its filter in, Back slides the list back.",
@@ -881,7 +881,7 @@ export const ITEMS: RegistryItem[] = [
     does: [
       "The trigger reads as a phrase, \"Sort by Newest\", and its value swaps with a short blur as the choice changes.",
       "The menu grows out of the trigger on the page's top layer, so no card clips it, and flips above when there is no room below.",
-      "One highlight slides between the rows; each option can carry a glyph in a small tile and a hint, such as what comes first.",
+      "One highlight follows the pointer and the keys; each option can carry a glyph in a small tile and a hint, such as what comes first.",
       "One choice tints its row and draws a check, then closes the menu; several choices show tick boxes and keep it open.",
       "A press outside closes it without moving focus; a finger has to tap, so starting a scroll keeps it open.",
     ],
@@ -927,8 +927,8 @@ export const ITEMS: RegistryItem[] = [
     does: [
       "Looks like the text fields: 44px, a 1px border, the value after an optional prefix such as \"From\".",
       "The list grows out of the field on the page's top layer, so no card clips it, and opens on the chosen option, centred.",
-      "Options with counts show a short bar for their share; the bars grow in, row after row, as the list opens.",
-      "One highlight slides between rows; the chosen row is tinted and its check draws in, so the two never get mixed up.",
+      "Options with counts show a short bar for their share; the bars grow in, row after row, the first time the list opens.",
+      "One highlight follows the pointer and the keys; the chosen row is tinted and its check draws in, so the two never get mixed up.",
     ],
     keyboard: [
       "Down, Up, Enter or Space opens the list; typing opens it on the first match.",

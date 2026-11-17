@@ -335,7 +335,7 @@ export function DateRange({
     commit(choice.value);
   };
 
-  // The checked preset's wash slides to it; until measured, the checked button paints its own.
+  // The checked preset's wash is measured onto it; until measured, the checked button paints its own.
   const presetButtons = useRef<(HTMLButtonElement | null)[]>([]);
   const checkedIndex = choices.findIndex((c) => c.on);
   const [wash, setWash] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
@@ -492,9 +492,9 @@ export function DateRange({
           const selected = !!range && day >= range.start && day <= range.end;
           const timing = timingOf(day);
           const before = !band || day < band.start;
-          // Rows of the band end round; where it runs on into the next or last month it stays square.
-          const roundLeft = isStart || (c === 0 && day !== `${month.slice(0, 8)}01`);
-          const roundRight = isEnd || (c === 6 && day !== last);
+          // The band is square where it wraps to the next week or runs into another month; only its own ends are round.
+          const roundLeft = isStart;
+          const roundRight = isEnd;
           return (
             <div
               key={c}
@@ -680,7 +680,7 @@ export function DateRange({
               aria-hidden="true"
               className={cn(
                 "pointer-events-none absolute rounded-[9px] bg-[var(--fu-selected,#1F2747)]",
-                washPlaced && "transition-[left,top,width,height,opacity] duration-[360ms]",
+                washPlaced && "transition-[opacity] duration-[360ms]",
                 SMOOTH,
                 "motion-reduce:transition-none",
                 (checkedIndex < 0 || !wash) && "opacity-0",

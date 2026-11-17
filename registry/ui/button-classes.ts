@@ -20,7 +20,8 @@ const VARIANTS: Record<ButtonVariant, string> = {
     "bg-[var(--fu-surface-3,#2A2A2A)] text-[var(--fu-text,#F8F5F1)] hover:bg-[var(--fu-hover,#333333)] forced-colors:border forced-colors:border-[ButtonText]",
   ghost: "bg-transparent text-[var(--fu-text,#F8F5F1)] hover:bg-[var(--fu-hover-wash,rgb(255_255_255/0.14))]",
   quiet: "bg-transparent text-[var(--fu-mute,#BDBDBD)] hover:text-[var(--fu-text,#F8F5F1)]",
-  "quiet-accent": "bg-transparent text-[var(--fu-accent-soft,#8FAAFF)] hover:text-[var(--fu-accent-pale,#D1DDFF)]",
+  "quiet-accent":
+    "bg-transparent text-[var(--fu-accent-soft,#8FAAFF)] decoration-1 underline-offset-[5px] hover:text-[var(--fu-accent-pale,#D1DDFF)] [@media(hover:hover)]:hover:underline",
 };
 
 // Below 44px a touch screen gets a taller invisible target through ::after.

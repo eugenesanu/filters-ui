@@ -24,14 +24,14 @@ export type SegmentedProps<V extends SegmentedValue> = Omit<HTMLAttributes<HTMLD
   /** Screen-reader words for a count: "6 results". */
   countLabel?: (n: number) => string;
   disabled?: boolean;
-  /** "equal": options with a count share the width equally. "content": the same, except an option whose words need more keeps its own width. An option without a count ("Any") always hugs its words. */
+  /** "equal": options with a count share the width equally. "content": the same, except an option whose words need more keeps its own width. An option without a count ("Any") hugs its words while the control is under 340px wide. */
   fit?: "equal" | "content";
 };
 
 const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 /**
- * A segmented control: an option without a count ("Any") hugs its words, the others share the rest equally, and one pill slides to the chosen one over 340ms.
+ * A segmented control: an option without a count ("Any") hugs its words while the control is under 340px wide (from 340px all share the width), the others share the rest equally, and one pill slides to the chosen one over 340ms.
  * It is a radiogroup with one tab stop; arrow keys, Home and End move and select.
  */
 export function Segmented<V extends SegmentedValue>({
@@ -52,7 +52,7 @@ export function Segmented<V extends SegmentedValue>({
   const usable = (i: number) => !disabled && !options[i].disabled;
   const [box, setBox] = useState<{ left: number; width: number } | null>(null);
   const [placed, setPlaced] = useState(false);
-  // "Any" hugs its words only beside options that carry counts; a set without counts stays equal.
+  // "Any" hugs its words only beside options that carry counts, and only while the track is narrow; a set without counts stays equal.
   const counted = options.some((option) => option.count !== undefined);
   const hugs = counted && options.some((option) => option.count === undefined);
   const measuring = fit === "content" || hugs;
@@ -116,7 +116,7 @@ export function Segmented<V extends SegmentedValue>({
       aria-label={label}
       aria-disabled={disabled || undefined}
       onKeyDown={onKeyDown}
-      className={cn("relative flex h-10 rounded-[12px] bg-[var(--fu-surface-3,#2A2A2A)] p-1", disabled && "opacity-40", className)}
+      className={cn("@container relative flex h-10 rounded-[12px] bg-[var(--fu-surface-3,#2A2A2A)] p-1", disabled && "opacity-40", className)}
       style={style}
       {...props}
     >
@@ -152,7 +152,7 @@ export function Segmented<V extends SegmentedValue>({
             onClick={() => pick(i)}
             className={cn(
               "group/seg relative flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-[14px] leading-5 font-medium",
-              hug ? "flex-none px-2.5" : "flex-1 px-0.5",
+              hug ? "flex-none px-2.5 @min-[340px]:flex-1 @min-[340px]:px-0.5" : "flex-1 px-0.5",
               fit === "content" && !hug && "min-w-fit",
               on && measuring && !measured && "bg-[var(--fu-line,#404040)]",
               "transition-[color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",

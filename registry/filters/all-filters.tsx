@@ -76,7 +76,7 @@ function Marked({ text, query }: { text: string; query: string }) {
 
 /**
  * Every filter in one panel: a list on the left in groups, each row with its set values as chips, and the picked
- * filter open on the right. One highlight slides from row to row as you pick; the right side rises in from a blur.
+ * filter open on the right. The picked row is tinted; the right side rises in from a blur.
  * A find box narrows the list. Below 520px wide the list and the filter take turns: a row drills in, Back returns.
  */
 export function AllFilters({
@@ -629,26 +629,23 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
   );
 }
 
-type Mark = { top: number; height: number; slide: boolean };
+type Mark = { top: number; height: number };
 
-/** The picked row's fill, one for the whole list: it slides and stretches to the next pick rather than jumping. */
+/** The picked row's fill, one for the whole list, measured onto the picked row. */
 function Highlight({ list, activeId }: { list: RefObject<HTMLDivElement | null>; activeId: string | null }) {
   const [mark, setMark] = useState<Mark | null>(null);
-  const last = useRef<string | null>(null);
 
   const measure = () => {
     const node = activeId ? document.getElementById(activeId) : null;
     const container = list.current;
     if (!node || !container) {
-      last.current = null;
       setMark(null);
       return;
     }
     let top = 0;
     for (let at: HTMLElement | null = node; at && at !== container; at = at.offsetParent as HTMLElement | null) top += at.offsetTop;
-    const next = { top, height: node.offsetHeight, slide: last.current !== null };
-    last.current = activeId;
-    setMark((was) => (was && was.top === next.top && was.height === next.height && was.slide === next.slide ? was : next));
+    const next = { top, height: node.offsetHeight };
+    setMark((was) => (was && was.top === next.top && was.height === next.height ? was : next));
   };
 
   useLayoutEffect(measure);
@@ -667,7 +664,6 @@ function Highlight({ list, activeId }: { list: RefObject<HTMLDivElement | null>;
       className={cn(
         "pointer-events-none absolute inset-x-3 top-0 rounded-[10px] bg-[var(--fu-selected,#1F2747)] forced-colors:hidden",
         "transition-[opacity] duration-200 motion-reduce:transition-none",
-        mark?.slide && "transition-[opacity,translate,height] duration-[360ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
         !mark && "opacity-0",
       )}
       style={mark ? { translate: `0 ${mark.top}px`, height: mark.height } : undefined}
