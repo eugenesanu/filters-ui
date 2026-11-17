@@ -1,6 +1,7 @@
 "use client";
 
 import { Segmented, type SegmentedOption, type SegmentedProps, type SegmentedValue } from "../ui/segmented";
+import { useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 
 export type SegmentedChoiceProps<V extends SegmentedValue> = SegmentedProps<V> & Omit<StateProps, "emptyText">;
@@ -20,8 +21,9 @@ export function SegmentedChoice<V extends SegmentedValue>({
   style,
   ...props
 }: SegmentedChoiceProps<V>) {
-  // While loading the counts are not known yet, so no option is dimmed for a 0.
-  const loading = status === "loading";
+  // While loading, by its own status or in the loading frame of an item around it (a block's card), the counts are
+  // not known yet, so no option is dimmed for a 0.
+  const loading = useLoading().loading || status === "loading";
   const shown: SegmentedOption<V>[] = options.map((option) => ({
     ...option,
     disabled: option.disabled || (!loading && option.count === 0 && !Object.is(option.value, value)),

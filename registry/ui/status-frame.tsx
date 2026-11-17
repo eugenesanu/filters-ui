@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { cn } from "../lib/cn";
 import { EmptyNote } from "./empty-note";
 import { ERROR_LINE, ERROR_TEXT, ErrorGlyph, RetryButton } from "./inline-error";
@@ -35,6 +35,9 @@ const ARRIVAL_MS = 400;
 
 type Mode = "ready" | "loading" | "error" | "empty";
 
+/** A frame around this one is loading and has said "Loading": this one then draws its placeholders without saying it again. */
+const SaidLoading = createContext(false);
+
 export type StatusFrameProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> &
   Omit<StateProps, "emptyText"> & {
     /** There are no options: emptyText shows in place of the content. */
@@ -58,8 +61,10 @@ export type StatusFrameProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> 
  * - disabled: dimmed, no pointer or keyboard input (a disabled fieldset turns off every native control inside), and
  *   read as unavailable. Custom focusable parts, such as a grid's cells, also need tabIndex -1 and aria-disabled.
  * When a state change takes away the control that had focus, the frame takes focus, so it is never lost.
- * A frame inside a loading frame draws its placeholders too, and does not say "Loading" a second time, so a block can
- * load every filter in it with one frame per card and no status on the filters themselves.
+ * A frame inside a loading frame draws its placeholders too, and does not say "Loading" again when that frame has said
+ * it. So a block can load every filter in it with one quiet frame per card (announce false) and say it once in its head
+ * with StatusLine; and a filter whose error must leave its title in place can take loading and disabled on a quiet outer
+ * frame and let an inner frame around the part that fails speak.
  */
 export function StatusFrame({
   status = "ready",
@@ -77,6 +82,7 @@ export function StatusFrame({
 }: StatusFrameProps) {
   const frame = useRef<HTMLDivElement>(null);
   const outer = useLoading();
+  const saidAbove = useContext(SaidLoading);
   const mode: Mode = status === "loading" ? "loading" : status === "error" ? "error" : empty ? "empty" : "ready";
 
   // The data arrives when loading turns to ready: its pieces fade in once, then go back to plain content.
@@ -124,22 +130,23 @@ export function StatusFrame({
       )}
       {...props}
     >
-      <LoadingContext.Provider value={{ loading: mode === "loading" || outer.loading, arriving: arriving || outer.arriving }}>
-        {mode === "empty" ? (
-          <EmptyNote>{emptyText}</EmptyNote>
-        ) : mode === "error" ? null : (
-          // display: contents, so the fieldset adds no box; while disabled it turns off every native control inside.
-          <fieldset role="none" disabled={disabled} inert={mode === "loading"} className="contents">
-            {children}
-          </fieldset>
-        )}
-      </LoadingContext.Provider>
+      <SaidLoading.Provider value={saidAbove || (mode === "loading" && announce)}>
+        <LoadingContext.Provider value={{ loading: mode === "loading" || outer.loading, arriving: arriving || outer.arriving }}>
+          {mode === "empty" ? (
+            <EmptyNote>{emptyText}</EmptyNote>
+          ) : mode === "error" ? null : (
+            // display: contents, so the fieldset adds no box; while disabled it turns off every native control inside.
+            <fieldset role="none" disabled={disabled} inert={mode === "loading"} className="contents">
+              {children}
+            </fieldset>
+          )}
+        </LoadingContext.Provider>
+      </SaidLoading.Provider>
       <StatusLine
         status={mode === "loading" || mode === "error" ? mode : "ready"}
         onRetry={onRetry}
         errorText={errorText}
-        // Inside a frame that is loading too, that frame has said it already.
-        loadingText={outer.loading ? "" : loadingText}
+        loadingText={saidAbove ? "" : loadingText}
         announce={announce}
         retryLabel={retryLabel}
       />
@@ -153,7 +160,7 @@ export type StatusLineProps = {
   onRetry?: () => void;
   errorText?: string;
   loadingText?: string;
-  /** Reads loading and errors out. Default true. */
+  /** Reads loading and errors out. Off, it leaves "Loading" out and still shows an error. Default true. */
   announce?: boolean;
   retryLabel?: string;
   /** Classes for the line while it shows an error, e.g. its margins. */
@@ -176,7 +183,7 @@ export function StatusLine({
   className,
 }: StatusLineProps) {
   const error = status === "error";
-  const said = status === "loading" ? loadingText : error ? errorText : "";
+  const said = status === "loading" ? (announce ? loadingText : "") : error ? errorText : "";
   return (
     // The words take their own direction, so an English sentence keeps its full stop at its end on a right-to-left page.
     <div className={error ? cn(ERROR_LINE, className) : "contents"}>

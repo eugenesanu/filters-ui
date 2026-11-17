@@ -31,6 +31,9 @@ export type ItemKind = "filter" | "basic" | "block";
 export const ITEM_STATES = ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"] as const;
 export type ItemState = (typeof ITEM_STATES)[number];
 
+/** An item's own words for a state in the prompt: added to the shared words, or { replaces } for them (see stateNotes). */
+export type StateNote = string | { replaces: string };
+
 export type PropRow = {
   name: string;
   type: string;
@@ -72,8 +75,14 @@ export type RegistryItem = {
    * prompt describes them. Leave a state out where it has no meaning for the item.
    */
   states: readonly ItemState[];
-  /** What a state shows on this item, where the shared words in the prompt's States part need more. */
-  stateNotes?: Partial<Record<Exclude<ItemState, "ready">, string>>;
+  /**
+   * What a state shows on this item, where the shared words in the prompt's States part need more. For loading, error
+   * and disabled a note is added after the shared words; for the data states it takes their place. Where part of the
+   * item keeps working in loading, error or disabled (a field that keeps taking input, cards that still open), so the
+   * shared words would not hold, write it as { replaces: "…" }: it then takes the place of the shared words for the
+   * look and the input, and only the shared words for screen readers stay.
+   */
+  stateNotes?: Partial<Record<Exclude<ItemState, "ready">, StateNote>>;
   /** A filter wide enough to take the whole stage on its page, with the copy panel under it, as a block does. */
   wide?: true;
 };
@@ -293,7 +302,10 @@ export const ITEMS: RegistryItem[] = [
     updatedIn: "1.1.0",
     states: ["ready", "loading", "error", "disabled", "long-labels"],
     stateNotes: {
-      loading: "Here only the list loads: the field and its tokens keep taking input, while the open list draws its rows and the count at its foot as placeholders and no row can be picked.",
+      loading: {
+        replaces:
+          "Only the list loads: the field and its tokens keep taking input, while the open list draws its rows and the count at its foot as placeholders the size of the real ones, so nothing moves when they arrive, and no row can be picked.",
+      },
       error: "The field keeps working; the open list shows the line and Retry in place of the suggestions. The default line is \"Couldn't load the suggestions.\"",
       disabled: "The field, the tokens, Clear and Search are all off, and the list does not open.",
       "long-labels": "A long token ends in an ellipsis at the width of the box, with its full words in its \"Remove …\" name; a long suggestion wraps onto another line, its hint and count staying at the end.",
@@ -335,7 +347,7 @@ export const ITEMS: RegistryItem[] = [
       "The field is a combobox with a listbox popup: aria-expanded, aria-controls and aria-activedescendant follow the highlight, and every option has an id.",
       "Each token is a button named \"Remove SUV\".",
       "The result count is announced politely as it changes, as are the words it did not use.",
-      "Loading, the list is aria-busy and says \"Loading\" once; an error is read out politely and describes the field, and Retry hands focus back to the field. Disabled, the field and every button in the box are disabled.",
+      "Loading, the list is aria-busy and says \"Loading\" once, and the field does not mark it expanded; an error is read out politely and describes the field, and Retry hands focus back to the field. Disabled, the field and every button in the box are disabled.",
       "Focus is always visible; motion is skipped when reduced motion is asked for.",
     ],
     related: ["recent-searches", "searchable-list", "chip-group"],
@@ -562,7 +574,7 @@ export const ITEMS: RegistryItem[] = [
       loading: "The track and the pill on the choice stay; each option's name and count draw as placeholders, and Any keeps its word.",
       error: "The line and Retry take the track's place, in about the same height.",
       "zero-results": "Each option but the chosen one is dimmed and cannot be picked; Any can still be picked.",
-      "long-labels": "A long name wraps at its spaces in its segment and the track grows to fit; the pill takes the same shape. A single word too long for its segment ends in an ellipsis.",
+      "long-labels": "A name too long to sit beside its count wraps at its spaces, clear of the segment's edges, with the count under it (fit=\"content\" widens the segment to its longest word and keeps the count beside); the track grows to fit and the pill takes the same shape. A single word too long for its segment ends in an ellipsis.",
     },
     value: "V, where V is string | number | null: the chosen option's value. null is the usual value for Any.",
     props: [
@@ -833,7 +845,7 @@ export const ITEMS: RegistryItem[] = [
     states: ["ready", "empty", "disabled", "long-labels", "many-options"],
     stateNotes: {
       empty: "No filter in use: a quiet line, \"No filters applied.\", takes the row's place. After Clear all it fades in once the last chip has gone.",
-      disabled: "Every chip's cross and Clear all are off.",
+      disabled: "Every chip and its cross are off, and Clear all is left out.",
       "long-labels": "A value too long for the row is cut with an ellipsis and shows whole on hover; the chip's name holds every word, and Clear all moves to the next line rather than being pushed out.",
       "many-options": "Chips wrap onto as many lines as they need, with Clear all at the end of the last.",
     },
@@ -841,7 +853,7 @@ export const ITEMS: RegistryItem[] = [
     props: [
       { name: "filters", type: "readonly { key: string; label: string; value: string }[]", required: true, meaning: "The filters in use, in display order: a name (\"Price\") and the value in words (\"$15k to $45k\")." },
       { name: "onRemove", type: "(key: string) => void", required: true, meaning: "Called with a filter's key when its chip is pressed. Clear that filter." },
-      { name: "onClearAll", type: "() => void", meaning: "When given, Clear all ends the row while two or more filters are in use." },
+      { name: "onClearAll", type: "() => void", meaning: "When given, Clear all ends the row while two or more filters are in use; it is left out while disabled." },
       { name: "clearAllLabel", type: "string", default: "\"Clear all\"", meaning: "Text of the Clear all button." },
       { name: "label", type: "string", default: "\"Applied filters\"", meaning: "Accessible name of the list." },
       { ...emptyTextProp("\"No filters applied.\""), meaning: "The quiet line shown in place of the chips while no filter is in use." },
@@ -858,13 +870,13 @@ export const ITEMS: RegistryItem[] = [
       "Each chip is a button: Tab reaches it, Enter or Space removes it.",
       "Left and Right move between chips the way they sit on screen, so in right to left Left moves to the next one; Backspace or Delete removes the one in focus.",
       "After a removal focus moves to the next chip; after Clear all, to the row.",
-      "While disabled no chip and not Clear all takes focus.",
+      "While disabled no chip takes focus, and Clear all is left out.",
     ],
     accessibility: [
       "The chips are a named list, and each chip is named \"Remove Price: $15k to $45k\", with the whole value even when it is cut short.",
       "A removal is announced politely: \"Price removed\".",
       "Motion is skipped when reduced motion is asked for.",
-      "Disabled, every chip and Clear all is a disabled button.",
+      "Disabled, every chip is a disabled button and Clear all is left out; focus that sat on it moves to the row.",
     ],
     related: ["no-results", "sentence-search", "chip-group"],
     connect:
@@ -940,7 +952,10 @@ export const ITEMS: RegistryItem[] = [
     updatedIn: "1.1.0",
     states: ["ready", "loading", "error", "empty", "disabled", "long-labels", "many-options"],
     stateNotes: {
-      loading: "The field keeps taking input. Saved and Recent keep their headings; each search's name, filters and count draw as placeholders, or stand-in rows hold their place while the lists are on their way.",
+      loading: {
+        replaces:
+          "Only the list loads: the field keeps taking input, while Saved and Recent keep their headings and each search's name, filters and count draw as placeholders the size of the real ones, or stand-in rows hold their place while the lists are on their way; no row can be picked.",
+      },
       error: "The field keeps working; the list shows the line and Retry in place of the searches. The default line is \"Couldn't load your searches.\"",
       empty: "No recent and no saved searches: the list holds one quiet line in place of Saved and Recent, \"No recent searches yet.\" by default.",
       disabled: "The field is off and the list does not open.",
@@ -981,7 +996,7 @@ export const ITEMS: RegistryItem[] = [
       "The rows are options in the search's own listbox, so aria-activedescendant follows the highlight and each row is read with its filters and count.",
       "Saved and Recent are named groups that say Delete removes a row.",
       "Saving and removing are announced politely; the stars and crosses are for the pointer, with a tip on hover, and the keys do the same.",
-      "Loading, the list is aria-busy and says \"Loading\" once; an error or the empty line is read out and describes the field, and Retry hands focus back to the field. Disabled, the field is disabled.",
+      "Loading, the list is aria-busy and says \"Loading\" once, and the field does not mark it expanded; an error or the empty line is read out and describes the field, and Retry hands focus back to the field. Disabled, the field is disabled.",
       "Motion is skipped when reduced motion is asked for.",
     ],
     related: ["sentence-search", "searchable-list", "chip-group"],
@@ -1003,7 +1018,7 @@ export const ITEMS: RegistryItem[] = [
     stateNotes: {
       loading: "Each row keeps its field, condition and value boxes with a bar in place of their words, and its count pill pulses; the rail, And and Or, and the add buttons stay drawn.",
       error: "The line and Retry stand where the rows were, lined up with them. The default line is \"Couldn't load the counts.\"",
-      disabled: "Every field, condition, value, And or Or, remove and add button is off.",
+      disabled: "Every field, condition, value, And or Or and remove button is off, and Add rule, Add group and Add condition are left out.",
       "long-labels": "A long field name ends in an ellipsis inside its menu button; long names in a list value stay chips that end in one at the row's width, each read out in full by its \"Remove …\" name.",
       "many-options": "Twelve rules and two groups stack in one column; each top row keeps its count, so the column still reads as a funnel.",
     },
@@ -1037,7 +1052,7 @@ export const ITEMS: RegistryItem[] = [
       "The set and each row are named groups that read the rule in words (\"Rule 2: Fuel any of Hybrid, Electric\") and how many items are left.",
       "Each And or Or is a button that says what it switches to; the rail lines are hidden from screen readers.",
       "The result count is announced politely as it changes; motion is skipped when reduced motion is asked for.",
-      "Loading, it is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the rules. Disabled, the set is aria-disabled and every control in it is disabled.",
+      "Loading, it is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the rules. Disabled, the set is aria-disabled, every control in it is disabled, and the add buttons are left out.",
     ],
     related: ["sentence-search", "chip-group", "range-histogram"],
     connect:
@@ -1116,7 +1131,10 @@ export const ITEMS: RegistryItem[] = [
     stateNotes: {
       loading: "The list keeps its groups and names while the values in its chips, the find box and the number in Show draw as placeholders; the picked filter draws its own.",
       error: "The line and Retry take the picked filter's place under its title, and the list stays, so another filter can be picked.",
-      disabled: "The list and the picked filter are turned off, and the list holds still; Show stays, and the \"3 set\" chip, Clear and the chips' crosses are left out.",
+      disabled: {
+        replaces:
+          "The list and the picked filter are dimmed, take no pointer or keyboard input and are read as unavailable, and the list holds still; Show stays, and the \"3 set\" chip, Clear and the chips' crosses are left out.",
+      },
       "long-labels": "A long filter name wraps in its row and a long value wraps in its chip; the chevron and the cross stay in place.",
       "many-options": "Thirty filters in five groups: the list scrolls under the find box, which narrows it as you type.",
     },
@@ -1323,9 +1341,18 @@ export const ITEMS: RegistryItem[] = [
     updatedIn: "1.0.0",
     states: ["ready", "loading", "error", "disabled"],
     stateNotes: {
-      loading: "The filters take no input, but every card keeps its head and value and still opens; each open card's filter draws its own placeholders, and the number in Show draws as one.",
-      error: "Each open card shows the line in place of its filter, and the line shows once more under the head with the one Retry; cards still open and close. The default line is \"Couldn't load the cars.\"",
-      disabled: "Every card's filter is turned off and the cards still open to show it; Clear on each card and Clear all are left out, and Show stays.",
+      loading: {
+        replaces:
+          "The filters take no input, but every card keeps its head and value and still opens; each open card's filter draws placeholders the size of its real content, so nothing moves when the data arrives, and the number in Show draws as one.",
+      },
+      error: {
+        replaces:
+          "Each open card shows one calm line in place of its filter, and the line shows once more under the head with one Retry button that calls onRetry; cards still open and close. The default line is \"Couldn't load the cars.\"",
+      },
+      disabled: {
+        replaces:
+          "Every card's filter is dimmed, takes no pointer or keyboard input and is read as unavailable, and the cards still open to show it; Clear on each card and Clear all are left out, and Show stays.",
+      },
     },
     value: "The board keeps its own filters. onShow receives the matching cars.",
     props: [
@@ -1370,9 +1397,18 @@ export const ITEMS: RegistryItem[] = [
     updatedIn: "1.1.0",
     states: ["ready", "loading", "error", "disabled"],
     stateNotes: {
-      loading: "The filters take no input, but every row keeps its head and value and still opens; each open row's filter draws its own placeholders, and the number in Show draws as one.",
-      error: "Each open row shows the line in place of its filter, and the line shows once more under the head with the one Retry; rows still open and close. The default line is \"Couldn't load the cars.\"",
-      disabled: "Every row's filter is turned off and the rows still open to show it; Clear on each row and Clear all are left out, and Show stays.",
+      loading: {
+        replaces:
+          "The filters take no input, but every row keeps its head and value and still opens; each open row's filter draws placeholders the size of its real content, so nothing moves when the data arrives, and the number in Show draws as one.",
+      },
+      error: {
+        replaces:
+          "Each open row shows one calm line in place of its filter, and the line shows once more under the head with one Retry button that calls onRetry; rows still open and close. The default line is \"Couldn't load the cars.\"",
+      },
+      disabled: {
+        replaces:
+          "Every row's filter is dimmed, takes no pointer or keyboard input and is read as unavailable, and the rows still open to show it; Clear on each row and Clear all are left out, and Show stays.",
+      },
     },
     value: "The panel keeps its own filters. onShow receives the matching cars.",
     props: [

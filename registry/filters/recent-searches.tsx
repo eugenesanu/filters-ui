@@ -262,6 +262,8 @@ export function RecentSearches<Item, State>({
   const [open, setOpen] = useState(defaultOpen);
   const [said, setSaid] = useState("");
   const [leaving, setLeaving] = useState<{ key: string; top: number; height: number; body: ReactNode } | null>(null);
+  // Its own status, or the loading frame of an item around it.
+  const loading = useLoading().loading || status === "loading";
 
   const tokens = vocabulary.tokens(value);
   const sig = signatureOf(vocabulary, value);
@@ -410,7 +412,7 @@ export function RecentSearches<Item, State>({
   if (!sig) {
     rows = [...saved.map((entry) => pickRow(entry, "saved")), ...recents.map((entry) => pickRow(entry, "recent"))];
     // Lists still on their way: stand-in rows hold their place under the headings.
-    const standing = status === "loading" && rows.length === 0;
+    const standing = loading && rows.length === 0;
     const words = placeholderLabels(LOADING_SAVED + LOADING_RECENT * 2);
     render = (option) => (
       <div ref={drawn}>

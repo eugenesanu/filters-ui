@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, type HTMLAttributes, type ReactNode } from "re
 import { cn } from "../lib/cn";
 import { formatsFor, resultsLabel } from "../lib/format";
 import { Select } from "../ui/select";
-import { SKELETON_FILL, SkeletonText } from "../ui/skeleton";
+import { SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 
 export type CascadeChild = { value: string; label: string; count: number };
@@ -70,7 +70,8 @@ export function CascadingDropdown({
   className,
   ...props
 }: CascadingDropdownProps) {
-  const loading = status === "loading";
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
   const formatCount = formatCountProp ?? formatsFor(locale).number;
   const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const firstLabel = labels?.first ?? "First";

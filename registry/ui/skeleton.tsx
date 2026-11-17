@@ -16,7 +16,7 @@ export const useLoading = () => useContext(LoadingContext);
  * reduced motion is asked for, and turns to the system's grey text colour in forced colours, so it never vanishes.
  */
 export const SKELETON_FILL =
-  "animate-pulse bg-[var(--fu-skeleton,rgb(255_255_255/0.12))] motion-reduce:animate-none forced-colors:bg-[GrayText] forced-colors:[forced-color-adjust:none]";
+  "animate-pulse bg-[var(--fu-skeleton,rgb(255_255_255/0.12))] in-data-[state=on]:bg-[var(--fu-skeleton-on,rgb(143_170_255/0.3))] motion-reduce:animate-none forced-colors:bg-[GrayText] forced-colors:[forced-color-adjust:none]";
 
 /** Content that has just replaced a placeholder: it fades in once over 300ms as it is inserted, and never again. */
 export const ARRIVING = "transition-opacity duration-300 ease-out starting:opacity-0 motion-reduce:transition-none";

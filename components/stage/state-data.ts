@@ -343,16 +343,8 @@ export const APPLIED_LONG_TAILS: Readonly<Record<string, string>> = {
   fuel: " or plug-in hybrid with a long electric range on a full charge",
 };
 
-/** No results' long-labels state: each filter's name in more words, and words added to every value it takes. */
-export const NO_RESULTS_LONG: { names: Readonly<Record<string, string>>; tails: Readonly<Record<string, string>> } = {
-  names: {
-    price: "Price before taxes, fees and delivery",
-    fuel: "Fuel or power source",
-    seats: "Seats, third row included",
-    body: "Body style and shape",
-    color: "Exterior paint colour",
-    drive: "Drivetrain and driven wheels",
-  },
+/** No results' long-labels state: words added to every value a filter takes. Its names are LONG_FILTER_TITLES. */
+export const NO_RESULTS_LONG: { tails: Readonly<Record<string, string>> } = {
   tails: {
     price: ", delivered to your door",
     fuel: " as listed by the seller",
@@ -372,6 +364,8 @@ export const LONG_FILTER_TITLES: Partial<Record<CarFacet, string>> = {
   km: "Kilometres on the clock",
   fuel: "Fuel and charging type",
   seats: "Seats for the whole family",
+  color: "Exterior paint colour",
+  drive: "Drivetrain and driven wheels",
 };
 
 /** The makes and models picked, in their long names from MAKE_STATES. */

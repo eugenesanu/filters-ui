@@ -132,7 +132,9 @@ const TIMELINE = Object.keys(PER_YEAR).map(Number);
 const TALLEST = Math.max(...Object.values(PER_YEAR));
 /** For the many-options state: forty model years, the older ones with a car or two each. */
 const MANY_YEARS = Array.from({ length: 40 }, (_, i) => 2026 - i);
-const perYearIn = (state: ItemState, year: number) => (state === "zero-results" ? 0 : (PER_YEAR[year] ?? (state === "many-options" ? 1 + (year % 3 === 0 ? 1 : 0) : 0)));
+/** Cars per model year in a state: none when there are no choices (empty) or every count is 0, as the field says. */
+const perYearIn = (state: ItemState, year: number) =>
+  state === "empty" || state === "zero-results" ? 0 : (PER_YEAR[year] ?? (state === "many-options" ? 1 + (year % 3 === 0 ? 1 : 0) : 0));
 
 function yearsIn(state: ItemState, f: Formats): SelectOption[] {
   if (state === "empty") return [];
@@ -156,17 +158,19 @@ export function SelectStateStage() {
   const cut = picked === null ? 0 : Math.max(0, TIMELINE.indexOf(picked));
   const shown = TIMELINE.reduce((n, year) => (picked === null || year >= picked ? n + perYearIn(state, year) : n), 0);
   const loading = status === "loading";
+  // With no choices (empty) nothing is chosen: no band and no lit years.
+  const lit = !loading && options.length > 0;
 
   return (
     <div className="w-full max-w-[320px]">
       <Select label="From year" prefix="From" value={from} onChange={setFrom} options={options} countLabel={carCount} locale={locale} status={status} onRetry={onRetry} disabled={disabled} />
       <div className="mt-2 rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] px-5 pt-4 pb-5">
-        <p className="flex items-baseline gap-1 text-[14px] leading-5 tabular-nums">
+        <p aria-live="polite" className="flex items-baseline gap-1 text-[14px] leading-5 tabular-nums">
           {loading ? <Skeleton className="inline-block h-3 w-5 self-center rounded-[4px]" /> : <TextSwap className="font-medium text-[var(--fu-text,#F8F5F1)]">{f.number(shown)}</TextSwap>}
           <span className="text-[var(--fu-dim,#929292)]">cars</span>
         </p>
         <div aria-hidden="true" className="relative mt-5">
-          {!loading && (
+          {lit && (
             <span
               className={`absolute -inset-y-2 -inset-e-[5px] rounded-[12px] bg-[var(--fu-selected,#1F2747)] transition-[left,right] duration-[480ms] motion-reduce:transition-none ${SMOOTH}`}
               style={{ insetInlineStart: `calc(${cut} * (100% + 10px) / ${TIMELINE.length} - 5px)` }}
@@ -179,8 +183,11 @@ export function SelectStateStage() {
                   <span
                     key={j}
                     className={`h-1.5 rounded-[2px] ${
-                      loading ? SKELETON_FILL : i >= cut ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-line,#404040)]"
+                      loading
+                        ? SKELETON_FILL
+                        : `transition-[background-color] duration-300 motion-reduce:transition-none ${SMOOTH} ${i >= cut ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-line,#404040)]"}`
                     }`}
+                    style={loading ? undefined : { transitionDelay: `${Math.abs(i - cut) * 40 + j * 14}ms` }}
                   />
                 ))}
               </div>
@@ -188,7 +195,10 @@ export function SelectStateStage() {
           </div>
           <div className="relative mt-2.5 grid grid-cols-10 gap-2.5 text-center text-[12px] leading-4 tabular-nums">
             {TIMELINE.map((year, i) => (
-              <span key={year} className={!loading && i >= cut ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-dim,#929292)]"}>
+              <span
+                key={year}
+                className={`transition-[color] duration-300 motion-reduce:transition-none ${lit && i >= cut ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-dim,#929292)]"}`}
+              >
                 ’{f.plain(year).slice(2)}
               </span>
             ))}

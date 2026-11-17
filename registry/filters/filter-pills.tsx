@@ -8,7 +8,7 @@ import { SCROLL } from "../lib/scroll";
 import { CountPill } from "../ui/count-pill";
 import { ClearAllButton, ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, XIcon } from "../ui/icons";
-import { SkeletonText } from "../ui/skeleton";
+import { SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextSwap } from "../ui/text-swap";
 
@@ -106,8 +106,10 @@ export function FilterPills({
   const groups = useRef(new Map<string, HTMLDivElement>());
   const triggers = useRef(new Map<string, HTMLButtonElement>());
   const [inner, setInner] = useState<string | null>(defaultOpen);
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
   // While loading, failed or disabled no panel shows: the open pill's panel folds away and comes back once ready.
-  const shown = status === "ready" && !disabled;
+  const shown = !loading && status === "ready" && !disabled;
   const openId = shown ? (openProp === undefined ? inner : openProp) : null;
   const [how, setHow] = useState({ mode: "panel" as Mode, focus: false, back: false });
   const counter = useRef(1);
@@ -746,8 +748,16 @@ function PillSheet({ id, titleId, title, summary, open, onClose, footer, onGone,
     const node = dialog.current;
     if (open || !node) return;
     setShown(false);
+    const lost = (el: Element | null) => !el || el === document.body || el.matches(":disabled") || Boolean(el.closest("[inert]"));
     const finish = () => {
+      const was = document.activeElement;
+      const held = lost(was) || node.contains(was);
       if (node.open) node.close();
+      // Closed by a change of state (loading or disabled), the sheet's own pill cannot take focus back, and the modal
+      // sheet kept the status frame from taking it: the frame takes it now, so focus is never lost to the page.
+      if (held && (lost(document.activeElement) || node.contains(document.activeElement))) {
+        node.closest<HTMLElement>("[data-status-frame]")?.focus({ preventScroll: true });
+      }
       done.current();
     };
     if (reducedMotion()) {

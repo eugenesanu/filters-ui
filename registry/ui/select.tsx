@@ -61,7 +61,7 @@ function Value({ text, empty, waiting }: { text: string; empty: boolean; waiting
   const { loading, arriving } = useLoading();
   if (loading) {
     return (
-      <span className="min-w-0 flex-1 truncate">
+      <span className="min-w-0 flex-1 truncate tabular-nums">
         <SkeletonText>{text}</SkeletonText>
       </span>
     );
@@ -245,8 +245,9 @@ export function Select({
     }
   };
 
+  // With a status, the StatusFrame below dims the field and turns it off; without one, the field dims itself.
   const field = (
-    <div className={cn("relative min-w-0", disabled && "pointer-events-none opacity-40", status === undefined && className)}>
+    <div className={cn("relative min-w-0", disabled && status === undefined && "pointer-events-none opacity-50", status === undefined && className)}>
       <span id={labelId} hidden>
         {label}
       </span>
@@ -373,11 +374,12 @@ export function Select({
     </div>
   );
 
-  // Given a status, it carries its own states: loading as above, and an error line with Retry in the field's place.
-  // Inside a filter that has its own StatusFrame, leave status out and it follows that frame.
+  // Given a status, it carries its own states: loading as above, an error line with Retry in the field's place, and
+  // disabled, so focus on the field moves to the frame when it turns off. Inside a filter that has its own StatusFrame,
+  // leave status out and it follows that frame.
   if (status === undefined) return field;
   return (
-    <StatusFrame status={status} onRetry={onRetry} errorText={errorText} className={cn("flex min-h-11 flex-col justify-center", className)}>
+    <StatusFrame status={status} onRetry={onRetry} errorText={errorText} disabled={disabled} className={cn("flex min-h-11 flex-col justify-center", className)}>
       {field}
     </StatusFrame>
   );

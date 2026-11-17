@@ -297,7 +297,8 @@ export function SearchableList({
     };
   }, []);
 
-  const loading = status === "loading";
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
   // While the options are on their way, a short list of stand-ins keeps the place they will take.
   const listed: readonly SearchableListOption[] =
     loading && options.length === 0 ? placeholderLabels(collapsedCount).map((name) => ({ value: name, label: name, count: 0 })) : options;

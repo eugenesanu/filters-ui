@@ -211,12 +211,19 @@ function SentenceStage() {
   const [open, setOpen] = useState(false);
   const matches = matchingCars(filters).length;
 
-  // Loading and errors show in the list, so switching to either opens it.
+  // Loading and errors show in the list, so switching to either opens it. The list the stage opened sits in the flow,
+  // so it moves the count, Reset and the stage settings down instead of covering them. Its room stays while the state
+  // does, or while it is open, so a press on a control below it, which closes it, does not pull that control away.
   const [shownState, setShownState] = useState(state);
+  const [pushed, setPushed] = useState(false);
   if (state !== shownState) {
     setShownState(state);
-    if (state === "loading" || state === "error") setOpen(true);
+    if (state === "loading" || state === "error") {
+      setOpen(true);
+      setPushed(true);
+    }
   }
+  if (pushed && !open && state !== "loading" && state !== "error") setPushed(false);
 
   const reset = () => {
     setFilters(presetSentence());
@@ -252,7 +259,11 @@ function SentenceStage() {
       }
     >
       {/* On phones the open list sits in the flow, so it grows the stage instead of covering the copy panel below. */}
-      <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 sm:pt-[clamp(8px,6vh,72px)] max-sm:[&_[data-state=open]:has(>[data-status-frame])]:static">
+      <div
+        className={`mx-auto flex w-full max-w-[600px] flex-col pt-2 sm:pt-[clamp(8px,6vh,72px)] max-sm:[&_[data-state=open]:has(>[data-status-frame])]:static ${
+          pushed ? "[&_[data-state]:has(>[data-status-frame])]:static" : ""
+        }`}
+      >
         <SentenceSearch
           key={round}
           vocabulary={state === "long-labels" ? longVocabulary(local) : local}
@@ -328,9 +339,9 @@ function PanelStage() {
 /**
  * An item drawn by its own example shows Ready as the example; every other state of its State switch is drawn by a
  * state stage of its own, listed here (additions only). A state stage reads useStageStatus() and draws the real
- * component with the example's kind of data, or data from components/stage/state-data.ts. Once shown, the state stage
- * also draws Ready until Reset, so Retry's return to Ready keeps the same component, its focus and its fade-in; it
- * must therefore draw Ready as the example does.
+ * component with the example's kind of data, or data from components/stage/state-data.ts. Once it has shown loading or
+ * an error, the state stage also draws Ready until Reset, so Retry's return to Ready keeps the same component, its focus
+ * and its fade-in; an item with those states must therefore have a state stage that draws Ready as the example does.
  */
 const STATE_STAGES: Record<string, ComponentType> = {
   "cascading-dropdown": CascadingDropdownStateStage,
@@ -349,9 +360,9 @@ function ExampleStage({ slug }: { slug: string }) {
   const [round, setRound] = useState(0);
   const props = useStageProps();
   const { state } = useStage();
-  const [shown, setShown] = useState(false);
-  if (state !== "ready" && !shown) setShown(true);
-  const stateStage = state === "ready" && !shown ? undefined : STATE_STAGES[slug];
+  const [kept, setKept] = useState(false);
+  if ((state === "loading" || state === "error") && !kept) setKept(true);
+  const stateStage = state === "ready" && !kept ? undefined : STATE_STAGES[slug];
 
   // A switch between Ready (the example) and another state (its state stage) replaces the component. When that takes
   // away the control that had focus, focus moves into the new one: to its status frame while it loads, fails or is off,
@@ -378,7 +389,7 @@ function ExampleStage({ slug }: { slug: string }) {
     <StagePanel
       onReset={() => {
         setRound((n) => n + 1);
-        setShown(false);
+        setKept(false);
       }}
     >
       <div ref={live} tabIndex={-1} className="flex w-full flex-col items-center rounded-[16px]">

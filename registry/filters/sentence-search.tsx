@@ -7,7 +7,7 @@ import { SCROLL } from "../lib/scroll";
 import { countOf, ghostOf, matchIn, readSentence, suggest, wholeWord, type Correction, type Suggestion, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
 import { SearchIcon, XIcon } from "../ui/icons";
-import { placeholderLabels, Skeleton, SkeletonText } from "../ui/skeleton";
+import { placeholderLabels, Skeleton, SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 
 /** A row of your own in the list while the box is empty, such as a saved search. */
@@ -184,14 +184,16 @@ export function SentenceSearch<Item, State>({
   const replaced = own?.replace === true;
   const groups = useMemo(() => (replaced ? [] : suggested), [replaced, suggested]);
   const rows = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
+  // Its own status, or the loading frame of an item around it.
+  const loading = useLoading().loading || status === "loading";
   // While the counts load or fail, the field keeps working but the rows cannot be picked: none is highlighted.
-  const live = status === "ready" && !disabled;
+  const live = !loading && status !== "error" && !disabled;
   const total = live ? lead + rows.length : 0;
   const active = live ? Math.min(moved ?? (typing && rows.length ? 0 : -1), total - 1) : -1;
   const ownEmpty = own?.emptyText !== undefined && ownRows.length === 0;
   // The list shows a line instead of its rows: the error, or the own rows' empty note.
-  const noted = status === "error" || (status === "ready" && ownEmpty);
-  const shown = open && !disabled && (status !== "ready" || own !== undefined || rows.length > 0);
+  const noted = status === "error" || (!loading && status === "ready" && ownEmpty);
+  const shown = open && !disabled && (loading || status !== "ready" || own !== undefined || rows.length > 0);
   const idAt = (index: number) => (index < lead ? ownRows[index].id : optionId(index - lead));
   const ghost = shown ? ghostOf(text, rows[active - lead]) : "";
   const preview = shown && active >= 0 && active < lead ? ownRows[active].preview : undefined;
@@ -442,9 +444,9 @@ export function SentenceSearch<Item, State>({
               role="combobox"
               aria-label={label}
               // In an error, or with nothing to list, the popup holds a line instead of a listbox: the field is
-              // described by it.
-              aria-expanded={shown && !noted}
-              aria-controls={noted ? undefined : listId}
+              // described by it. While loading the listbox is inert, so the field does not offer it.
+              aria-expanded={shown && !noted && !loading}
+              aria-controls={noted || loading ? undefined : listId}
               aria-describedby={noted ? noteId : undefined}
               aria-autocomplete="list"
               aria-activedescendant={shown && active >= 0 ? idAt(active) : undefined}
@@ -554,7 +556,7 @@ export function SentenceSearch<Item, State>({
               },
             };
           })}
-          {status === "loading" && !own && !rows.length && (
+          {loading && !own && !rows.length && (
             <div role="group" aria-label="Matches">
               {placeholderLabels(LOADING_ROWS).map((name, i) => (
                 <div key={i} role="option" aria-selected={false} className={ROW}>
@@ -588,7 +590,7 @@ export function SentenceSearch<Item, State>({
                     className={cn(ROW, "cursor-pointer")}
                   >
                     {row.swatch &&
-                      (status === "loading" ? (
+                      (loading ? (
                         <Skeleton className="size-4 shrink-0 rounded-full" />
                       ) : (
                         // The colour fades in once with the words when the counts arrive.
@@ -647,7 +649,7 @@ export function SentenceSearch<Item, State>({
         {unused.length > 0 && <span className="mt-2 block px-4">Not used: {quote(unused)}</span>}
       </p>
       <p aria-live="polite" className="sr-only">
-        {status === "ready" ? countLabel(count) : ""}
+        {!loading && status === "ready" ? countLabel(count) : ""}
       </p>
       </StatusFrame>
     </div>

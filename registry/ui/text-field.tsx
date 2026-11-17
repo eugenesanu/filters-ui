@@ -44,7 +44,7 @@ export function TextField({
         "text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none",
         "hover:border-[var(--fu-control-hover,#A3A3A3)] focus-within:border-[var(--fu-accent-soft,#8FAAFF)] focus-within:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
         "focus-within:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
-        disabled && "pointer-events-none opacity-40",
+        disabled && "pointer-events-none opacity-50",
         className,
       )}
       onPointerDown={(event) => {

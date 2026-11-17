@@ -236,7 +236,7 @@ export function RangeChart({
       data-disabled={disabled || undefined}
       className={cn(
         "group/range relative cursor-pointer touch-pan-y select-none [-webkit-tap-highlight-color:transparent]",
-        "data-[dragging]:cursor-grabbing data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+        "data-[dragging]:cursor-grabbing data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
         className,
       )}
       onPointerDown={press}

@@ -312,7 +312,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
   const sections = [...groups.map((group, at) => ({ label: group.label, at })), ...(actions.length ? [{ label: undefined, at: groups.length }] : [])];
 
   return (
-    <div className={cn("relative inline-flex max-w-full", disabled && "pointer-events-none opacity-40", className)}>
+    <div className={cn("relative inline-flex max-w-full", disabled && "pointer-events-none opacity-50", className)}>
       <button
         ref={trigger}
         type="button"

@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from "react";
 import { StageControlRow, useStage, useStageFrame, useStageStatus, type StageStatus } from "@/components/stage/stage-controls";
-import { APPLIED_LONG_TAILS, APPLIED_MANY_FILTERS, NO_RESULTS_LONG } from "@/components/stage/state-data";
+import { APPLIED_LONG_TAILS, APPLIED_MANY_FILTERS, LONG_FILTER_TITLES, NO_RESULTS_LONG } from "@/components/stage/state-data";
 import { formatsFor } from "@/registry/lib/format";
 import { CARS, type Car } from "@/registry/demo/cars";
 import {
@@ -66,7 +66,7 @@ function removeChip(f: CarFilters, key: string): CarFilters {
 function longRelax(relax: RelaxMap<CarFilters>): RelaxMap<CarFilters> {
   return Object.fromEntries(
     Object.entries(relax).map(([key, facet]) => {
-      const name = NO_RESULTS_LONG.names[key] ?? facet.label;
+      const name = LONG_FILTER_TITLES[key as CarFacet] ?? facet.label;
       const words = (value: string) => (value === "Any" ? `Any ${name.toLowerCase()}` : `${value}${NO_RESULTS_LONG.tails[key] ?? ""}`);
       return [
         key,

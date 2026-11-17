@@ -23,7 +23,7 @@ export type AppliedFiltersProps = Omit<HTMLAttributes<HTMLDivElement>, "children
   filters: readonly AppliedFilter[];
   /** Called with a filter's key when its chip is pressed. */
   onRemove: (key: string) => void;
-  /** When given, Clear all ends the row while two or more filters are in use. */
+  /** When given, Clear all ends the row while two or more filters are in use. It is left out while disabled. */
   onClearAll?: () => void;
   clearAllLabel?: string;
   /** Accessible name of the list. Default "Applied filters". */
@@ -88,7 +88,8 @@ export function AppliedFilters({
   const last = useRef<{ width: number; height: number; rtl: boolean } | null>(null);
   const focusNext = useRef<{ index: number; from: string } | null>(null);
   const [said, setSaid] = useState("");
-  const showClear = Boolean(onClearAll) && filters.length > 1;
+  // Clear all cannot run while disabled, so it is left out; focus on it moves to the row's frame.
+  const showClear = Boolean(onClearAll) && filters.length > 1 && !disabled;
   const listKey = filters.map((f) => f.key).join("\n");
 
   // A chip, or Clear all, that goes away with focus on it because the filters changed elsewhere hands focus on as a

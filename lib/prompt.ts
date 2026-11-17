@@ -62,19 +62,23 @@ function propLines(rows: readonly PropRow[]) {
 
 /**
  * The prompt's States part, written once: each state's name, what turns it on, and what it shows. An item's own
- * stateNotes (registry/items.ts) add to the words for loading, error and disabled, which hold for every item, and
- * replace them for the data states, which look different on each.
+ * stateNotes (registry/items.ts) add to the words for loading, error and disabled, which hold for most items, and
+ * replace them for the data states, which look different on each. A { replaces } note for loading, error or disabled
+ * takes the place of `shows` (the look and what takes input) and keeps `said` (what screen readers hear), so an item
+ * that keeps part of itself working never gets two opposite sentences.
  */
-const STATE_WORDS: Record<Exclude<ItemState, "ready">, { name: string; how: string; shows: string }> = {
+const STATE_WORDS: Record<Exclude<ItemState, "ready">, { name: string; how: string; shows: string; said?: string }> = {
   loading: {
     name: "Loading",
     how: 'status="loading"',
-    shows: 'placeholders the size of the real content pulse softly where the data goes, so nothing moves when it arrives. It takes no input, is aria-busy and says "Loading" once; when status turns back to "ready" the data fades in once. No spinner.',
+    shows: "placeholders the size of the real content pulse softly where the data goes, so nothing moves when it arrives. It takes no input.",
+    said: 'It is aria-busy and says "Loading" once; when status turns back to "ready" the data fades in once. No spinner.',
   },
   error: {
     name: "Error",
     how: 'status="error", with onRetry and errorText',
-    shows: "one calm line and a Retry button that calls onRetry, in the filter's own place. The line is read out politely, Retry is never shown disabled, and focus stays in the filter.",
+    shows: "one calm line and a Retry button that calls onRetry, in the filter's own place.",
+    said: "The line is read out politely, Retry is never shown disabled, and focus stays inside the component.",
   },
   empty: { name: "Empty", how: "no options given, with emptyText", shows: "a quiet line in place of the options." },
   "zero-results": {
@@ -94,8 +98,9 @@ function stateLines(item: RegistryItem, card: boolean) {
     if (state === "ready") return [];
     const words = STATE_WORDS[state];
     const note = item.stateNotes?.[state];
-    const shows = !note ? words.shows : ADDS_TO.has(state) ? `${words.shows} ${note}` : note;
-    return [`- ${words.name} (${words.how}): ${shows}`];
+    const own = typeof note === "string" ? note : note?.replaces;
+    const shows = !ADDS_TO.has(state) ? (own ?? words.shows) : typeof note === "object" ? own : [words.shows, note].filter(Boolean).join(" ");
+    return [`- ${words.name} (${words.how}): ${[shows, words.said].filter(Boolean).join(" ")}`];
   });
   const fetches = item.states.includes("loading");
   return [

@@ -635,48 +635,53 @@ export function Rules<Item>({
                     </li>
                   ))}
                 </ol>
-                <Button
-                  variant="quiet-accent"
-                  size="sm"
-                  before={<PlusIcon />}
-                  onClick={() => {
-                    const rule = newRule(fields, used);
-                    add(rule, value.items.map((other) => (other.id === item.id && isGroup(other) ? { ...other, rules: [...other.rules, rule] } : other)));
-                  }}
-                  className="mt-1.5 ms-7"
-                >
-                  Add condition
-                </Button>
+                {/* Adding cannot run while disabled, so the add buttons are left out; focus on one moves to the frame. */}
+                {!disabled && (
+                  <Button
+                    variant="quiet-accent"
+                    size="sm"
+                    before={<PlusIcon />}
+                    onClick={() => {
+                      const rule = newRule(fields, used);
+                      add(rule, value.items.map((other) => (other.id === item.id && isGroup(other) ? { ...other, rules: [...other.rules, rule] } : other)));
+                    }}
+                    className="mt-1.5 ms-7"
+                  >
+                    Add condition
+                  </Button>
+                )}
               </div>
             </li>
           );
         })}
       </ol>
-      <div className="mt-3 flex flex-wrap items-center gap-1 ps-11">
-        <Button
-          data-add=""
-          variant="secondary"
-          size="sm"
-          before={<PlusIcon />}
-          onClick={() => {
-            const rule = newRule(fields, used);
-            add(rule, [...value.items, rule]);
-          }}
-        >
-          Add rule
-        </Button>
-        <Button
-          variant="quiet"
-          size="sm"
-          before={<ListTreeIcon className="rtl:-scale-x-100" />}
-          onClick={() => {
-            const rule = newRule(fields, used);
-            add(rule, [...value.items, { id: newId(), join: value.join === "and" ? "or" : "and", rules: [rule] }]);
-          }}
-        >
-          Add group
-        </Button>
-      </div>
+      {!disabled && (
+        <div className="mt-3 flex flex-wrap items-center gap-1 ps-11">
+          <Button
+            data-add=""
+            variant="secondary"
+            size="sm"
+            before={<PlusIcon />}
+            onClick={() => {
+              const rule = newRule(fields, used);
+              add(rule, [...value.items, rule]);
+            }}
+          >
+            Add rule
+          </Button>
+          <Button
+            variant="quiet"
+            size="sm"
+            before={<ListTreeIcon className="rtl:-scale-x-100" />}
+            onClick={() => {
+              const rule = newRule(fields, used);
+              add(rule, [...value.items, { id: newId(), join: value.join === "and" ? "or" : "and", rules: [rule] }]);
+            }}
+          >
+            Add group
+          </Button>
+        </div>
+      )}
       </StatusFrame>
       <p aria-live="polite" className="sr-only">
         {status === "ready" ? countLabel(total) : ""}

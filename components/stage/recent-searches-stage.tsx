@@ -89,8 +89,9 @@ export function RecentSearchesStage() {
   };
 
   return (
-    // From 640px the open list floats over the stage, so the stage keeps room for all of it.
-    <section aria-label="Try it" className="relative flex h-full min-h-[360px] flex-col rounded-[24px] border border-card bg-panel sm:min-h-[652px]">
+    // From 640px the open list floats over the stage, so the stage keeps room for all of it, 30px, and the two rows of
+    // stage settings.
+    <section aria-label="Try it" className="relative flex h-full min-h-[360px] flex-col rounded-[24px] border border-card bg-panel sm:min-h-[688px]">
       <div className="flex min-h-12 items-center justify-end gap-3 px-3 pt-3">
         <button
           type="button"
@@ -101,8 +102,14 @@ export function RecentSearchesStage() {
         </button>
       </div>
       <div {...frame} className="flex-1 px-4 pb-0 pt-2 sm:px-8">
-        {/* On phones the open list sits in the flow, so it grows the stage instead of covering the copy panel below. */}
-        <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 max-sm:[&_[data-state=open]:has(>[data-status-frame])]:static">
+        {/* On phones the open list sits in the flow, so it grows the stage instead of covering the copy panel below.
+            With long names or many searches the list would reach past that room: there it stops at Ready's height and
+            scrolls. */}
+        <div
+          className={`mx-auto flex w-full max-w-[600px] flex-col pt-2 max-sm:[&_[data-state=open]:has(>[data-status-frame])]:static ${
+            state === "long-labels" || state === "many-options" ? "sm:[&_[role=listbox]]:max-h-[min(56dvh,414px)]" : ""
+          }`}
+        >
           <RecentSearches<Car, CarFilters>
             locale={locale}
             key={round}

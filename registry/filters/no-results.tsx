@@ -5,7 +5,7 @@ import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
 import { findFixes, type Fix, type RelaxMap } from "../lib/relax";
 import { ArrowRightIcon, SearchXIcon } from "../ui/icons";
-import { placeholderLabels, SKELETON_FILL, SkeletonText } from "../ui/skeleton";
+import { placeholderLabels, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 
 export type CountNoun = { one: string; other: string };
@@ -98,7 +98,8 @@ export function NoResults<Item, State>({
 }: NoResultsProps<Item, State>) {
   const formatCount = formatCountProp ?? formatsFor(locale).number;
   const id = useId();
-  const loading = status === "loading";
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
   const failed = status === "error";
   const fixes = useMemo(() => findFixes({ items, value, matches, relax, limit }), [items, value, matches, relax, limit]);
   const most = Math.max(1, ...fixes.map((fix) => fix.count));

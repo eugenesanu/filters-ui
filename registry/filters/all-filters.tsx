@@ -6,7 +6,7 @@ import { formatsFor } from "../lib/format";
 import { SCROLL } from "../lib/scroll";
 import { ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, SearchIcon, XIcon } from "../ui/icons";
-import { SkeletonText } from "../ui/skeleton";
+import { SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, useFocusKept, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
 import { TextSwap } from "../ui/text-swap";
@@ -243,6 +243,8 @@ export function AllFilters({
   const listHidden = narrow && view === "detail";
   // The "3 set" chip leaves while disabled: focus that sat on it moves to the panel.
   useFocusKept(root, `${status}|${disabled}`);
+  // Its own status, or the loading frame of an item around it.
+  const loading = useLoading().loading || status === "loading";
 
   return (
     <section
@@ -283,12 +285,12 @@ export function AllFilters({
         <span className="sr-only" aria-live="polite" aria-atomic="true">
           {showLabel.replace(/^Show /, "")}
         </span>
-        <ShowButton label={showLabel} onClick={onShow} loading={status === "loading"} className="ms-auto" />
+        <ShowButton label={showLabel} onClick={onShow} loading={loading} className="ms-auto" />
       </div>
 
       {/* Loading and disabled hold the whole body; an error sits in the filter's place below, so the list stays. */}
       <StatusFrame
-        status={status === "loading" ? "loading" : "ready"}
+        status={loading ? "loading" : "ready"}
         disabled={disabled}
         className="rounded-none rounded-b-[23px] focus-visible:-outline-offset-2"
       >
@@ -341,6 +343,8 @@ export function AllFilters({
             </div>
             <div
               ref={list}
+              // Disabled, its rows take no focus, and Firefox would then stop Tab on the list itself.
+              tabIndex={disabled ? -1 : undefined}
               className={cn(
                 "relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 @min-[520px]:px-4 @min-[520px]:pb-8 @min-[520px]:[mask-image:linear-gradient(to_bottom,#000_calc(100%-32px),transparent)]",
                 SCROLL,

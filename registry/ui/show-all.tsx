@@ -7,13 +7,24 @@ import { formatsFor } from "../lib/format";
 /**
  * What a long list shows while folded: its first `collapsedCount` options and any that are on. Two hidden options are
  * not worth a button, so the list folds only when it would hide three or more, and never while it is loading.
+ * `isKept` marks an option past the fold that was just turned off while it held focus or the pointer: it stays until
+ * both have left it, so focus is never dropped and nothing moves under the pointer.
  */
 export function foldOptions<T>(
   options: readonly T[],
-  { collapsedCount, expanded, isOn, loading = false }: { collapsedCount: number; expanded: boolean; isOn: (option: T) => boolean; loading?: boolean },
+  {
+    collapsedCount,
+    expanded,
+    isOn,
+    isKept,
+    loading = false,
+  }: { collapsedCount: number; expanded: boolean; isOn: (option: T) => boolean; isKept?: (option: T) => boolean; loading?: boolean },
 ): { folds: boolean; shown: readonly T[] } {
   const folds = !loading && options.length > collapsedCount + 2;
-  return { folds, shown: folds && !expanded ? options.filter((option, i) => i < collapsedCount || isOn(option)) : options };
+  return {
+    folds,
+    shown: folds && !expanded ? options.filter((option, i) => i < collapsedCount || isOn(option) || isKept?.(option)) : options,
+  };
 }
 
 export type ShowAllButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" | "onClick" | "type"> & {

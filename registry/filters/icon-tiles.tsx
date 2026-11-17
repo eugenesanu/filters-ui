@@ -63,17 +63,25 @@ export function IconTiles<V extends string>({
   ...props
 }: IconTilesProps<V>) {
   const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
-  // An option turned off at 0 would become disabled under the pointer or keyboard and drop focus; it stays enabled until it loses focus.
+  // An option turned off under the pointer or keyboard would become disabled at 0, or leave a folded list, and drop
+  // focus; it stays as it is until focus and the pointer have both left it.
   const [kept, setKept] = useState<V | null>(null);
   const toggle = (v: V, button: HTMLButtonElement) => {
     const on = value.includes(v);
-    setKept(on && document.activeElement === button ? v : null);
+    setKept(on && (document.activeElement === button || button.matches(":hover")) ? v : null);
     onChange(on ? value.filter((x) => x !== v) : [...value, v]);
   };
   const [all, setAll] = useState(false);
 
-  const loading = status === "loading";
-  const { folds, shown } = foldOptions(options, { collapsedCount, expanded: all, isOn: (o) => value.includes(o.value), loading });
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
+  const { folds, shown } = foldOptions(options, {
+    collapsedCount,
+    expanded: all,
+    isOn: (o) => value.includes(o.value),
+    isKept: (o) => kept === o.value,
+    loading,
+  });
 
   return (
     <div role="group" aria-label={label} aria-disabled={disabled || undefined} className={className} {...props}>
@@ -100,7 +108,8 @@ export function IconTiles<V extends string>({
                     aria-pressed={on}
                     aria-label={`${option.label}, ${countLabel(option.count)}`}
                     disabled={option.count === 0 && !on && kept !== option.value}
-                    onBlur={() => kept === option.value && setKept(null)}
+                    onBlur={(event) => kept === option.value && !event.currentTarget.matches(":hover") && setKept(null)}
+                    onPointerLeave={(event) => kept === option.value && document.activeElement !== event.currentTarget && setKept(null)}
                     onClick={(event) => toggle(option.value, event.currentTarget)}
                     data-state={on ? "on" : "off"}
                     className={cn(

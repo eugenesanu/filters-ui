@@ -15,7 +15,7 @@ import { cn } from "../lib/cn";
 import { isRtl, onDirChange, readingKey } from "../lib/direction";
 import { formatsFor, resultsLabel, type Formats } from "../lib/format";
 import { ChevronDownIcon } from "../ui/icons";
-import { Skeleton, SKELETON_FILL, SkeletonText } from "../ui/skeleton";
+import { Skeleton, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
 import { TextSwap } from "../ui/text-swap";
@@ -104,13 +104,15 @@ export function resolveDateRange(value: DateRangeValue, today: string): { start:
 }
 
 const yearOf = (iso: string) => Number(iso.slice(0, 4));
+// "19. Okt." reads as "19 Okt": a dot that ends an abbreviation or a day number goes.
+const noDots = (text: string) => text.replace(/\.(?=\s|$)/g, "");
 // US English keeps its hand-built dates; every other locale, English ones too, takes its own from Intl.
 const english = (f: Formats) => f.locale === "en" || f.locale === "en-US";
 const weekdayOf = (iso: string) => new Date(timeOf(iso)).getUTCDay();
 
 // "Nov 3", with the year only when it is not this year's.
 const shortDay = (f: Formats, iso: string, today: string | null) =>
-  f.day(iso, { month: "short", day: "numeric", ...(today && yearOf(today) === yearOf(iso) ? {} : { year: "numeric" }) });
+  noDots(f.day(iso, { month: "short", day: "numeric", ...(today && yearOf(today) === yearOf(iso) ? {} : { year: "numeric" }) }));
 const spokenDay = (f: Formats, iso: string) => f.day(iso, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 // A day cell's name: the grid is named by its month and year, and the day number comes last in every locale, so the
 // count read after it follows it, as on screen ("Sonntag, November 1, 6 cars").
@@ -135,7 +137,7 @@ function describe(f: Formats, value: DateRangeValue, presets: readonly DatePrese
   const thisYear = (iso: string) => !!today && yearOf(today) === yearOf(iso);
   const sameMonth = start.slice(0, 7) === end.slice(0, 7);
   if (!english(f)) {
-    const day = (iso: string, withYear: boolean) => f.day(iso, { month, day: "numeric", ...(withYear ? { year: "numeric" } : {}) });
+    const day = (iso: string, withYear: boolean) => noDots(f.day(iso, { month, day: "numeric", ...(withYear ? { year: "numeric" } : {}) }));
     if (start === end) return day(start, !thisYear(start));
     // Both ends whole: a bare last day or year after a day-first date reads as unfinished ("3. Nov. to 9").
     if (yearOf(start) !== yearOf(end) || !thisYear(end)) return `${day(start, true)} to ${day(end, true)}`;
@@ -299,7 +301,8 @@ export function DateRange({
   className,
   ...props
 }: DateRangeProps) {
-  const loading = status === "loading";
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
   const f = formatsFor(locale);
   const weekStartsOn = weekStartsOnProp ?? f.firstDay;
   const formatCount = formatCountProp ?? f.number;
@@ -834,7 +837,7 @@ export function DateRange({
                     <span
                       aria-hidden="true"
                       className={cn(
-                        "inline-flex h-5 min-w-[22px] shrink-0 items-center justify-center rounded-[6px] px-1.5 text-[12px] leading-4 font-medium tabular-nums transition-[background-color,color] duration-200",
+                        "inline-flex h-5 min-w-[22px] shrink-0 items-center justify-center rounded-[6px] px-1.5 text-[12px] leading-4 font-medium tabular-nums transition-[background-color,color] duration-200 motion-reduce:transition-none",
                         loading
                           ? SKELETON_FILL
                           : choice.on

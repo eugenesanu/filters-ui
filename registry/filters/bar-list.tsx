@@ -173,8 +173,9 @@ export function BarList<V extends string = string>({
     onChange(options.flatMap((option) => ((option.value === v ? !on : value.includes(option.value)) ? [option.value] : [])));
   };
 
+  // Its own status, or the loading frame of an item around it, such as a block's card.
+  const loading = useLoading().loading || status === "loading";
   // While the options are on their way, stand-in rows keep the place the short list will take.
-  const loading = status === "loading";
   const listed: readonly BarListOption<V>[] =
     loading && options.length === 0 ? placeholderLabels(collapsedCount).map((name, i) => ({ value: `${i}` as V, label: name, count: 0 })) : options;
 
