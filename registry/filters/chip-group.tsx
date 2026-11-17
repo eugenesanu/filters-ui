@@ -2,8 +2,9 @@
 
 import { useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
-import { formatsFor, resultsLabel } from "../lib/format";
+import { resultsLabel } from "../lib/format";
 import { CountPill } from "../ui/count-pill";
+import { foldOptions, ShowAllButton } from "../ui/show-all";
 import { placeholderLabels, SkeletonText } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 
@@ -68,9 +69,7 @@ export function ChipGroup<V extends string>({
   };
 
   const loading = status === "loading";
-  // Two hidden chips are not worth a button: the list folds only when it hides three or more.
-  const folds = !loading && options.length > collapsedCount + 2;
-  const shown = folds && !all ? options.filter((o, i) => i < collapsedCount || value.includes(o.value)) : options;
+  const { folds, shown } = foldOptions(options, { collapsedCount, expanded: all, isOn: (o) => value.includes(o.value), loading });
 
   return (
     <div role="group" aria-label={label} aria-disabled={disabled || undefined} className={cn("pt-0.5", className)} {...props}>
@@ -116,29 +115,7 @@ export function ChipGroup<V extends string>({
                   </button>
                 );
               })}
-          {folds && (
-            <button
-              type="button"
-              aria-expanded={all}
-              onClick={() => setAll(!all)}
-              className={cn(
-                "group/more relative inline-flex h-8 cursor-pointer items-center rounded-[6px] px-1 text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)]",
-                "transition-[color,scale] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
-                "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
-              )}
-            >
-              {/* A 1px line draws in under the words from the start edge while it is hovered or focused. */}
-              <span
-                className={cn(
-                  "bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-[position:0_100%] rtl:bg-[position:100%_100%] bg-no-repeat pb-px",
-                  "transition-[background-size] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                  "[@media(hover:hover)]:group-hover/more:bg-[length:100%_1px] group-focus-visible/more:bg-[length:100%_1px]",
-                )}
-              >
-                {all ? "Show fewer" : `Show all ${formatsFor(locale).number(options.length)}`}
-              </span>
-            </button>
-          )}
+          {folds && <ShowAllButton total={options.length} expanded={all} onToggle={() => setAll(!all)} locale={locale} />}
         </div>
       </StatusFrame>
     </div>

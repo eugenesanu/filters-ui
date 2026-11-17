@@ -5,6 +5,7 @@ import { cn } from "../lib/cn";
 import { onDirChange, readingKey, startOffset } from "../lib/direction";
 import { formatsFor, resultsLabel } from "../lib/format";
 import { CountPill } from "./count-pill";
+import { SkeletonText } from "./skeleton";
 
 export type SegmentedValue = string | number | null;
 
@@ -28,14 +29,15 @@ export type SegmentedProps<V extends SegmentedValue> = Omit<HTMLAttributes<HTMLD
   /** Formats the counts by default, e.g. "de-DE". */
   locale?: string;
   disabled?: boolean;
-  /** "equal": options with a count share the width equally. "content": the same, except an option whose words need more keeps its own width. An option without a count ("Any") hugs its words while the control is under 340px wide. */
+  /** "equal": options with a count share the width equally. "content": the same, except an option whose words need more keeps its own width (a name of several words may wrap instead). An option without a count ("Any") hugs its words while the control is under 340px wide. */
   fit?: "equal" | "content";
 };
 
 /**
  * A segmented control: an option without a count ("Any") hugs its words while the control is under 340px wide (from 340px all share the width), the others share the rest equally, and one pill slides to the chosen one over 340ms.
  * It is a radiogroup with one tab stop; arrow keys, Home and End move and select. Right to left, the options run from
- * the right and Left and Right follow them.
+ * the right and Left and Right follow them. Long words wrap and the track grows. Inside a loading StatusFrame the
+ * words and counts of options with a count draw as placeholders; "Any" and the pill on the choice stay.
  */
 export function Segmented<V extends SegmentedValue>({
   options,
@@ -124,7 +126,7 @@ export function Segmented<V extends SegmentedValue>({
       aria-label={label}
       aria-disabled={disabled || undefined}
       onKeyDown={onKeyDown}
-      className={cn("@container relative flex h-10 rounded-[12px] bg-[var(--fu-segment-track,#2A2A2A)] p-1", disabled && "opacity-40", className)}
+      className={cn("@container relative flex min-h-10 rounded-[12px] bg-[var(--fu-segment-track,#2A2A2A)] p-1", disabled && "opacity-40", className)}
       style={style}
       {...props}
     >
@@ -160,9 +162,10 @@ export function Segmented<V extends SegmentedValue>({
             disabled={off}
             onClick={() => pick(i)}
             className={cn(
-              "group/seg relative flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-[14px] leading-5 font-medium",
+              "group/seg relative flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] py-1.5 text-[14px] leading-5 font-medium",
               hug ? "flex-none px-2.5 @min-[340px]:flex-1 @min-[340px]:px-0.5" : "flex-1 px-0.5",
-              fit === "content" && !hug && "min-w-fit",
+              // At least its longest word and its count, so a single word is never cut; a longer name wraps.
+              fit === "content" && !hug && "min-w-min",
               on && measuring && !measured && "bg-[var(--fu-thumb,#404040)]",
               "transition-[color,background-color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
@@ -177,7 +180,10 @@ export function Segmented<V extends SegmentedValue>({
               off && !disabled && !on && "opacity-40",
             )}
           >
-            <span className="truncate">{option.label}</span>
+            {/* Words wrap at spaces and the track grows; a single word too long for its segment ends in an ellipsis. */}
+            <span className="min-w-0 overflow-hidden text-center text-ellipsis">
+              {option.count === undefined ? option.label : <SkeletonText>{option.label}</SkeletonText>}
+            </span>
             {option.count !== undefined && (
               <>
                 <CountPill
