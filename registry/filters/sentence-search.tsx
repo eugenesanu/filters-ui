@@ -7,6 +7,8 @@ import { SCROLL } from "../lib/scroll";
 import { countOf, ghostOf, matchIn, readSentence, suggest, wholeWord, type Correction, type Suggestion, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
 import { SearchIcon, XIcon } from "../ui/icons";
+import { placeholderLabels, Skeleton, SkeletonText } from "../ui/skeleton";
+import { StatusFrame, type StateProps } from "../ui/status-frame";
 
 /** A row of your own in the list while the box is empty, such as a saved search. */
 export type OwnRow<State> = {
@@ -33,9 +35,12 @@ export type OwnRows<State> = {
   replace?: boolean;
   /** Key hints for the foot of the list while these rows show. */
   keys?: readonly { key: string; label: string }[];
+  /** A quiet line in the list's place while there are no rows, e.g. "No recent searches yet." */
+  emptyText?: string;
 };
 
-export type SentenceSearchProps<Item, State> = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> & {
+export type SentenceSearchProps<Item, State> = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | "defaultValue"> &
+  Omit<StateProps, "emptyText"> & {
   /** The words it knows: names, phrases and how each one changes the value. */
   vocabulary: Vocabulary<Item, State>;
   /** Every item, for the counts. */
@@ -74,15 +79,26 @@ const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 /** A 44px tap area on touch screens around a smaller drawn control. */
 const TAP = "relative pointer-coarse:after:absolute pointer-coarse:after:-inset-[4px] pointer-coarse:after:rounded-[inherit]";
 const quote = (words: readonly string[]) => words.map((word) => `“${word}”`).join(", ");
+/** 40px for one line: a 22px line and 9px above and below. A longer name wraps and the row grows. */
+const ROW = "relative flex min-h-10 items-center gap-2.5 rounded-[12px] px-3 py-[9px] text-[15px] leading-[22px]";
+/** Stand-in rows while the counts load and no suggestion can be worked out yet. */
+const LOADING_ROWS = 4;
 
 function Label({ label, typed }: { label: string; typed: string }) {
   const hit = matchIn(label, typed);
-  if (!hit) return <span className="min-w-0 truncate text-[var(--fu-text,#F8F5F1)]">{label}</span>;
   return (
-    <span className="min-w-0 truncate text-[var(--fu-dim,#929292)]">
-      {label.slice(0, hit.at)}
-      <span className="font-medium text-[var(--fu-text,#F8F5F1)]">{label.slice(hit.at, hit.at + hit.length)}</span>
-      {label.slice(hit.at + hit.length)}
+    <span className={cn("min-w-0 [overflow-wrap:anywhere]", hit ? "text-[var(--fu-dim,#929292)]" : "text-[var(--fu-text,#F8F5F1)]")}>
+      <SkeletonText>
+        {hit ? (
+          <>
+            {label.slice(0, hit.at)}
+            <span className="font-medium text-[var(--fu-text,#F8F5F1)]">{label.slice(hit.at, hit.at + hit.length)}</span>
+            {label.slice(hit.at + hit.length)}
+          </>
+        ) : (
+          label
+        )}
+      </SkeletonText>
     </span>
   );
 }
@@ -121,6 +137,10 @@ export function SentenceSearch<Item, State>({
   open: openProp,
   onOpenChange,
   emptyRows,
+  status = "ready",
+  onRetry,
+  errorText = "Couldn't load the suggestions.",
+  disabled = false,
   className,
   onFocus,
   onBlur,
@@ -129,6 +149,7 @@ export function SentenceSearch<Item, State>({
   const countLabel = countLabelProp ?? ((n: number) => resultsLabel(n, locale));
   const id = useId();
   const listId = `${id}-list`;
+  const noteId = `${id}-note`;
   const optionId = (index: number) => `${id}-option-${index}`;
   const [text, setText] = useState(defaultText);
   const [openState, setOpenState] = useState(defaultOpen);
@@ -144,6 +165,7 @@ export function SentenceSearch<Item, State>({
   const [fixes, setFixes] = useState<Correction[]>([]);
   const root = useRef<HTMLDivElement>(null);
   const field = useRef<HTMLInputElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
 
   const applied = vocabulary.tokens(value);
   const keys = applied.map((token) => token.key);
@@ -162,9 +184,14 @@ export function SentenceSearch<Item, State>({
   const replaced = own?.replace === true;
   const groups = useMemo(() => (replaced ? [] : suggested), [replaced, suggested]);
   const rows = useMemo(() => groups.flatMap((group) => group.rows), [groups]);
-  const total = lead + rows.length;
-  const active = Math.min(moved ?? (typing && rows.length ? 0 : -1), total - 1);
-  const shown = open && (own !== undefined || rows.length > 0);
+  // While the counts load or fail, the field keeps working but the rows cannot be picked: none is highlighted.
+  const live = status === "ready" && !disabled;
+  const total = live ? lead + rows.length : 0;
+  const active = live ? Math.min(moved ?? (typing && rows.length ? 0 : -1), total - 1) : -1;
+  const ownEmpty = own?.emptyText !== undefined && ownRows.length === 0;
+  // The list shows a line instead of its rows: the error, or the own rows' empty note.
+  const noted = status === "error" || (status === "ready" && ownEmpty);
+  const shown = open && !disabled && (status !== "ready" || own !== undefined || rows.length > 0);
   const idAt = (index: number) => (index < lead ? ownRows[index].id : optionId(index - lead));
   const ghost = shown ? ghostOf(text, rows[active - lead]) : "";
   const preview = shown && active >= 0 && active < lead ? ownRows[active].preview : undefined;
@@ -191,6 +218,19 @@ export function SentenceSearch<Item, State>({
     input?.focus();
     input?.setSelectionRange(input.value.length, input.value.length);
   }, [autoFocus]);
+
+  // A list open without focus, from defaultOpen or open, has no blur to close it, so a press outside does. Not in an
+  // inert still picture, such as a preview, where a press elsewhere on the page must leave it as drawn.
+  useEffect(() => {
+    if (!open || root.current?.closest("[inert]")) return;
+    const onDown = (event: PointerEvent) => {
+      const node = root.current;
+      if (!node || node.contains(document.activeElement)) return;
+      if (!(event.target instanceof Node) || !node.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  });
 
   const land = (next: State, left: string[] = [], added: readonly string[] = [], fixed: Correction[] = []) => {
     setOrder([...kept, ...added.filter((key) => !kept.includes(key))]);
@@ -224,9 +264,12 @@ export function SentenceSearch<Item, State>({
     setOpen(true);
     setUnused([]);
     setFixes([]);
-    if (/[\s,]$/.test(next)) {
-      const word = next.replace(/[\s,]+$/, "");
-      const comma = next.endsWith(",");
+    const end = next.match(/[\s,]+$/)?.[0];
+    const word = end ? next.slice(0, -end.length) : next;
+    // A comma right after a digit is the number's own mark, as in "60,000" or "1,5", until a space shows it ended the
+    // number; so "under 60,000 km" waits for its unit instead of turning into a price at the comma.
+    if (end && !(end === "," && /\p{Nd}$/u.test(word))) {
+      const comma = end.includes(",");
       const whole = wholeWord(vocabulary, items, word, value);
       if (whole) return land(whole.next, [], whole.order);
       const best = comma ? suggest(vocabulary, items, word, value).flatMap((group) => group.rows)[0] : undefined;
@@ -262,6 +305,10 @@ export function SentenceSearch<Item, State>({
       if (mine) choose(mine);
       else if (shown && rows[active - lead]) pick(rows[active - lead]);
       else submit();
+    } else if (event.key === "Tab" && !event.shiftKey && shown && status === "error" && panel.current?.querySelector("button")) {
+      // Retry sits in the list, after the buttons in the box: Tab goes straight to it while the list shows it.
+      event.preventDefault();
+      panel.current.querySelector("button")?.focus();
     } else if (event.key === "Tab" && !event.shiftKey && shown && typing && rows[active]) {
       event.preventDefault();
       pick(rows[active]);
@@ -291,7 +338,10 @@ export function SentenceSearch<Item, State>({
       ref={root}
       className={cn("relative w-full @container", className)}
       onFocus={(event) => {
-        if (event.target !== field.current) setOpen(false);
+        const inList = panel.current?.contains(event.target) ?? false;
+        // Retry hands focus to the list's frame as it reloads; the field takes it back, so typing goes on.
+        if (inList && event.target.hasAttribute("data-status-frame")) field.current?.focus({ preventScroll: true });
+        else if (event.target !== field.current && !inList) setOpen(false);
         onFocus?.(event);
       }}
       onBlur={(event) => {
@@ -302,6 +352,8 @@ export function SentenceSearch<Item, State>({
       }}
       {...props}
     >
+      {/* Disabled turns off the field, the tokens and the buttons; loading and errors belong to the list below. */}
+      <StatusFrame disabled={disabled} announce={false}>
       <div className="relative">
       <div
         onPointerDown={(event) => {
@@ -389,8 +441,11 @@ export function SentenceSearch<Item, State>({
               ref={field}
               role="combobox"
               aria-label={label}
-              aria-expanded={shown}
-              aria-controls={listId}
+              // In an error, or with nothing to list, the popup holds a line instead of a listbox: the field is
+              // described by it.
+              aria-expanded={shown && !noted}
+              aria-controls={noted ? undefined : listId}
+              aria-describedby={noted ? noteId : undefined}
               aria-autocomplete="list"
               aria-activedescendant={shown && active >= 0 ? idAt(active) : undefined}
               autoComplete="off"
@@ -408,6 +463,11 @@ export function SentenceSearch<Item, State>({
                 previewTokens.length > 0 && !tokens.length && "caret-transparent",
               )}
             />
+            {noted && (
+              <span id={noteId} hidden>
+                {status === "error" ? errorText : own?.emptyText}
+              </span>
+            )}
           </li>
         </ul>
         {(typing || tokens.length > 0) && (
@@ -442,7 +502,10 @@ export function SentenceSearch<Item, State>({
       </div>
 
       <div
+        ref={panel}
         data-state={shown ? "open" : "closed"}
+        // A press anywhere in the list, Retry included, leaves focus in the field.
+        onPointerDown={(event) => event.preventDefault()}
         className={cn(
           "absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-[16px] border border-[var(--fu-menu-edge,#737373)] bg-[var(--fu-search,#2A2A2A)] shadow-[0_16px_40px_var(--fu-shadow,rgb(0_0_0/0.5))]",
           "origin-top transition-[opacity,translate,visibility] duration-[170ms] motion-reduce:transition-none",
@@ -451,11 +514,20 @@ export function SentenceSearch<Item, State>({
           "data-[state=open]:visible data-[state=open]:translate-y-0 data-[state=open]:opacity-100 data-[state=open]:duration-[260ms]",
         )}
       >
+        {/* Loading draws the rows as placeholders and the count at the foot; an error or an empty note takes the place
+            of the rows and the foot. */}
+        <StatusFrame
+          status={status}
+          onRetry={onRetry}
+          errorText={errorText}
+          empty={ownEmpty}
+          emptyText={own?.emptyText}
+          className={cn("rounded-[16px]", noted && "min-h-11 py-1.5 pe-1.5 ps-[18px] [&>*]:min-h-8")}
+        >
         <div
           id={listId}
           role="listbox"
           aria-label="Suggestions"
-          onPointerDown={(event) => event.preventDefault()}
           className={cn("relative max-h-[min(56dvh,440px)] overflow-y-auto overscroll-contain p-1.5", SCROLL)}
         >
           <div
@@ -474,14 +546,26 @@ export function SentenceSearch<Item, State>({
               id: rowId,
               role: "option",
               "aria-selected": shown && at >= 0 && at === active,
-              onPointerMove: () => at >= 0 && moved !== at && setMoved(at),
+              onPointerMove: () => live && at >= 0 && moved !== at && setMoved(at),
               onClick: () => {
-                if (at < 0) return;
+                if (at < 0 || !live) return;
                 field.current?.focus();
                 choose(ownRows[at]);
               },
             };
           })}
+          {status === "loading" && !own && !rows.length && (
+            <div role="group" aria-label="Matches">
+              {placeholderLabels(LOADING_ROWS).map((name, i) => (
+                <div key={i} role="option" aria-selected={false} className={ROW}>
+                  <Label label={name} typed="" />{" "}
+                  <span aria-hidden="true" className="ms-auto flex shrink-0 items-center ps-3">
+                    <CountPill count={0} />
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {groups.map((group) => (
             <div key={group.title ?? "matches"} role="group" aria-label={group.title ?? "Matches"}>
               {group.title && <p className="px-3 pt-2 pb-1 text-[13px] leading-[18px] text-[var(--fu-mute,#BDBDBD)]">{group.title}</p>}
@@ -495,23 +579,34 @@ export function SentenceSearch<Item, State>({
                     role="option"
                     aria-selected={shown && at + lead === active}
                     aria-label={`${row.label}${row.hint ? `, ${row.hint}` : ""}, ${countLabel(row.count)}`}
-                    onPointerMove={() => moved !== at + lead && setMoved(at + lead)}
+                    onPointerMove={() => live && moved !== at + lead && setMoved(at + lead)}
                     onClick={() => {
+                      if (!live) return;
                       pick(row);
                       field.current?.focus();
                     }}
-                    className="relative flex h-10 cursor-pointer items-center gap-2.5 rounded-[12px] px-3 text-[15px] leading-[22px]"
+                    className={cn(ROW, "cursor-pointer")}
                   >
-                    {row.swatch && (
-                      <span
-                        aria-hidden="true"
-                        className="size-4 shrink-0 rounded-full border border-[var(--fu-control-border,#737373)]"
-                        style={{ background: row.swatch }}
-                      />
-                    )}
+                    {row.swatch &&
+                      (status === "loading" ? (
+                        <Skeleton className="size-4 shrink-0 rounded-full" />
+                      ) : (
+                        // The colour fades in once with the words when the counts arrive.
+                        <SkeletonText loading={false}>
+                          <span
+                            aria-hidden="true"
+                            className="block size-4 shrink-0 rounded-full border border-[var(--fu-control-border,#737373)]"
+                            style={{ background: row.swatch }}
+                          />
+                        </SkeletonText>
+                      ))}
                     <Label label={row.label} typed={text} />{" "}
                     <span aria-hidden="true" className="ms-auto flex shrink-0 items-center gap-2 ps-3">
-                      {row.hint && <span className="text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{row.hint}</span>}{" "}
+                      {row.hint && (
+                        <span className="text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
+                          <SkeletonText>{row.hint}</SkeletonText>
+                        </span>
+                      )}{" "}
                       <CountPill count={row.count} locale={locale} {...(formatCount && { format: formatCount })} />
                     </span>
                   </div>
@@ -522,7 +617,6 @@ export function SentenceSearch<Item, State>({
         </div>
         <div
           aria-hidden="true"
-          onPointerDown={(event) => event.preventDefault()}
           className="flex h-10 items-center gap-4 border-t border-[var(--fu-line,#404040)] px-3 text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]"
         >
           <span className="hidden items-center gap-4 @min-[480px]:flex">
@@ -540,8 +634,11 @@ export function SentenceSearch<Item, State>({
               </>
             )}
           </span>
-          <span className="ms-auto tabular-nums">{countLabel(preview !== undefined ? countOf(vocabulary, items, preview) : count)}</span>
+          <span className="ms-auto tabular-nums">
+            <SkeletonText>{countLabel(preview !== undefined ? countOf(vocabulary, items, preview) : count)}</SkeletonText>
+          </span>
         </div>
+        </StatusFrame>
       </div>
       </div>
 
@@ -550,8 +647,9 @@ export function SentenceSearch<Item, State>({
         {unused.length > 0 && <span className="mt-2 block px-4">Not used: {quote(unused)}</span>}
       </p>
       <p aria-live="polite" className="sr-only">
-        {countLabel(count)}
+        {status === "ready" ? countLabel(count) : ""}
       </p>
+      </StatusFrame>
     </div>
   );
 }

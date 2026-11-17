@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { StageControlRow, useStage, useStageFrame } from "@/components/stage/stage-controls";
-import { formatsFor } from "@/registry/lib/format";
+import { StageControlRow, useStage, useStageFrame, useStageStatus } from "@/components/stage/stage-controls";
+import { StageCount } from "@/components/stage/stage-count";
+import { longVocabulary } from "@/components/stage/long-names";
 import { CARS, type Car } from "@/registry/demo/cars";
 import { carFormats, matchingCars, type CarFilters } from "@/registry/demo/cars-facets";
 import { carVocabulary, carVocabularyFor } from "@/registry/demo/cars-vocabulary";
 import { RecentSearches, remember, type SavedSearch } from "@/registry/filters/recent-searches";
 import { readSentence } from "@/registry/lib/sentence";
-import { TextSwap } from "@/registry/ui/text-swap";
+import type { ItemState } from "@/registry/items";
 
 const read = (sentence: string) => readSentence(carVocabulary, CARS, sentence).value;
 
@@ -22,25 +23,68 @@ export const RECENT: SavedSearch<CarFilters>[] = ["blue suv under 30k", "rav4 20
   (sentence, i) => ({ id: `recent-${i}`, value: read(sentence) }),
 );
 
+/** Long names on the saved searches for the long-labels state; the filters get theirs from longVocabulary. */
+const LONG_SAVED: SavedSearch<CarFilters>[] = [
+  { id: "family", name: "Family hybrid with room for the grandparents and the dog on long weekends away", value: read("hybrid 7 seats") },
+  { id: "city", name: "City electric", value: read("white electric under 50k") },
+  { id: "weekend", name: "Weekend truck", value: read("4wd truck") },
+];
+
+/** Twelve saved searches for the many-options state, so the list scrolls. */
+const MANY_SAVED: SavedSearch<CarFilters>[] = [
+  ...SAVED,
+  ...[
+    ["Commuter", "hybrid sedan under 25k"],
+    ["Road trip", "awd suv 2022 or newer"],
+    ["First car", "cheap hatchback"],
+    ["Camping", "4wd suv"],
+    ["Work van", "van"],
+    ["Sunday drive", "convertible"],
+    ["School run", "minivan 8 seats"],
+    ["Snow days", "awd under 30k"],
+    ["Quiet ride", "electric sedan"],
+  ].map(([name, sentence], i) => ({ id: `many-${i}`, name, value: read(sentence) })),
+];
+
+/** The lists a state starts from: none for empty, long names, or twelve saved searches. */
+function listsIn(state: ItemState): { saved: SavedSearch<CarFilters>[]; recent: SavedSearch<CarFilters>[] } {
+  if (state === "empty") return { saved: [], recent: [] };
+  if (state === "long-labels") return { saved: LONG_SAVED, recent: RECENT };
+  if (state === "many-options") return { saved: MANY_SAVED, recent: RECENT };
+  return { saved: SAVED, recent: RECENT };
+}
+
+/** The data states bring their own lists; the others keep the lists as they are. */
+const listsOf = (state: ItemState) => (state === "empty" || state === "long-labels" || state === "many-options" ? state : "ready");
+
 let made = 0;
 
-/** The search with Saved and Recent kept in memory for this visit; Reset puts the starting lists back. */
+/** The search with Saved and Recent kept in memory for this visit; Reset, or another data state, puts its starting lists back. */
 export function RecentSearchesStage() {
   const frame = useStageFrame();
   const { locale } = useStage();
+  const stage = useStageStatus();
+  const { state, ...states } = stage;
   const f = carFormats(locale);
-  const n = formatsFor(locale).number;
-  const vocabulary = carVocabularyFor(locale);
+  const local = carVocabularyFor(locale);
+  const vocabulary = state === "long-labels" ? longVocabulary(local) : local;
   const [round, setRound] = useState(0);
   const [filters, setFilters] = useState<CarFilters>(carVocabulary.empty);
   const [recent, setRecent] = useState(RECENT);
   const [saved, setSaved] = useState(SAVED);
+  const [listed, setListed] = useState(listsOf(state));
   const matches = matchingCars(filters).length;
+
+  if (listsOf(state) !== listed) {
+    setListed(listsOf(state));
+    setRecent(listsIn(state).recent);
+    setSaved(listsIn(state).saved);
+  }
 
   const reset = () => {
     setFilters(carVocabulary.empty);
-    setRecent(RECENT);
-    setSaved(SAVED);
+    setRecent(listsIn(state).recent);
+    setSaved(listsIn(state).saved);
     setRound((n) => n + 1);
   };
 
@@ -58,7 +102,7 @@ export function RecentSearchesStage() {
       </div>
       <div {...frame} className="flex-1 px-4 pb-0 pt-2 sm:px-8">
         {/* On phones the open list sits in the flow, so it grows the stage instead of covering the copy panel below. */}
-        <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 max-sm:[&_[data-state=open]:has(>[role=listbox])]:static">
+        <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 max-sm:[&_[data-state=open]:has(>[data-status-frame])]:static">
           <RecentSearches<Car, CarFilters>
             locale={locale}
             key={round}
@@ -77,10 +121,12 @@ export function RecentSearchesStage() {
             label="Describe the car you want"
             countLabel={f.carCount}
             defaultOpen
+            {...states}
           />
-          <p className="mt-3 ps-4 text-[14px] leading-5 text-dim tabular-nums">
-            <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
-          </p>
+          {/* No saved searches still leaves every car: the count reads as it does when ready. */}
+          <div className="mt-3 ps-4">
+            <StageCount matches={matches} total={CARS.length} stage={state === "empty" ? { ...stage, state: "ready" } : stage} live={false} />
+          </div>
         </div>
       </div>
       <StageControlRow />

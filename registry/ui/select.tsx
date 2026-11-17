@@ -5,6 +5,8 @@ import { cn } from "../lib/cn";
 import { resultsLabel } from "../lib/format";
 import { ChevronDownIcon } from "./icons";
 import { typesCharacter, keepRowInView, LIST_PANEL, ListCheck, ListCount, PopoverPanel, RowHighlight, useTypeAhead } from "./popover";
+import { ARRIVING, SkeletonText, useLoading } from "./skeleton";
+import { StatusFrame, type StateProps } from "./status-frame";
 import { TextSwap } from "./text-swap";
 
 export type SelectOption = {
@@ -18,7 +20,8 @@ export type SelectOption = {
 export type SelectProps = Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "value" | "onChange" | "prefix" | "children" | "defaultValue" | "name" | "role"
-> & {
+> &
+  StateProps & {
   value: string;
   onChange: (value: string) => void;
   options: readonly SelectOption[];
@@ -32,7 +35,7 @@ export type SelectProps = Omit<
   name?: string;
   /** A line at the top of the list, e.g. "Toyota models". Not read out: the label names the list. */
   heading?: ReactNode;
-  /** Shown in the open list when there are no options. Default "No choices". */
+  /** Shown in the open list when there are no options, and muted in the field when there is no placeholder. Default "No choices". */
   emptyText?: string;
   /** Text of each count. Default 1,234. */
   formatCount?: (n: number) => string;
@@ -51,6 +54,33 @@ export type SelectProps = Omit<
 const PAGE = 10;
 
 /**
+ * The value in the field. Inside a loading StatusFrame, its own or a filter's, a bar stands in for it; when the data
+ * arrives it fades in once. A component of its own, so it reads the frame Select draws around itself.
+ */
+function Value({ text, empty, waiting }: { text: string; empty: boolean; waiting: boolean }) {
+  const { loading, arriving } = useLoading();
+  if (loading) {
+    return (
+      <span className="min-w-0 flex-1 truncate">
+        <SkeletonText>{text}</SkeletonText>
+      </span>
+    );
+  }
+  return (
+    <TextSwap
+      data-empty={empty || undefined}
+      className={cn(
+        "min-w-0 flex-1 grid-cols-[minmax(0,1fr)] tabular-nums transition-[color] duration-[480ms] [&>span]:truncate",
+        waiting ? "text-[var(--fu-dim,#929292)]" : "data-[empty]:text-[var(--fu-mute,#BDBDBD)]",
+        arriving && ARRIVING,
+      )}
+    >
+      {text}
+    </TextSwap>
+  );
+}
+
+/**
  * A select drawn like TextField (44px, 12px radius, --fu-control-border border, 15px text, a chevron) whose list grows out of the
  * field in a panel of its own instead of the system menu. One highlight marks the active row; the chosen row is
  * tinted with a check that draws in; options with counts show a bar for their share that grows in the first time the list opens.
@@ -67,6 +97,9 @@ export function Select({
   name,
   heading,
   emptyText = "No choices",
+  status,
+  onRetry,
+  errorText = "Couldn't load the choices.",
   formatCount,
   countLabel: countLabelProp,
   locale,
@@ -94,9 +127,13 @@ export function Select({
   const skipClick = useRef(false);
   const typeAhead = useTypeAhead();
 
+  // Loading, from its own status or a StatusFrame around it, the field keeps its box and does not open.
+  const framed = useLoading();
+  if (isOpen && (status === "loading" || framed.loading)) setOpen(false);
+
   const chosen = options.find((option) => option.value === value);
   const empty = !chosen || value === "";
-  const shown = chosen?.label ?? placeholder ?? options.find((option) => option.value === "")?.label ?? "";
+  const shown = chosen?.label ?? placeholder ?? options.find((option) => option.value === "")?.label ?? (options.length ? "" : emptyText);
   // An option at 0 cannot be picked, unless it is the current choice.
   const usable = (option: SelectOption) => !option.disabled && (option.count !== 0 || option.value === value);
   const enabled = options.filter(usable);
@@ -207,8 +244,8 @@ export function Select({
     }
   };
 
-  return (
-    <div className={cn("relative min-w-0", disabled && "pointer-events-none opacity-40", className)}>
+  const field = (
+    <div className={cn("relative min-w-0", disabled && "pointer-events-none opacity-40", status === undefined && className)}>
       <span id={labelId} hidden>
         {label}
       </span>
@@ -257,15 +294,7 @@ export function Select({
             {prefix}
           </span>
         )}
-        <TextSwap
-          data-empty={empty || undefined}
-          className={cn(
-            "min-w-0 flex-1 grid-cols-[minmax(0,1fr)] tabular-nums transition-[color] duration-[480ms] [&>span]:truncate",
-            waiting ? "text-[var(--fu-dim,#929292)]" : "data-[empty]:text-[var(--fu-mute,#BDBDBD)]",
-          )}
-        >
-          {shown}
-        </TextSwap>
+        <Value text={shown} empty={empty} waiting={waiting} />
         <ChevronDownIcon
           size={16}
           className={cn(
@@ -298,7 +327,8 @@ export function Select({
           </div>
         )}
         {options.length === 0 && (
-          <div role="presentation" className="flex min-h-10 items-center px-2.5 text-[14px] leading-5 text-[var(--fu-dim,#929292)]">
+          // An option that cannot be picked, so the list still holds one and a screen reader says why it is empty.
+          <div role="option" aria-disabled="true" aria-selected={false} className="flex min-h-10 items-center px-2.5 text-[14px] leading-5 text-[var(--fu-dim,#929292)]">
             {emptyText}
           </div>
         )}
@@ -340,5 +370,14 @@ export function Select({
         })}
       </PopoverPanel>
     </div>
+  );
+
+  // Given a status, it carries its own states: loading as above, and an error line with Retry in the field's place.
+  // Inside a filter that has its own StatusFrame, leave status out and it follows that frame.
+  if (status === undefined) return field;
+  return (
+    <StatusFrame status={status} onRetry={onRetry} errorText={errorText} className={cn("flex min-h-11 flex-col justify-center", className)}>
+      {field}
+    </StatusFrame>
   );
 }

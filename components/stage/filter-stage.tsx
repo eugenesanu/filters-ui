@@ -1,11 +1,10 @@
 "use client";
 
-import { createElement, useEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { createElement, useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { CARS } from "@/registry/demo/cars";
 import { CAR_FACET_TITLES, carFormats, clearFacet, matchingCars, summaryOf, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
 import { CarsBoard } from "@/registry/blocks/cars-board";
 import { FilterCard } from "@/registry/ui/filter-card";
-import { TextSwap } from "@/registry/ui/text-swap";
 import { CarFilterBody } from "@/components/stage/car-filter";
 import { exampleOf } from "@/components/stage/example-of";
 import { carVocabulary, carVocabularyFor } from "@/registry/demo/cars-vocabulary";
@@ -20,10 +19,12 @@ import { BudgetDemo } from "@/components/stage/budget-demo";
 import { AppliedFiltersStage, NoResultsStage } from "@/components/stage/results-stages";
 import { RecentSearchesStage } from "@/components/stage/recent-searches-stage";
 import { RulesStage } from "@/components/stage/rules-stage";
+import { DropdownStateStage, SelectStateStage } from "@/components/stage/basic-states";
 import { FilterPanel } from "@/registry/blocks/filter-panel";
 import { PANEL_PRESET } from "@/components/tile/presets";
 import { StageControlRow, StageControlsProvider, useStage, useStageFrame, useStageProps, useStageStatus } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
+import { longVocabulary } from "@/components/stage/long-names";
 import { formatsFor } from "@/registry/lib/format";
 import type { ItemState } from "@/registry/items";
 
@@ -197,15 +198,26 @@ const presetSentence = () => readSentence(carVocabulary, CARS, SENTENCE_PRESET).
 
 function SentenceStage() {
   const { locale } = useStage();
-  const n = formatsFor(locale).number;
+  const stage = useStageStatus();
+  const { state, ...states } = stage;
+  const local = carVocabularyFor(locale);
   const [filters, setFilters] = useState<CarFilters>(presetSentence);
   const [round, setRound] = useState(0);
   const [typed, setTyped] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const matches = matchingCars(filters).length;
+
+  // Loading and errors show in the list, so switching to either opens it.
+  const [shownState, setShownState] = useState(state);
+  if (state !== shownState) {
+    setShownState(state);
+    if (state === "loading" || state === "error") setOpen(true);
+  }
 
   const reset = () => {
     setFilters(presetSentence());
     setTyped(null);
+    setOpen(false);
     setRound((n) => n + 1);
   };
 
@@ -223,6 +235,7 @@ function SentenceStage() {
                 onClick={() => {
                   setFilters(carVocabulary.empty);
                   setTyped(sentence);
+                  setOpen(true);
                   setRound((n) => n + 1);
                 }}
                 className="relative inline-flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[10px] px-2 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1"
@@ -235,10 +248,10 @@ function SentenceStage() {
       }
     >
       {/* On phones the open list sits in the flow, so it grows the stage instead of covering the copy panel below. */}
-      <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 sm:pt-[clamp(8px,6vh,72px)] max-sm:[&_[data-state=open]:has(>[role=listbox])]:static">
+      <div className="mx-auto flex w-full max-w-[600px] flex-col pt-2 sm:pt-[clamp(8px,6vh,72px)] max-sm:[&_[data-state=open]:has(>[data-status-frame])]:static">
         <SentenceSearch
           key={round}
-          vocabulary={carVocabularyFor(locale)}
+          vocabulary={state === "long-labels" ? longVocabulary(local) : local}
           items={CARS}
           value={filters}
           onChange={setFilters}
@@ -246,13 +259,13 @@ function SentenceStage() {
           countLabel={carFormats(locale).carCount}
           locale={locale}
           defaultText={typed ?? ""}
-          defaultOpen={typed !== null}
+          open={open}
+          onOpenChange={setOpen}
           autoFocus={typed !== null}
+          {...states}
         />
         <div className="mt-3 flex items-center justify-between gap-3 ps-4">
-          <p className="text-[14px] leading-5 text-dim tabular-nums">
-            <TextSwap className="font-medium text-text">{n(matches)}</TextSwap> of {n(CARS.length)} cars
-          </p>
+          <StageCount matches={matches} total={CARS.length} stage={stage} live={false} />
           <ResetButton onReset={reset} className="-me-3" />
         </div>
       </div>
@@ -311,16 +324,49 @@ function PanelStage() {
  * state stage of its own, listed here (additions only). A state stage reads useStageStatus() and draws the real
  * component with the example's kind of data, or data from components/stage/state-data.ts.
  */
-const STATE_STAGES: Record<string, ComponentType> = {};
+const STATE_STAGES: Record<string, ComponentType> = {
+  dropdown: DropdownStateStage,
+  select: SelectStateStage,
+};
+
+/** The first control a keyboard reaches in a box, leaving out disabled and inert ones. */
+function firstFocusable(node: HTMLElement) {
+  const all = node.querySelectorAll<HTMLElement>("a[href], button, input, select, textarea, [tabindex]");
+  return [...all].find((el) => el.tabIndex >= 0 && !el.matches(":disabled") && !el.closest("[inert]")) ?? null;
+}
 
 function ExampleStage({ slug }: { slug: string }) {
   const [round, setRound] = useState(0);
   const props = useStageProps();
   const { state } = useStage();
   const stateStage = state === "ready" ? undefined : STATE_STAGES[slug];
+
+  // A switch between Ready (the example) and another state (its state stage) replaces the component. When that takes
+  // away the control that had focus, focus moves into the new one: to its status frame while it loads, fails or is off,
+  // else to its first control, else to this box. It is never left on the page.
+  const live = useRef<HTMLDivElement>(null);
+  const drawn = useRef(stateStage);
+  const focusWasInside = useRef(false);
+  if (stateStage !== drawn.current && typeof document !== "undefined") {
+    focusWasInside.current = !!live.current?.contains(document.activeElement);
+  }
+  useLayoutEffect(() => {
+    if (drawn.current === stateStage) return;
+    drawn.current = stateStage;
+    const node = live.current;
+    if (!focusWasInside.current || !node || node.contains(document.activeElement)) return;
+    focusWasInside.current = false;
+    const first = firstFocusable(node);
+    const frame = node.querySelector<HTMLElement>("[data-status-frame]");
+    const target = frame && (frame.dataset.status !== "ready" || !first) ? frame : (first ?? node);
+    target.focus({ preventScroll: true });
+  });
+
   return (
     <StagePanel onReset={() => setRound((n) => n + 1)}>
-      {stateStage ? createElement(stateStage, { key: round }) : createElement(exampleOf(slug), { key: round, ...props })}
+      <div ref={live} tabIndex={-1} className="flex w-full flex-col items-center rounded-[16px]">
+        {stateStage ? createElement(stateStage, { key: round }) : createElement(exampleOf(slug), { key: round, ...props })}
+      </div>
     </StagePanel>
   );
 }
