@@ -4,7 +4,7 @@ export const site = {
   name: "FiltersUI",
   url: "https://filtersui.com",
   /** The header's GitHub icon always links to the repo; true also shows the hero and footer GitHub links. */
-  isPublic: false,
+  isPublic: true,
   repoUrl: "https://github.com/eugenesanu/filters-ui",
   author: { name: "Eugen Eşanu", url: "https://eugenesanu.com", github: "https://github.com/eugenesanu" },
 } as const;
