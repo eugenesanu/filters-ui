@@ -1,11 +1,16 @@
+import type { Metadata } from "next";
 import { HeroBackdrop } from "@/components/hero-backdrop";
+import { JsonLd } from "@/components/json-ld";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { BoardTile, ItemTile, TileGrid } from "@/components/tile/item-tile";
 import { HERO } from "@/lib/home-copy";
+import { HOME_SEO, homeJsonLd, pageMetadata } from "@/lib/seo";
 import { site } from "@/lib/site";
 import { ITEMS } from "@/registry/items";
 import { buttonClasses } from "@/registry/ui/button-classes";
+
+export const metadata: Metadata = pageMetadata({ title: HOME_SEO.title, description: HOME_SEO.description, path: "/" });
 
 export default function Home() {
   // Narrow blocks, such as the filter panel, take an ordinary tile at the end of the Filters grid, before All filters,
@@ -21,6 +26,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <JsonLd data={homeJsonLd()} />
       <SiteHeader />
       <main className="flex-1">
         {/* Pulled up under the sticky header so the backdrop runs behind it; the bottom padding is room for its bars

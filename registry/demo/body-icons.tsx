@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 
 // Side profiles, one per body style: the outline, then the x of each wheel centre.
-const PROFILES = {
+export const PROFILES = {
   SUV: [
     "M16 100c0-13 4-22 18-26l46-10 26-30c4-5 9-7 15-7h104c8 0 14 2 19 8l26 34 26 6c6 2 8 6 8 13v24c0 4-3 6-7 6h-16a29 29 0 0 0-56 0H106a29 29 0 0 0-56 0H24c-5 0-8-4-8-12z",
     [78, 253],
