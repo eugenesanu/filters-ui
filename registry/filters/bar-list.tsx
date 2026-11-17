@@ -64,13 +64,13 @@ function Row({ label, count, share, checked, format, countLabel, onToggle }: Row
       <span
         aria-hidden="true"
         className={cn(
-          "absolute inset-y-[2px] inset-s-[34px] -z-10 rounded-[6px] transition-[width,background-color] duration-[480ms] motion-reduce:transition-none",
+          "absolute inset-y-[2px] inset-s-[40px] -z-10 rounded-[6px] transition-[width,background-color] duration-[480ms] motion-reduce:transition-none",
           SMOOTH,
           checked
             ? "bg-[var(--fu-accent-soft,#8FAAFF)]/15"
             : "bg-[var(--fu-share,rgb(255_255_255/0.05))] [@media(hover:hover)]:group-hover/row:bg-[var(--fu-share-hover,rgb(255_255_255/0.1))]",
         )}
-        style={{ width: count > 0 ? `max(2px, calc((100% - 34px) * ${share}))` : 0 }}
+        style={{ width: count > 0 ? `max(2px, calc((100% - 40px) * ${share}))` : 0 }}
       />
       <input
         type="checkbox"
@@ -103,7 +103,7 @@ function Row({ label, count, share, checked, format, countLabel, onToggle }: Row
       <span
         aria-hidden="true"
         className={cn(
-          "min-w-0 flex-1 truncate transition-[color] duration-200",
+          "ms-1.5 min-w-0 flex-1 truncate transition-[color] duration-200",
           checked ? "font-medium text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-text,#F8F5F1)]",
         )}
       >

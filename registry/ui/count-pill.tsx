@@ -26,7 +26,7 @@ export function CountPill({ count, variant = "default", on = false, format, loca
         on
           ? "bg-[var(--fu-accent,#3B57E6)] text-[var(--fu-on-accent,#FFFFFF)]"
           : variant === "square"
-            ? "bg-[var(--fu-hover,#333333)] text-[var(--fu-pill-text,#C8C8C8)]"
+            ? "bg-[var(--fu-pill-square,#333333)] text-[var(--fu-pill-text,#C8C8C8)]"
             : "bg-[var(--fu-pill,rgb(255_255_255/0.1))] text-[var(--fu-pill-text,#C8C8C8)]",
         className,
       )}

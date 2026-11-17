@@ -13,35 +13,43 @@ export type ThemeToken = {
 
 export const TOKENS = {
   // Surfaces
-  "--fu-page": { dark: "#0A0A0A", light: "#F4F2EE" },
-  "--fu-panel": { dark: "#141414", light: "#ECE9E3" },
-  "--fu-card": { dark: "#1F1F1F", light: "#FDFCFA" },
-  "--fu-card-hover": { dark: "#262626", light: "#F6F4F0" },
-  "--fu-surface-1": { dark: "#171717", light: "#FDFCFA" },
-  "--fu-surface-3": { dark: "#2A2A2A", light: "#DBD6CD" },
-  "--fu-hover": { dark: "#333333", light: "#D1CBC1" },
+  "--fu-page": { dark: "#0A0A0A", light: "#F5F5F3" },
+  "--fu-panel": { dark: "#141414", light: "#EDEDEA" },
+  "--fu-card": { dark: "#1F1F1F", light: "#FFFFFF" },
+  "--fu-card-hover": { dark: "#262626", light: "#F8F8F6" },
+  "--fu-surface-1": { dark: "#171717", light: "#FFFFFF" },
+  "--fu-surface-3": { dark: "#2A2A2A", light: "rgb(29 27 24/0.07)" },
+  "--fu-hover": { dark: "#333333", light: "rgb(29 27 24/0.11)" },
   // Hover fill of a choice that sits on a card (option, preset row, day, chip, tile): as quiet as the selected wash.
-  "--fu-item-hover": { dark: "#2A2A2A", light: "#EFECE7" },
+  "--fu-item-hover": { dark: "#2A2A2A", light: "#F2F2F0" },
   // The head of an open section on a card.
-  "--fu-head-open": { dark: "#333333", light: "#E6E2DB" },
+  "--fu-head-open": { dark: "#333333", light: "#EEEEEC" },
   // The sliding thumb of a segmented control.
   "--fu-thumb": { dark: "#404040", light: "#FFFFFF" },
-  "--fu-bar": { dark: "rgb(31 31 31/0.94)", light: "rgb(253 252 250/0.94)" },
+  // The track under that thumb. Light is a wash, so it stays soft on a card and still shows on a panel.
+  "--fu-segment-track": { dark: "#2A2A2A", light: "rgb(29 27 24/0.07)" },
+  // The fill of a text field or select: clear in dark, white in light, also on a tinted card.
+  "--fu-input": { dark: "rgb(0 0 0/0)", light: "#FFFFFF" },
+  // A filled search box and the menu it opens. White in light, like every field and menu.
+  "--fu-search": { dark: "#2A2A2A", light: "#FFFFFF" },
+  // The edge of that menu: a hairline in light.
+  "--fu-menu-edge": { dark: "#737373", light: "#C4C4C0" },
+  "--fu-bar": { dark: "rgb(31 31 31/0.94)", light: "rgb(255 255 255/0.94)" },
 
   // Lines and edges
-  "--fu-line": { dark: "#404040", light: "#C8C1B6" },
-  "--fu-card-border": { dark: "#2A2A2A", light: "#E5E1DA" },
-  "--fu-rail": { dark: "#4A4A4A", light: "#D6D1C8" },
-  "--fu-control-border": { dark: "#737373", light: "#7D776E" },
-  "--fu-control-hover": { dark: "#A3A3A3", light: "#5F5A53" },
+  "--fu-line": { dark: "#404040", light: "#C4C4C0" },
+  "--fu-card-border": { dark: "#2A2A2A", light: "#E5E5E2" },
+  "--fu-rail": { dark: "#4A4A4A", light: "#D6D6D2" },
+  "--fu-control-border": { dark: "#737373", light: "#787874" },
+  "--fu-control-hover": { dark: "#A3A3A3", light: "#5B5B57" },
   "--fu-swatch-edge": { dark: "rgb(255 255 255/0.2)", light: "rgb(29 27 24/0.2)" },
 
   // Text
-  "--fu-text": { dark: "#F8F5F1", light: "#1D1B18" },
-  "--fu-mute": { dark: "#BDBDBD", light: "#48443E" },
-  "--fu-dim": { dark: "#929292", light: "#5A554E" },
-  "--fu-pill-text": { dark: "#C8C8C8", light: "#403C37" },
-  "--fu-swatch-text": { dark: "#EDEAE6", light: "#3A3632" },
+  "--fu-text": { dark: "#F8F5F1", light: "#1B1B19" },
+  "--fu-mute": { dark: "#BDBDBD", light: "#444442" },
+  "--fu-dim": { dark: "#929292", light: "#555552" },
+  "--fu-pill-text": { dark: "#C8C8C8", light: "#3C3C3A" },
+  "--fu-swatch-text": { dark: "#EDEAE6", light: "#363634" },
 
   // Accent
   "--fu-accent": { dark: "#3B57E6", light: "#3B57E6" },
@@ -49,6 +57,12 @@ export const TOKENS = {
   "--fu-accent-soft": { dark: "#8FAAFF", light: "#3049D2" },
   "--fu-accent-pale": { dark: "#D1DDFF", light: "#253A9E" },
   "--fu-selected": { dark: "#1F2747", light: "#E8EDFD" },
+  // A chosen filter as a token in a search box: fill, edge and words. Light matches a selected chip.
+  "--fu-token": { dark: "#D1DDFF", light: "#E8EDFD" },
+  "--fu-token-edge": { dark: "#D1DDFF", light: "#3049D2" },
+  "--fu-token-text": { dark: "#171717", light: "#3049D2" },
+  // A chart bar outside the chosen range. Light is a soft tint of the accent.
+  "--fu-bar-out": { dark: "#4A4A4A", light: "#C1C8F1" },
   "--fu-on-accent": { dark: "#FFFFFF", light: "#FFFFFF" },
   "--fu-on-accent-mute": { dark: "#E1E7FF", light: "#E1E7FF" },
   "--fu-link-line": { dark: "rgb(143 170 255/0.4)", light: "rgb(52 80 216/0.4)" },
@@ -56,10 +70,12 @@ export const TOKENS = {
   // Washes: translucent fills for hover, press and quiet tracks
   "--fu-wash": { dark: "rgb(255 255 255/0.08)", light: "rgb(29 27 24/0.05)" },
   "--fu-hover-wash": { dark: "rgb(255 255 255/0.14)", light: "rgb(29 27 24/0.07)" },
-  "--fu-field-wash": { dark: "rgb(255 255 255/0.03)", light: "rgb(29 27 24/0.02)" },
+  "--fu-field-wash": { dark: "rgb(255 255 255/0.03)", light: "#FFFFFF" },
   "--fu-track": { dark: "rgb(255 255 255/0.06)", light: "rgb(29 27 24/0.07)" },
   "--fu-pill": { dark: "rgb(255 255 255/0.1)", light: "rgb(29 27 24/0.06)" },
   "--fu-pill-hover": { dark: "rgb(255 255 255/0.16)", light: "rgb(29 27 24/0.1)" },
+  // The square count pill beside a list row or tile.
+  "--fu-pill-square": { dark: "#333333", light: "rgb(29 27 24/0.07)" },
   "--fu-row-active": { dark: "rgb(255 255 255/0.07)", light: "rgb(29 27 24/0.05)" },
   "--fu-row-hover": { dark: "rgb(255 255 255/0.1)", light: "rgb(29 27 24/0.06)" },
   "--fu-row-press": { dark: "rgb(255 255 255/0.12)", light: "rgb(29 27 24/0.09)" },
@@ -73,8 +89,8 @@ export const TOKENS = {
 
   // Depth
   "--fu-rim": { dark: "rgb(255 255 255/0.04)", light: "rgb(255 255 255/0.7)" },
-  "--fu-shadow": { dark: "rgb(0 0 0/0.5)", light: "rgb(48 38 26/0.12)" },
-  "--fu-shadow-deep": { dark: "rgb(0 0 0/0.8)", light: "rgb(48 38 26/0.16)" },
+  "--fu-shadow": { dark: "rgb(0 0 0/0.5)", light: "rgb(36 36 33/0.12)" },
+  "--fu-shadow-deep": { dark: "rgb(0 0 0/0.8)", light: "rgb(36 36 33/0.16)" },
   "--fu-scrim": { dark: "rgb(0 0 0/0.6)", light: "rgb(29 27 24/0.32)" },
 
   // The coloured light along a glowing edge
@@ -86,13 +102,13 @@ export const TOKENS = {
 
   // Site only
   "--fu-selection": { dark: "#D1DDFF", light: "#CBD6FF", site: true },
-  "--fu-selection-text": { dark: "#171717", light: "#1D1B18", site: true },
-  "--fu-backdrop": { dark: "#1F1F1F", light: "#E6E2DB", site: true },
-  "--fu-backdrop-near": { dark: "#2A2A2A", light: "#D8D3CA", site: true },
-  "--fu-switch-off": { dark: "#2A2A2A", light: "#878178", site: true },
+  "--fu-selection-text": { dark: "#171717", light: "#1B1B19", site: true },
+  "--fu-backdrop": { dark: "#1F1F1F", light: "#E6E6E3", site: true },
+  "--fu-backdrop-near": { dark: "#2A2A2A", light: "#D8D8D4", site: true },
+  "--fu-switch-off": { dark: "#2A2A2A", light: "#82827E", site: true },
   // Edge and shadow of the site's own knobs (Short version switch, hero handles): light only, dark keeps them bare.
   "--fu-knob-edge": { dark: "rgb(0 0 0/0)", light: "rgb(29 27 24/0.55)", site: true },
-  "--fu-knob-shadow": { dark: "rgb(0 0 0/0)", light: "rgb(48 38 26/0.12)", site: true },
+  "--fu-knob-shadow": { dark: "rgb(0 0 0/0)", light: "rgb(36 36 33/0.12)", site: true },
 } as const satisfies Record<string, ThemeToken>;
 
 export type TokenName = keyof typeof TOKENS;

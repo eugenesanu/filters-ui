@@ -25,7 +25,7 @@ export default function Home() {
       <main className="flex-1">
         {/* Pulled up under the sticky header so the backdrop runs behind it; the bottom padding is room for its bars
             and keeps its handles about 40px above the Filters heading. */}
-        <div className="relative isolate -mt-16 pb-[76px] pt-16 lg:pb-12">
+        <div className="relative isolate -mt-16 pb-[100px] pt-16 lg:pb-24">
           <HeroBackdrop />
           <section className="mx-auto max-w-[1200px] px-4 pb-12 pt-14 sm:px-8 sm:pb-14 sm:pt-16">
             <h1 className="max-w-[760px] text-[clamp(36px,5vw,56px)] font-semibold leading-[1.05] tracking-[-0.03em] text-balance text-text">

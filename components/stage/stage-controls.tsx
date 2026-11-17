@@ -146,7 +146,7 @@ export function StageControlRow() {
   const { values, spec } = useContext(StageContext);
   const shown = CONTROLS.filter((control) => !control.shownFor || control.shownFor(spec));
   return (
-    <div role="group" aria-label="Stage settings" className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 pb-3 text-[13px] leading-5">
+    <div role="group" aria-label="Stage settings" className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 px-3 pb-3 text-[13px] leading-5">
       {shown.map((control) => (
         <ControlGroup key={control.key} control={control} value={values[control.key]} />
       ))}

@@ -46,17 +46,22 @@ export default function SortExample({ locale = "en-US" }: { locale?: string }) {
   const order = SORTS.find((s) => s.value === sort)!;
   const cars = [...CARS].sort(order.by);
 
-  // Each row glides from where it was to its new place; the rank numbers stay.
+  // Each row glides from where it is on screen to its new place; the rank numbers stay. A glide still running when the
+  // order changes again is taken over from its current offset, so a quick second pick does not snap rows back.
   const rows = useRef(new Map<string, HTMLLIElement>());
   const tops = useRef(new Map<string, number>());
   useLayoutEffect(() => {
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     for (const [id, row] of rows.current) {
+      const shift = Number.parseFloat(getComputedStyle(row).translate.split(" ")[1] ?? "0") || 0;
+      for (const glide of row.getAnimations()) glide.cancel();
       const top = row.offsetTop;
       const was = tops.current.get(id);
       tops.current.set(id, top);
-      if (still || was === undefined || was === top) continue;
-      row.animate([{ translate: `0 ${was - top}px` }, { translate: "0 0" }], { duration: 560, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+      if (still || was === undefined) continue;
+      const from = was + shift - top;
+      if (Math.abs(from) < 0.5) continue;
+      row.animate([{ translate: `0 ${from}px` }, { translate: "0 0" }], { duration: 560, easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
     }
   }, [sort]);
 

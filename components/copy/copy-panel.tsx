@@ -2,6 +2,7 @@
 
 import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/registry/lib/cn";
+import { readingKey } from "@/registry/lib/direction";
 import { Segmented } from "@/registry/ui/segmented";
 import { Select } from "@/registry/ui/select";
 import { CopyButton } from "@/components/copy/copy-button";
@@ -36,7 +37,7 @@ function Code({ html, className }: { html: string; className?: string }) {
   return (
     <div
       dir="ltr"
-      className={cn("fu-code overflow-auto rounded-[12px] border border-card bg-page", className)}
+      className={cn("fu-code fu-scroll overflow-auto rounded-[12px] border border-card bg-page", className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -81,39 +82,75 @@ function ShortToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) =>
   );
 }
 
-function PromptTab({ data, wide }: { data: PanelData; wide: boolean }) {
+// Held by the panel, so a wide panel can draw these controls in its tab row while the prompt tab shows the text.
+function usePromptChoice(data: PanelData, wide: boolean) {
   const [target, setTarget, stored] = useStored<Target>("fu:target", "claude-code", TARGETS);
   // A block's full prompt carries every file and is too long for many chat inputs.
   const [length, setLength] = useStored("fu:length", wide ? "short" : "full", LENGTHS);
-  const text = promptOf(data, target, length);
+  return { target, setTarget, stored, length, setLength, text: promptOf(data, target, length) };
+}
 
+type PromptChoice = ReturnType<typeof usePromptChoice>;
+
+function TargetSelect({ choice, className }: { choice: PromptChoice; className: string }) {
+  return (
+    <Select
+      // Mounted afresh once the stored choice is read, so a returning visitor sees it without a swap.
+      key={choice.stored ? "stored" : "default"}
+      prefix="For"
+      label="Prompt for"
+      className={className}
+      value={choice.target}
+      onChange={(value) => choice.setTarget(value as Target)}
+      options={TARGETS.map((t) => ({ value: t, label: TARGET_LABELS[t] }))}
+    />
+  );
+}
+
+const CopyPrompt = ({ choice }: { choice: PromptChoice }) => (
+  <CopyButton variant="primary" text={() => choice.text} label="Copy prompt" announce="Prompt copied" />
+);
+
+const LengthToggle = ({ choice }: { choice: PromptChoice }) => (
+  <ShortToggle on={choice.length === "short"} onChange={(on) => choice.setLength(on ? "short" : "full")} />
+);
+
+/** The wide panel's controls, at the end of the tab row; on phones they stack under it at full width. */
+function PromptControls({ choice }: { choice: PromptChoice }) {
+  return (
+    <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-3 sm:ms-auto sm:w-auto sm:flex-nowrap">
+      <LengthToggle choice={choice} />
+      <div className="flex w-full gap-2 sm:w-auto">
+        <TargetSelect choice={choice} className="min-w-0 flex-1 sm:w-[216px] sm:flex-none" />
+        <CopyPrompt choice={choice} />
+      </div>
+    </div>
+  );
+}
+
+function PromptTab({ choice, wide }: { choice: PromptChoice; wide: boolean }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className={cn("flex gap-2", wide && "sm:max-w-[560px]")}>
-        <Select
-          // Mounted afresh once the stored choice is read, so a returning visitor sees it without a swap.
-          key={stored ? "stored" : "default"}
-          prefix="For"
-          label="Prompt for"
-          className="min-w-0 flex-1"
-          value={target}
-          onChange={(value) => setTarget(value as Target)}
-          options={TARGETS.map((t) => ({ value: t, label: TARGET_LABELS[t] }))}
-        />
-        <CopyButton variant="primary" text={() => promptOf(data, target, length)} label="Copy prompt" announce="Prompt copied" />
-      </div>
-      <div className="flex items-center justify-between">
-        <ShortToggle on={length === "short"} onChange={(on) => setLength(on ? "short" : "full")} />
-      </div>
+      {!wide && (
+        <>
+          <div className="flex gap-2">
+            <TargetSelect choice={choice} className="min-w-0 flex-1" />
+            <CopyPrompt choice={choice} />
+          </div>
+          <div className="flex items-center justify-between">
+            <LengthToggle choice={choice} />
+          </div>
+        </>
+      )}
       {/* On phones a short faded preview, so the page scroll never fights an inner one; Copy carries the whole text. */}
       <pre
         dir="ltr"
         tabIndex={0}
         role="region"
         aria-label="Prompt text"
-        className="min-h-[200px] flex-1 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-card bg-page p-4 font-mono text-[13px] leading-5 text-mute max-lg:max-h-[220px] max-lg:overflow-hidden max-lg:[mask-image:linear-gradient(to_bottom,#000_55%,transparent)] [overflow-wrap:anywhere]"
+        className="fu-scroll min-h-[200px] flex-1 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-card bg-page p-4 font-mono text-[13px] leading-5 text-mute max-lg:max-h-[220px] max-lg:overflow-hidden max-lg:[mask-image:linear-gradient(to_bottom,#000_55%,transparent)] [overflow-wrap:anywhere]"
       >
-        {text}
+        {choice.text}
       </pre>
     </div>
   );
@@ -165,7 +202,7 @@ function CodeTab({ data }: { data: PanelData }) {
                 onKeyDown={(event) => {
                   const last = data.files.length - 1;
                   const moves: Record<string, number> = { ArrowRight: (i + 1) % data.files.length, ArrowLeft: (i + last) % data.files.length, Home: 0, End: last };
-                  const next = moves[event.key];
+                  const next = moves[readingKey(event.key, event.currentTarget)];
                   if (next === undefined) return;
                   event.preventDefault();
                   setIndex(next);
@@ -188,7 +225,7 @@ function CodeTab({ data }: { data: PanelData }) {
           </div>
           <div
             dir="ltr"
-            className="fu-code overflow-auto"
+            className="fu-code fu-scroll overflow-auto"
             {...(manyFiles ? {} : { id: `${id}-panel`, role: "tabpanel", "aria-labelledby": `${id}-tab-${index}` })}
             dangerouslySetInnerHTML={{ __html: file.html }}
           />
@@ -231,6 +268,16 @@ function InstallTab({ data }: { data: PanelData }) {
 
 export function CopyPanel({ data, wide = false, className }: { data: PanelData; wide?: boolean; className?: string }) {
   const [tab, setTab] = useStored<Tab>("fu:tab", "prompt", TABS);
+  const choice = usePromptChoice(data, wide);
+  const tabs = (
+    <Segmented
+      label="Copy as"
+      className={wide ? "w-full sm:w-[420px]" : undefined}
+      options={TABS.map((t) => ({ value: t, label: TAB_LABELS[t] }))}
+      value={tab}
+      onChange={setTab}
+    />
+  );
 
   return (
     <section
@@ -238,19 +285,21 @@ export function CopyPanel({ data, wide = false, className }: { data: PanelData; 
       className={cn("flex min-h-0 flex-col rounded-[24px] border border-card bg-panel p-4 sm:p-5", className)}
     >
       <h2 className="sr-only">Copy</h2>
-      <Segmented
-        label="Copy as"
-        className={wide ? "w-full sm:max-w-[420px]" : undefined}
-        options={TABS.map((t) => ({ value: t, label: TAB_LABELS[t] }))}
-        value={tab}
-        onChange={setTab}
-      />
+      {wide ? (
+        // As tall as the controls on every tab, so switching tabs does not move the content under it.
+        <div className="flex min-h-11 flex-wrap items-center gap-x-4 gap-y-3">
+          {tabs}
+          {tab === "prompt" && <PromptControls choice={choice} />}
+        </div>
+      ) : (
+        tabs
+      )}
       <div
         role="region"
         aria-label={TAB_LABELS[tab]}
-        className={cn("mt-4 flex min-h-0 flex-1 flex-col", tab !== "prompt" && "overflow-y-auto overflow-x-hidden")}
+        className={cn("mt-4 flex min-h-0 flex-1 flex-col", tab !== "prompt" && "fu-scroll overflow-y-auto overflow-x-hidden")}
       >
-        {tab === "prompt" && <PromptTab data={data} wide={wide} />}
+        {tab === "prompt" && <PromptTab choice={choice} wide={wide} />}
         {tab === "code" && <CodeTab data={data} />}
         {tab === "install" && <InstallTab data={data} />}
       </div>

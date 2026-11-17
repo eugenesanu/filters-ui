@@ -154,7 +154,7 @@ export function NoResults<Item, State>({
                 aria-label={spoken(fix, noun, formatCount)}
                 onClick={() => onChange(fix.state)}
                 className={cn(
-                  "group/fix relative isolate flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-[10px] py-2.5 pe-3 ps-3 text-start font-[inherit] text-[14px] leading-5 text-inherit",
+                  "group/fix relative isolate flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-[16px] py-2.5 pe-3 ps-4 text-start font-[inherit] text-[14px] leading-5 text-inherit",
                   "transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.99] active:duration-75 motion-reduce:transition-none",
                   "[@media(hover:hover)]:hover:bg-[var(--fu-card-hover,#262626)] focus-visible:bg-[var(--fu-card-hover,#262626)]",
                   "outline-none focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
@@ -166,7 +166,7 @@ export function NoResults<Item, State>({
                   data-fix-bar=""
                   style={{ width: `max(40px, calc((100% - 72px) * ${fix.count / most}))` }}
                   className={cn(
-                    "absolute inset-y-1 inset-s-1 -z-10 rounded-[8px] bg-[var(--fu-card-hover,#262626)]",
+                    "absolute inset-y-1 inset-s-1 -z-10 rounded-[12px] bg-[var(--fu-share-hover,rgb(255_255_255/0.1))]",
                     "transition-[width,background-color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                     "group-hover/fix:bg-[var(--fu-selected,#1F2747)] group-focus-visible/fix:bg-[var(--fu-selected,#1F2747)]",
                   )}

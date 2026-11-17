@@ -53,6 +53,8 @@ export type RegistryItem = {
   connect?: string;
   /** A block narrow enough to sit beside the copy panel on its page, as a filter does. */
   narrow?: true;
+  /** A filter wide enough to take the whole stage on its page, with the copy panel under it, as a block does. */
+  wide?: true;
 };
 
 const RANGE_DATA: PropRow[] = [
@@ -596,7 +598,7 @@ export const ITEMS: RegistryItem[] = [
       "Two radio cards: the picked one opens with its fields; the other folds to its title and a one-line note.",
       "Total price is the price chart with two handles and typed fields.",
       "Monthly payment takes an amount, a term and a down payment, and works out the top price they buy.",
-      "The top price is a line across the price bars; as it moves, the bars it passes light or dim one after another.",
+      "The top price is a pin on the price bars: the bars up to it are lit, the bar it stands in splits at it, and the lit part glides with the pin when it moves.",
       "Each way keeps what was set in it, so switching back finds it as it was. Total price with no range yet starts at the monthly top price.",
     ],
     keyboard: [
@@ -772,7 +774,7 @@ export const ITEMS: RegistryItem[] = [
     does: [
       "Each row reads field, condition and value; the value control follows the field: typed numbers, one picked step, or names as chips.",
       "Rows hang off a hairline rail; the And or Or on the rail switches every join in its group at once.",
-      "Each top row shows how many items are left once it applies, as a number and a bar, so the column reads as a funnel.",
+      "Each top row shows how many items are left once it applies, as a count pill such as 196 left, so the column reads as a funnel.",
       "Groups hold rules joined the other way, one level deep: price and fuel, and seven seats or a minivan.",
       "A row with no value yet tests nothing, so a new row never empties the results.",
     ],
@@ -840,6 +842,7 @@ export const ITEMS: RegistryItem[] = [
     title: "All filters",
     kind: "filter",
     card: false,
+    wide: true,
     description: "Every filter in one panel: a list with the values set on each, and the picked filter open beside it.",
     component: "AllFilters",
     entry: "registry/filters/all-filters.tsx",

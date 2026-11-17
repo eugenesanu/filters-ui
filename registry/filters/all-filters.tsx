@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode, type RefObject, type CSSProperties } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
+import { SCROLL } from "../lib/scroll";
 import { ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, SearchIcon, XIcon } from "../ui/icons";
 import { TextField } from "../ui/text-field";
@@ -241,7 +242,7 @@ export function AllFilters({
       )}
       {...props}
     >
-      <div className="flex min-h-16 flex-wrap items-center gap-x-2 gap-y-2 border-b border-[var(--fu-card-border,#2A2A2A)] py-3 pe-3 ps-5">
+      <div className="flex min-h-16 flex-wrap items-center gap-x-2 gap-y-2 border-b border-[var(--fu-card-border,#2A2A2A)] py-3 pe-3 ps-5 @min-[520px]:py-4 @min-[520px]:pe-4 @min-[520px]:ps-6">
         <Heading id={`${id}-title`} className="m-0 text-[20px] leading-7 font-semibold">
           {title}
         </Heading>
@@ -277,7 +278,7 @@ export function AllFilters({
         style={{ "--all-filters-h": `${height}px` } as CSSProperties}
         className={cn(
           "group/body relative grid grid-cols-1 overflow-hidden",
-          "@min-[520px]:h-[var(--all-filters-h)] @min-[520px]:grid-cols-[minmax(208px,232px)_minmax(0,1fr)]",
+          "@min-[520px]:h-[var(--all-filters-h)] @min-[520px]:grid-cols-[minmax(208px,232px)_minmax(0,1fr)] @min-[760px]:grid-cols-[minmax(240px,264px)_minmax(0,1fr)]",
         )}
       >
         <div
@@ -289,7 +290,7 @@ export function AllFilters({
             "[--flip:1] rtl:[--flip:-1]",
           )}
         >
-          <div className="px-3 pt-3 pb-1">
+          <div className="px-3 pt-3 pb-1 @min-[520px]:px-4 @min-[520px]:pt-4 @min-[520px]:pb-2">
             <TextField
               id={findId}
               value={query}
@@ -320,7 +321,10 @@ export function AllFilters({
           </div>
           <div
             ref={list}
-            className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 [scrollbar-width:thin] @min-[520px]:pb-8 @min-[520px]:[mask-image:linear-gradient(to_bottom,#000_calc(100%-32px),transparent)]"
+            className={cn(
+              "relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3 @min-[520px]:px-4 @min-[520px]:pb-8 @min-[520px]:[mask-image:linear-gradient(to_bottom,#000_calc(100%-32px),transparent)]",
+              SCROLL,
+            )}
           >
             <Highlight list={list} activeId={picked && visible.some((entry) => entry.id === picked) ? `${id}-row-${picked}` : null} />
             {groups.map((group, index) => {
@@ -329,7 +333,7 @@ export function AllFilters({
               const groupId = `${id}-group-${index}`;
               return (
                 <div key={group.label} role="group" aria-labelledby={groupId} className="relative">
-                  <div id={groupId} className="px-3 pt-4 pb-1.5 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
+                  <div id={groupId} className="px-3 pt-4 pb-1.5 @min-[520px]:pt-5 @min-[520px]:pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
                     {group.label}
                   </div>
                   {shown.map((entry) => (
@@ -371,7 +375,8 @@ export function AllFilters({
           }}
           className={cn(
             "min-h-0 min-w-0 transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            "@min-[520px]:m-2 @min-[520px]:ms-0 @min-[520px]:max-h-[calc(100%-16px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)] @min-[520px]:[scrollbar-width:thin]",
+            "@min-[520px]:m-3 @min-[520px]:ms-0 @min-[520px]:max-h-[calc(100%-24px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)]",
+            SCROLL,
             "@max-[519px]:group-data-[view=list]/body:pointer-events-none @max-[519px]:group-data-[view=list]/body:absolute @max-[519px]:group-data-[view=list]/body:inset-x-0 @max-[519px]:group-data-[view=list]/body:top-0 @max-[519px]:group-data-[view=list]/body:translate-x-[calc(var(--flip,1)*104%)] @max-[519px]:group-data-[view=list]/body:opacity-0",
             "[--flip:1] rtl:[--flip:-1]",
           )}
@@ -390,7 +395,7 @@ export function AllFilters({
               All filters
             </button>
           </div>
-          <div ref={pane} className="px-5 pt-2 pb-6 @min-[520px]:pt-5">
+          <div ref={pane} className="px-5 pt-2 pb-6 @min-[520px]:px-6 @min-[520px]:pt-6 @min-[520px]:pb-8">
             {current ? (
               <>
                 <div className="flex min-h-7 items-start gap-3">
@@ -413,7 +418,7 @@ export function AllFilters({
                     </button>
                   )}
                 </div>
-                <div className="mt-5 max-w-[420px]">{current.content}</div>
+                <div className="mt-5 max-w-[420px] @min-[520px]:mt-6 @min-[760px]:max-w-[560px]">{current.content}</div>
               </>
             ) : (
               <p className="m-0 grid min-h-[240px] place-items-center text-center text-[15px] leading-6 text-[var(--fu-dim,#929292)]">

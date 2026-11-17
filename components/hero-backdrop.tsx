@@ -109,8 +109,8 @@ function RangeField() {
         </clipPath>
       </defs>
       <g clipPath="url(#fu-hero-feet)" strokeWidth={6} strokeLinejoin="round">
-        <path d={columns(rest, base)} fill="url(#fu-hero-near)" stroke="url(#fu-hero-near)" className="fu-hero-rise" />
-        <g style={{ fill: "var(--fu-control-hover)", stroke: "var(--fu-control-hover)" }} opacity={0.3} className="fu-hero-tint">
+        <path d={columns(rest, base)} fill="url(#fu-hero-near)" stroke="url(#fu-hero-near)" opacity={0.55} className="fu-hero-rise" />
+        <g style={{ fill: "var(--fu-control-hover)", stroke: "var(--fu-control-hover)" }} opacity={0.5} className="fu-hero-tint">
           <path d={columns(band, base)} className="fu-hero-rise" style={{ animationDelay: "240ms" }} />
         </g>
       </g>
