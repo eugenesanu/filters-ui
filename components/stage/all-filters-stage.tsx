@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { StageControlRow, useStage, useStageFrame } from "@/components/stage/stage-controls";
+import { StageControlRow, useStage, useStageFrame, useStageStatus, type StageStatus } from "@/components/stage/stage-controls";
+import { LONG_FILTER_TITLES, MAKE_STATES, MORE_FILTERS } from "@/components/stage/state-data";
 import { formatsFor } from "@/registry/lib/format";
 import { CARS, COLOR_PAINTS } from "@/registry/demo/cars";
 import {
@@ -15,6 +16,7 @@ import {
   type CarFilters,
 } from "@/registry/demo/cars-facets";
 import { AllFilters, type FilterGroup, type FilterValue } from "@/registry/filters/all-filters";
+import { ChipGroup } from "@/registry/filters/chip-group";
 import { CarFilterBody } from "@/components/stage/car-filter";
 
 const GROUPS: { label: string; facets: CarFacet[] }[] = [
@@ -51,6 +53,20 @@ const KEYWORDS: Partial<Record<CarFacet, string[]>> = {
   drive: ["awd", "4wd", "fwd", "rwd", "wheel"],
   transmission: ["gearbox", "manual", "automatic"],
 };
+
+/** The long-labels state: the picked values in long words too, from the makes' long names and these. */
+const LONG_VALUES: Record<string, string> = {
+  SUV: "Sport utility vehicle with a third row",
+  ...MAKE_STATES.long,
+};
+
+/** What the filter on the right gets: long names in the long-labels state; status and disabled stay with the panel. */
+const dataOnly = (stage: StageStatus): StageStatus => ({
+  ...stage,
+  state: stage.state === "long-labels" ? stage.state : "ready",
+  status: "ready",
+  disabled: false,
+});
 
 export const ALL_FILTERS_PRESET: CarFilters = {
   ...EMPTY_CAR_FILTERS,
@@ -105,26 +121,63 @@ function valuesOf(f: CarFilters, facet: CarFacet, set: (next: (f: CarFilters) =>
 export function AllFiltersStage() {
   const frame = useStageFrame();
   const { locale } = useStage();
+  const stage = useStageStatus();
+  const { state, ...states } = stage;
+  const long = state === "long-labels";
+  const many = state === "many-options";
   const f = carFormats(locale);
   const n = formatsFor(locale).number;
   const [filters, setFilters] = useState<CarFilters>(ALL_FILTERS_PRESET);
+  const [more, setMore] = useState<Record<string, string[]>>({});
   const [round, setRound] = useState(0);
   const [shown, setShown] = useState<number | null>(null);
   const patch = (p: Partial<CarFilters>) => setFilters((f) => ({ ...f, ...p }));
   const matches = matchingCars(filters);
+  const content = dataOnly(stage);
 
-  const groups: FilterGroup[] = GROUPS.map(({ label, facets }) => ({
+  const carGroups: FilterGroup[] = GROUPS.map(({ label, facets }) => ({
     label,
     filters: facets.map((facet) => ({
       id: facet,
-      label: CAR_FACET_TITLES[facet],
+      label: long ? (LONG_FILTER_TITLES[facet] ?? CAR_FACET_TITLES[facet]) : CAR_FACET_TITLES[facet],
       hint: HINTS[facet],
       keywords: KEYWORDS[facet],
-      values: valuesOf(filters, facet, setFilters, locale),
+      values: valuesOf(filters, facet, setFilters, locale).map((value) => (long ? { ...value, label: LONG_VALUES[value.label] ?? value.label } : value)),
       onClear: () => setFilters((f) => clearFacet(f, facet)),
-      content: <CarFilterBody facet={facet} filters={filters} set={patch} locale={locale} />,
+      content: <CarFilterBody facet={facet} filters={filters} set={patch} locale={locale} stage={content} />,
     })),
   }));
+
+  // Many options: 19 more filters, in the same groups and two new ones, each a few chips.
+  const groups: FilterGroup[] = !many
+    ? carGroups
+    : [...new Set([...carGroups.map((group) => group.label), ...MORE_FILTERS.map((extra) => extra.group)])].map((label) => ({
+        label,
+        filters: [
+          ...(carGroups.find((group) => group.label === label)?.filters ?? []),
+          ...MORE_FILTERS.filter((extra) => extra.group === label).map((extra) => {
+            const picked = more[extra.id] ?? [];
+            const set = (next: string[]) => setMore((m) => ({ ...m, [extra.id]: next }));
+            return {
+              id: extra.id,
+              label: extra.label,
+              hint: extra.hint,
+              values: picked.map((value) => ({ key: value, label: value, onRemove: () => set(picked.filter((v) => v !== value)) })),
+              onClear: () => set([]),
+              content: (
+                <ChipGroup
+                  locale={locale}
+                  label={extra.label}
+                  options={extra.options}
+                  value={picked}
+                  onChange={set}
+                  countLabel={f.carCount}
+                />
+              ),
+            };
+          }),
+        ],
+      }));
 
   return (
     <section aria-label="Try it" className="relative flex h-full min-h-[360px] flex-col rounded-[24px] border border-card bg-panel">
@@ -133,6 +186,7 @@ export function AllFiltersStage() {
           type="button"
           onClick={() => {
             setFilters(ALL_FILTERS_PRESET);
+            setMore({});
             setShown(null);
             setRound((n) => n + 1);
           }}
@@ -150,8 +204,12 @@ export function AllFiltersStage() {
           height={540}
           showLabel={`Show ${f.carCount(matches.length)}`}
           onShow={() => setShown(matches.length)}
-          onClearAll={() => setFilters(EMPTY_CAR_FILTERS)}
+          onClearAll={() => {
+            setFilters(EMPTY_CAR_FILTERS);
+            setMore({});
+          }}
           className="bg-page"
+          {...states}
         />
         <p aria-live="polite" className="mt-4 h-5 ps-1 text-[14px] leading-5 text-dim">
           {shown !== null && (

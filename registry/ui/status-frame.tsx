@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { cn } from "../lib/cn";
 import { EmptyNote } from "./empty-note";
 import { ERROR_LINE, ERROR_TEXT, ErrorGlyph, RetryButton } from "./inline-error";
-import { LoadingContext } from "./skeleton";
+import { LoadingContext, useLoading } from "./skeleton";
 
 /** Where the data stands: shown, on its way, or failed. */
 export type Status = "ready" | "loading" | "error";
@@ -58,6 +58,8 @@ export type StatusFrameProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> 
  * - disabled: dimmed, no pointer or keyboard input (a disabled fieldset turns off every native control inside), and
  *   read as unavailable. Custom focusable parts, such as a grid's cells, also need tabIndex -1 and aria-disabled.
  * When a state change takes away the control that had focus, the frame takes focus, so it is never lost.
+ * A frame inside a loading frame draws its placeholders too, and does not say "Loading" a second time, so a block can
+ * load every filter in it with one frame per card and no status on the filters themselves.
  */
 export function StatusFrame({
   status = "ready",
@@ -74,6 +76,7 @@ export function StatusFrame({
   ...props
 }: StatusFrameProps) {
   const frame = useRef<HTMLDivElement>(null);
+  const outer = useLoading();
   const mode: Mode = status === "loading" ? "loading" : status === "error" ? "error" : empty ? "empty" : "ready";
 
   // The data arrives when loading turns to ready: its pieces fade in once, then go back to plain content.
@@ -107,8 +110,6 @@ export function StatusFrame({
     if (node && (mode !== "ready" || disabled || !node.contains(document.activeElement))) node.focus({ preventScroll: true });
   });
 
-  const said = mode === "loading" ? loadingText : mode === "error" ? errorText : "";
-
   return (
     <div
       ref={frame}
@@ -123,7 +124,7 @@ export function StatusFrame({
       )}
       {...props}
     >
-      <LoadingContext.Provider value={{ loading: mode === "loading", arriving }}>
+      <LoadingContext.Provider value={{ loading: mode === "loading" || outer.loading, arriving: arriving || outer.arriving }}>
         {mode === "empty" ? (
           <EmptyNote>{emptyText}</EmptyNote>
         ) : mode === "error" ? null : (
@@ -133,15 +134,79 @@ export function StatusFrame({
           </fieldset>
         )}
       </LoadingContext.Provider>
-      {/* One region for loading and errors, on the page in every state, so each change is read out. The words take
-          their own direction, so an English sentence keeps its full stop at its end on a right-to-left page. */}
-      <div className={mode === "error" ? ERROR_LINE : "contents"}>
-        <p role={announce ? "status" : undefined} className={mode === "error" ? ERROR_TEXT : "sr-only"}>
-          {mode === "error" && <ErrorGlyph />}
-          {said && <span dir="auto">{said}</span>}
-        </p>
-        {mode === "error" && onRetry && <RetryButton onRetry={onRetry} label={retryLabel} />}
-      </div>
+      <StatusLine
+        status={mode === "loading" || mode === "error" ? mode : "ready"}
+        onRetry={onRetry}
+        errorText={errorText}
+        // Inside a frame that is loading too, that frame has said it already.
+        loadingText={outer.loading ? "" : loadingText}
+        announce={announce}
+        retryLabel={retryLabel}
+      />
     </div>
   );
+}
+
+export type StatusLineProps = {
+  status?: Status;
+  /** Called by Retry. Without it the error line has no button. */
+  onRetry?: () => void;
+  errorText?: string;
+  loadingText?: string;
+  /** Reads loading and errors out. Default true. */
+  announce?: boolean;
+  retryLabel?: string;
+  /** Classes for the line while it shows an error, e.g. its margins. */
+  className?: string;
+};
+
+/**
+ * What a StatusFrame says, on its own: one polite region, on the page in every state so each change is read out.
+ * Loading is read as "Loading" and not shown; an error shows as one calm line with Retry; ready says nothing and takes
+ * no space. A block that keeps its cards in every state puts it in its head, to say the state once for all of them.
+ * Retry hands focus to the nearest element marked data-status-frame (with tabIndex -1) around it.
+ */
+export function StatusLine({
+  status = "ready",
+  onRetry,
+  errorText = DEFAULT_ERROR_TEXT,
+  loadingText = DEFAULT_LOADING_TEXT,
+  announce = true,
+  retryLabel,
+  className,
+}: StatusLineProps) {
+  const error = status === "error";
+  const said = status === "loading" ? loadingText : error ? errorText : "";
+  return (
+    // The words take their own direction, so an English sentence keeps its full stop at its end on a right-to-left page.
+    <div className={error ? cn(ERROR_LINE, className) : "contents"}>
+      <p role={announce ? "status" : undefined} className={error ? ERROR_TEXT : "sr-only"}>
+        {error && <ErrorGlyph />}
+        {said && <span dir="auto">{said}</span>}
+      </p>
+      {error && onRetry && <RetryButton onRetry={onRetry} label={retryLabel} />}
+    </div>
+  );
+}
+
+/**
+ * For a block that leaves controls out by state, such as Clear all while it is disabled: when a change of `key` takes
+ * away the control that had focus inside `scope`, `target` (default `scope`, with tabIndex -1) takes focus, so it is
+ * never dropped to the page.
+ */
+export function useFocusKept(scope: RefObject<HTMLElement | null>, key: string, target: RefObject<HTMLElement | null> = scope) {
+  const drawn = useRef(key);
+  const had = useRef(false);
+  if (key !== drawn.current && typeof document !== "undefined") {
+    const active = document.activeElement;
+    had.current = !!scope.current && !!active && scope.current.contains(active);
+  }
+  useLayoutEffect(() => {
+    if (drawn.current === key) return;
+    drawn.current = key;
+    if (!had.current) return;
+    had.current = false;
+    const node = scope.current;
+    if (node && !node.contains(document.activeElement)) target.current?.focus({ preventScroll: true });
+  });
 }

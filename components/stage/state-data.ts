@@ -2,7 +2,7 @@
 // (long-labels) and very many options (many-options). The stage passes it to the real registry component; the
 // copy-paste examples never see it. Add an entry per facet or item as its states are built (additions only).
 import { CARS } from "@/registry/demo/cars";
-import { carFacets, PRICE_MAX, PRICE_MIN, type CarFilters } from "@/registry/demo/cars-facets";
+import { carFacets, PRICE_MAX, PRICE_MIN, type CarFacet, type CarFilters } from "@/registry/demo/cars-facets";
 import { histogram } from "@/registry/lib/facets";
 import type { ItemState } from "@/registry/items";
 
@@ -190,3 +190,55 @@ export function bucketsInState(state: ItemState, buckets: readonly number[], man
   if (state === "many-options" && many) return many();
   return buckets;
 }
+
+/** Long names for the car filters themselves, for the long-labels state of a bar or list of filters. */
+export const LONG_FILTER_TITLES: Partial<Record<CarFacet, string>> = {
+  price: "Price before taxes, fees and delivery",
+  make: "Make, model and trim level",
+  body: "Body style and size",
+  year: "Model year, oldest to newest",
+  km: "Kilometres on the clock",
+  fuel: "Fuel and charging type",
+  seats: "Seats for the whole family",
+};
+
+/** The makes and models picked, in their long names from MAKE_STATES. */
+export const longMakeNames = (makes: CarFilters["makes"]): string[] =>
+  makes.flatMap((pick) =>
+    pick.models.length
+      ? pick.models.map((model) => MAKE_STATES.longChildren?.[`${pick.make}\n${model}`] ?? model)
+      : [MAKE_STATES.long?.[pick.make] ?? pick.make],
+  );
+
+/** Filters added to a list of filters for its many-options state, by group: chips with counts, none set. */
+export type MoreFilter = { group: string; id: string; label: string; hint: string; options: Counted[] };
+
+const moreFilter = (group: string, label: string, names: readonly string[]): MoreFilter => ({
+  group,
+  id: label.toLowerCase().replace(/[^a-z]+/g, "-"),
+  label,
+  hint: "Pick one or more.",
+  options: listOf(names),
+});
+
+export const MORE_FILTERS: MoreFilter[] = [
+  moreFilter("Price and age", "Financing", ["Lease", "Loan", "Cash only"]),
+  moreFilter("Price and age", "Time on sale", ["New this week", "This month", "Longer"]),
+  moreFilter("Model and body", "Doors", ["Two", "Four", "Five"]),
+  moreFilter("Model and body", "Trim level", ["Base", "Sport", "Limited", "Platinum"]),
+  moreFilter("Engine", "Engine size", ["Small", "Medium", "Large"]),
+  moreFilter("Engine", "Power", ["Economy", "Balanced", "Performance"]),
+  moreFilter("Engine", "Fuel economy", ["Best", "Average", "Below average"]),
+  moreFilter("Engine", "Towing", ["Light", "Medium", "Heavy"]),
+  moreFilter("Comfort", "Seat material", ["Cloth", "Leather", "Synthetic leather"]),
+  moreFilter("Comfort", "Sunroof", ["Sunroof", "Panoramic roof", "No sunroof"]),
+  moreFilter("Comfort", "Climate control", ["Manual", "Single zone", "Dual zone", "Tri zone"]),
+  moreFilter("Comfort", "Sound system", ["Standard", "Premium"]),
+  moreFilter("Comfort", "Cargo space", ["Small", "Medium", "Large"]),
+  moreFilter("Comfort", "Interior colour", ["Black", "Grey", "Beige", "Brown"]),
+  moreFilter("History and seller", "Owners", ["One owner", "Two owners", "Three or more"]),
+  moreFilter("History and seller", "Accident history", ["No accidents", "Minor damage"]),
+  moreFilter("History and seller", "Service records", ["Full records", "Some records"]),
+  moreFilter("History and seller", "Seller type", ["Dealer", "Private seller"]),
+  moreFilter("History and seller", "Warranty", ["Factory warranty", "Extended warranty", "No warranty"]),
+];
