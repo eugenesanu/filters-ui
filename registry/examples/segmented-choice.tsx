@@ -50,7 +50,7 @@ export default function SeatsExample() {
         <SegmentedChoice<number | null> label="Seats" options={options} value={seats} onChange={setSeats} countLabel={carCount} />
       </FilterCard>
       <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
-        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">of {CARS.length} cars</span>
+        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#929292)]">of {CARS.length} cars</span>
       </p>
     </div>
   );

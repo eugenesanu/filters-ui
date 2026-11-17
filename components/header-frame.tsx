@@ -16,7 +16,7 @@ export function HeaderFrame({ children }: { children: ReactNode }) {
   return (
     <header
       data-scrolled={scrolled || undefined}
-      className="sticky top-0 z-40 border-b border-transparent transition-[background-color,border-color] duration-300 ease-smooth data-[scrolled]:border-card data-[scrolled]:bg-[#0A0A0A]/90 data-[scrolled]:backdrop-blur-xl"
+      className="sticky top-0 z-40 border-b border-transparent transition-[background-color,border-color] duration-300 ease-smooth data-[scrolled]:border-card data-[scrolled]:bg-page/90 data-[scrolled]:backdrop-blur-xl"
     >
       {children}
     </header>

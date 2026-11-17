@@ -154,7 +154,7 @@ export function FilterCard({
               head.current?.focus();
             }}
             className={cn(
-              "relative cursor-pointer rounded-[6px] font-medium [grid-area:1/1] before:absolute before:inset-x-0 before:-inset-y-2.5 before:content-['']",
+              "relative -my-0.5 cursor-pointer rounded-[6px] py-0.5 font-medium [grid-area:1/1] before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']",
               FOCUS_RING,
               "focus-visible:outline-offset-2",
               swap,

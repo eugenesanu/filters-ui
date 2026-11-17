@@ -30,7 +30,7 @@ export default function SelectExample() {
       <div className="mt-2 rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] px-5 pt-4 pb-5">
         <p aria-live="polite" className="flex items-baseline gap-1 text-[14px] leading-5 tabular-nums">
           <TextSwap className="font-medium text-[var(--fu-text,#F8F5F1)]">{String(carsFrom(from === "" ? null : Number(from)))}</TextSwap>
-          <span className="text-[var(--fu-dim,#8C8C8C)]">cars</span>
+          <span className="text-[var(--fu-dim,#929292)]">cars</span>
         </p>
         {/* One mark per car, by model year. The kept years sit on a band whose edge slides to the new year; their marks
             light up in a wave that starts at the band's edge. */}
@@ -59,7 +59,7 @@ export default function SelectExample() {
               <span
                 key={year}
                 className={`transition-[color] duration-300 motion-reduce:transition-none ${
-                  i >= cut ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-dim,#8C8C8C)]"
+                  i >= cut ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-dim,#929292)]"
                 }`}
               >
                 ’{String(year).slice(2)}

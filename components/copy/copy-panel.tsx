@@ -65,12 +65,12 @@ function ShortToggle({ on, onChange }: { on: boolean; onChange: (on: boolean) =>
         aria-hidden="true"
         className={cn(
           "relative h-5 w-[34px] rounded-full transition-[background-color] duration-300 ease-smooth",
-          on ? "bg-accent" : "bg-surface-3",
+          on ? "bg-accent" : "bg-[var(--fu-switch-off)]",
         )}
       >
         <span
           className={cn(
-            "absolute left-0.5 top-0.5 size-4 rounded-full bg-text transition-[translate] duration-300 ease-smooth motion-reduce:transition-none",
+            "absolute left-0.5 top-0.5 size-4 rounded-full bg-[var(--fu-handle)] shadow-[0_0_0_0.5px_var(--fu-knob-edge),0_1px_2px_var(--fu-knob-shadow)] transition-[translate] duration-300 ease-smooth motion-reduce:transition-none",
             on && "translate-x-3.5",
           )}
         />
@@ -171,7 +171,7 @@ function CodeTab({ data }: { data: PanelData }) {
                 }}
                 className={cn(
                   "h-8 shrink-0 cursor-pointer rounded-[9px] px-2.5 font-mono text-[12.5px] leading-5 transition-[background-color,color] duration-200 ease-smooth",
-                  i === index ? "bg-surface-3 text-text" : "text-dim hover:bg-white/[0.05] hover:text-text",
+                  i === index ? "bg-surface-3 text-text" : "text-dim hover:bg-wash hover:text-text",
                 )}
               >
                 {f.name}
@@ -210,7 +210,7 @@ function InstallTab({ data }: { data: PanelData }) {
             onClick={() => setManager(m)}
             className={cn(
               "inline-flex h-8 cursor-pointer items-center rounded-[9px] px-2 font-mono transition-[background-color,color] duration-200 ease-smooth",
-              m === manager ? "text-text" : "text-dim hover:bg-white/[0.05] hover:text-text",
+              m === manager ? "text-text" : "text-dim hover:bg-wash hover:text-text",
             )}
           >
             {m}

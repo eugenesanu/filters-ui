@@ -60,9 +60,9 @@ function hide(node: HTMLElement) {
   } catch {}
 }
 
-/** The surface of a menu or list panel: 14px radius, #1F1F1F, a #404040 hairline, 6px inside, a deep soft shadow. */
+/** The surface of a menu or list panel: 14px radius, the card colour, a --fu-line hairline, 6px inside, a deep soft shadow. */
 export const LIST_PANEL =
-  "w-max rounded-[14px] border border-[var(--fu-line,#404040)] bg-[var(--fu-card,#1F1F1F)] p-1.5 [scrollbar-width:thin] shadow-[inset_0_1px_0_rgb(255_255_255/0.04),0_24px_48px_-12px_rgb(0_0_0/0.8),0_10px_20px_-8px_rgb(0_0_0/0.55)]";
+  "w-max rounded-[14px] border border-[var(--fu-line,#404040)] bg-[var(--fu-card,#1F1F1F)] p-1.5 [scrollbar-width:thin] shadow-[inset_0_1px_0_var(--fu-rim,rgb(255_255_255/0.04)),0_24px_48px_-12px_var(--fu-shadow-deep,rgb(0_0_0/0.8)),0_10px_20px_-8px_var(--fu-shadow,rgb(0_0_0/0.5))]";
 
 /**
  * A floating panel for menus and lists. It stays where it is in the DOM, so it inherits fonts and --fu-* variables and
@@ -438,7 +438,7 @@ export function ListCount({
       <span
         className={cn(
           "min-w-[3ch] text-right text-[13px] leading-5 tabular-nums transition-[color] duration-200",
-          on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)] group-data-[active]/row:text-[var(--fu-mute,#BDBDBD)]",
+          on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)] group-data-[active]/row:text-[var(--fu-mute,#BDBDBD)]",
         )}
       >
         {format(count)}

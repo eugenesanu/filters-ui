@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { countOf, type Token, type Vocabulary } from "../lib/sentence";
 import { CountPill } from "../ui/count-pill";
@@ -64,7 +64,7 @@ function Glyph({ children, tone = "dim" }: { children: ReactNode; tone?: "dim" |
         SMOOTH,
         tone === "accent"
           ? "bg-[var(--fu-card,#1F1F1F)] text-[var(--fu-accent-soft,#8FAAFF)] group-aria-selected/row:bg-[var(--fu-selected,#1F2747)]"
-          : "text-[var(--fu-dim,#8C8C8C)] group-aria-selected/row:text-[var(--fu-mute,#BDBDBD)]",
+          : "text-[var(--fu-dim,#929292)] group-aria-selected/row:text-[var(--fu-mute,#BDBDBD)]",
       )}
     >
       {children}
@@ -125,7 +125,7 @@ function RowAction({ tip, onPress, children }: { tip: string; onPress: () => voi
         onPress();
       }}
       className={cn(
-        "group/act relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-[8px] text-[var(--fu-dim,#8C8C8C)]",
+        "group/act relative grid size-7 shrink-0 cursor-pointer place-items-center rounded-[8px] text-[var(--fu-dim,#929292)]",
         "transition-[background-color,color] duration-150 motion-reduce:transition-none",
         "hover:bg-[var(--fu-hover,#333333)] hover:text-[var(--fu-text,#F8F5F1)]",
         "pointer-coarse:after:absolute pointer-coarse:after:-inset-2 pointer-coarse:after:content-['']",
@@ -197,7 +197,7 @@ function Leaving({ top, height, onDone, children }: { top: number; height: numbe
 }
 
 const TITLE = "px-3 pt-2 pb-1 text-[13px] leading-[18px] text-[var(--fu-mute,#BDBDBD)]";
-const EMPTY = "px-3 pb-2 text-[14px] leading-5 text-[var(--fu-dim,#8C8C8C)]";
+const EMPTY = "px-3 pb-2 text-[14px] leading-5 text-[var(--fu-dim,#929292)]";
 
 /**
  * The sentence search with your searches under it. While the box is empty and nothing is set, the list shows Saved and
@@ -305,7 +305,7 @@ export function RecentSearches<Item, State>({
           <StarIcon size={16} className="fill-current" />
         </Glyph>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[15px] leading-5 font-medium text-[var(--fu-text,#F8F5F1)]">{entry.name ?? nameOf(own)}</span>
+          <span className="block truncate text-[15px] leading-5 font-medium text-[var(--fu-text,#F8F5F1)]">{entry.name ?? nameOf(own)}</span>{" "}
           <span className="block truncate text-[13px] leading-[18px] text-[var(--fu-mute,#BDBDBD)]">{wordsOf(own)}</span>
         </span>
       </>
@@ -319,17 +319,18 @@ export function RecentSearches<Item, State>({
       </Glyph>
       <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
         {vocabulary.tokens(entry.value).map((token) => (
-          <span
-            key={`${token.key}-${token.label}`}
-            className={cn(
-              "block h-6 max-w-full min-w-0 truncate rounded-full bg-[var(--fu-pill,rgb(255_255_255/0.1))] px-2.5 text-[13px] leading-6 whitespace-nowrap text-[var(--fu-text,#F8F5F1)]",
-              "transition-[background-color,color] duration-200 motion-reduce:transition-none",
-              SMOOTH,
-              "group-aria-selected/row:bg-[var(--fu-selected,#1F2747)] group-aria-selected/row:text-[var(--fu-accent-pale,#D1DDFF)]",
-            )}
-          >
-            {token.label}
-          </span>
+          <Fragment key={`${token.key}-${token.label}`}>
+            <span
+              className={cn(
+                "block h-6 max-w-full min-w-0 truncate rounded-full bg-[var(--fu-pill,rgb(255_255_255/0.1))] px-2.5 text-[13px] leading-6 whitespace-nowrap text-[var(--fu-text,#F8F5F1)]",
+                "transition-[background-color,color] duration-200 motion-reduce:transition-none",
+                SMOOTH,
+                "group-aria-selected/row:bg-[var(--fu-selected,#1F2747)] group-aria-selected/row:text-[var(--fu-accent-pale,#D1DDFF)]",
+              )}
+            >
+              {token.label}
+            </span>{" "}
+          </Fragment>
         ))}
       </span>
     </>
@@ -404,7 +405,7 @@ export function RecentSearches<Item, State>({
               aria-label={spoken(entry)}
               className="group/row relative flex min-h-[52px] cursor-pointer items-center gap-3 rounded-[12px] py-2 pr-3 pl-2"
             >
-              {savedBody(entry)}
+              {savedBody(entry)}{" "}
               <span className="flex shrink-0 items-center">
                 <RowActions width="one">
                   <RowAction tip="Remove" onPress={() => forget(entry, "saved")}>
@@ -433,7 +434,7 @@ export function RecentSearches<Item, State>({
               aria-label={spoken(entry)}
               className="group/row relative flex min-h-11 cursor-pointer items-center gap-3 rounded-[12px] py-1.5 pr-3 pl-2"
             >
-              {recentBody(entry)}
+              {recentBody(entry)}{" "}
               <span className="flex shrink-0 items-center">
                 <RowActions width="two">
                   <RowAction tip="Save" onPress={() => save(entry.value)}>
@@ -471,7 +472,7 @@ export function RecentSearches<Item, State>({
               <span className="block truncate text-[15px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
                 Saved as <span className="font-medium text-[var(--fu-text,#F8F5F1)]">{savedNow.name ?? nameOf(tokens)}</span>
               </span>
-              <span className="block truncate text-[13px] leading-[18px] text-[var(--fu-dim,#8C8C8C)]">{wordsOf(tokens)}</span>
+              <span className="block truncate text-[13px] leading-[18px] text-[var(--fu-dim,#929292)]">{wordsOf(tokens)}</span>
             </span>
           </div>
         ) : (

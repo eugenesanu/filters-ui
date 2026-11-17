@@ -54,13 +54,13 @@ export default function AppliedFiltersExample() {
         onClearAll={() => setFilters(NONE)}
       />
       <p aria-live="polite" className="mt-4 px-4 text-[14px] leading-5 tabular-nums">
-        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">of {CARS.length} cars</span>
+        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#929292)]">of {CARS.length} cars</span>
       </p>
       <ul className="mt-2 rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] p-2">
         {results.slice(0, 4).map((car) => (
           <li key={car.name} className="flex h-12 items-center justify-between gap-3 px-3 text-[15px] leading-5 tabular-nums">
             <span className="min-w-0 truncate">
-              <span className="font-medium">{car.name}</span> <span className="text-[13px] text-[var(--fu-dim,#8C8C8C)]">{car.year}</span>
+              <span className="font-medium">{car.name}</span> <span className="text-[13px] text-[var(--fu-dim,#929292)]">{car.year}</span>
             </span>
             <span className="shrink-0 font-medium text-[var(--fu-accent-soft,#8FAAFF)]">{money.format(car.price)}</span>
           </li>

@@ -32,7 +32,7 @@ const MORE: CarFacet[] = ["km", "seats", "condition", "drive", "transmission", "
 export const PILLS_PRESET: CarFilters = { ...EMPTY_CAR_FILTERS, priceMin: 15000, priceMax: 45000, bodies: ["SUV"] };
 
 const RESET =
-  "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-white/[0.06] hover:text-text";
+  "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text";
 
 /** One filter inside "More filters": its title and value, or Clear, over its body. */
 function MoreSection({ facet, filters, set, onClear }: { facet: CarFacet; filters: CarFilters; set: (patch: Partial<CarFilters>) => void; onClear: () => void }) {

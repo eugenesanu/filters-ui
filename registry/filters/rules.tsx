@@ -469,7 +469,7 @@ export function Rules<Item>({
       return (
         <>
           <NumberPill {...number} value={low} onValue={(next) => update(rule.id, (r) => ({ ...r, value: [next, high] }))} label={`Lowest ${name}`} placeholder="Min" />
-          <span className="text-[14px] leading-5 text-[var(--fu-dim,#8C8C8C)]">and</span>
+          <span className="text-[14px] leading-5 text-[var(--fu-dim,#929292)]">and</span>
           <NumberPill {...number} value={high} onValue={(next) => update(rule.id, (r) => ({ ...r, value: [low, next] }))} label={`Highest ${name}`} placeholder="Max" />
         </>
       );
@@ -536,7 +536,7 @@ export function Rules<Item>({
 
   return (
     <div ref={box} role="group" aria-label={label} className={cn("@container/rules w-full", className)}>
-      <p aria-hidden="true" className="hidden pr-[44px] pb-2 text-right text-[12px] leading-4 text-[var(--fu-dim,#8C8C8C)] @min-[484px]/rules:block">
+      <p aria-hidden="true" className="hidden pr-[44px] pb-2 text-right text-[12px] leading-4 text-[var(--fu-dim,#929292)] @min-[484px]/rules:block">
         {leftLabel}
       </p>
       <ol className="flex flex-col gap-2.5">

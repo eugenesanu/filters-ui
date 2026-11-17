@@ -7,6 +7,8 @@
 // registry/ui, gets its page at /basics/<slug> and shows in the home page's Basics section; it needs its own connect
 // text and a tile preview in components/tile/previews.tsx. "New" shows on items whose addedIn is above 1.0.0.
 // Paths are from the repo root. The props tables are written by hand from the components: keep them in step.
+// Colours: every colour is var(--fu-<token>,<its dark value>) with the token from lib/theme.ts; a new token goes into
+// lib/theme.ts (dark and light) and into all three token blocks of app/globals.css. registry:check enforces this.
 
 export type ItemKind = "filter" | "basic" | "block";
 

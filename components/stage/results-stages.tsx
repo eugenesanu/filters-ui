@@ -31,9 +31,9 @@ const chipsOf = (f: CarFilters): AppliedFilter[] =>
   });
 
 const RESET =
-  "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-white/[0.06] hover:text-text";
+  "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text";
 const TRY =
-  "relative inline-flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[10px] px-2 transition-[color,background-color] duration-200 ease-smooth hover:bg-white/[0.06] hover:text-text pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1";
+  "relative inline-flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[10px] px-2 transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1";
 
 function Frame({ toolbar, children }: { toolbar: ReactNode; children: ReactNode }) {
   return (

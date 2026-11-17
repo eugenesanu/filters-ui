@@ -76,7 +76,7 @@ function Label({ label, typed }: { label: string; typed: string }) {
   const hit = matchIn(label, typed);
   if (!hit) return <span className="min-w-0 truncate text-[var(--fu-text,#F8F5F1)]">{label}</span>;
   return (
-    <span className="min-w-0 truncate text-[var(--fu-dim,#8C8C8C)]">
+    <span className="min-w-0 truncate text-[var(--fu-dim,#929292)]">
       {label.slice(0, hit.at)}
       <span className="font-medium text-[var(--fu-text,#F8F5F1)]">{label.slice(hit.at, hit.at + hit.length)}</span>
       {label.slice(hit.at + hit.length)}
@@ -335,7 +335,7 @@ export function SentenceSearch<Item, State>({
                 }}
                 className={cn(
                   "relative flex h-[26px] max-w-full cursor-pointer items-center pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[9px] gap-1 rounded-full border border-[var(--fu-accent-pale,#D1DDFF)] bg-[var(--fu-accent-pale,#D1DDFF)] pr-[7px] pl-[11px]",
-                  "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-on-pale,#171717)]",
+                  "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-surface-1,#171717)]",
                   "transition-[background-color,color,border-color,opacity,filter,scale] duration-300 motion-reduce:transition-none",
                   SMOOTH,
                   "starting:scale-[0.82] starting:opacity-0 starting:blur-[3px]",
@@ -374,7 +374,7 @@ export function SentenceSearch<Item, State>({
             {ghost && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 overflow-hidden text-[16px] leading-6 whitespace-pre text-[var(--fu-dim,#8C8C8C)]"
+                className="pointer-events-none absolute inset-0 overflow-hidden text-[16px] leading-6 whitespace-pre text-[var(--fu-dim,#929292)]"
               >
                 <span className="invisible">{text}</span>
                 {ghost}
@@ -439,7 +439,7 @@ export function SentenceSearch<Item, State>({
       <div
         data-state={shown ? "open" : "closed"}
         className={cn(
-          "absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-[16px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-surface-3,#2A2A2A)] shadow-[0_16px_40px_rgb(0_0_0/0.45)]",
+          "absolute inset-x-0 top-full z-30 mt-1.5 overflow-hidden rounded-[16px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-surface-3,#2A2A2A)] shadow-[0_16px_40px_var(--fu-shadow,rgb(0_0_0/0.5))]",
           "origin-top transition-[opacity,translate,visibility] duration-[170ms] motion-reduce:transition-none",
           SMOOTH,
           "data-[state=closed]:invisible data-[state=closed]:translate-y-1.5 data-[state=closed]:opacity-0",
@@ -504,9 +504,9 @@ export function SentenceSearch<Item, State>({
                         style={{ background: row.swatch }}
                       />
                     )}
-                    <Label label={row.label} typed={text} />
+                    <Label label={row.label} typed={text} />{" "}
                     <span aria-hidden="true" className="ml-auto flex shrink-0 items-center gap-2 pl-3">
-                      {row.hint && <span className="text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{row.hint}</span>}
+                      {row.hint && <span className="text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{row.hint}</span>}{" "}
                       <CountPill count={row.count} {...(formatCount && { format: formatCount })} />
                     </span>
                   </div>
@@ -540,7 +540,7 @@ export function SentenceSearch<Item, State>({
       </div>
       </div>
 
-      <p aria-live="polite" className="text-[13px] leading-5 text-[var(--fu-dim,#8C8C8C)]">
+      <p aria-live="polite" className="text-[13px] leading-5 text-[var(--fu-dim,#929292)]">
         {fixes.length > 0 && <span className="mt-2 block px-4">Read {fixes.map((fix) => `“${fix.word}” as ${fix.name}`).join(", ")}</span>}
         {unused.length > 0 && <span className="mt-2 block px-4">Not used: {quote(unused)}</span>}
       </p>

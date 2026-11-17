@@ -27,7 +27,7 @@ type SharedProps<V extends string> = {
   options: readonly (MenuOption<V> | MenuGroup<V>)[];
   /** Commands under the choices, after a separator, e.g. "Reset". */
   actions?: readonly MenuAction[];
-  /** "filled": #2A2A2A pill. "quiet": no fill until hovered, for a toolbar or next to a result count. Default "filled". */
+  /** "filled": a --fu-surface-3 pill. "quiet": no fill until hovered, for a toolbar or next to a result count. Default "filled". */
   variant?: "filled" | "quiet";
   /** Which edge the menu lines up with. Default "start". */
   align?: "start" | "end";
@@ -289,7 +289,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
           <span
             className={cn(
               "shrink-0 pl-2 text-[13px] leading-5 font-normal tabular-nums",
-              entry.kind !== "action" && checked ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)]",
+              entry.kind !== "action" && checked ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]",
             )}
           >
             {entry.hint}
@@ -383,7 +383,7 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
               {at < groups.length ? (
                 <div role="group" aria-labelledby={title ? titleId : undefined}>
                   {title && (
-                    <div id={titleId} className="px-2.5 pt-1.5 pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#8C8C8C)]">
+                    <div id={titleId} className="px-2.5 pt-1.5 pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
                       {title}
                     </div>
                   )}

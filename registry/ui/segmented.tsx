@@ -123,7 +123,7 @@ export function Segmented<V extends SegmentedValue>({
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute top-1 bottom-1 left-1 rounded-[9px] bg-[var(--fu-line,#404040)]",
+          "pointer-events-none absolute top-1 bottom-1 left-1 rounded-[9px] bg-[var(--fu-thumb,#404040)]",
           measuring ? placed && "transition-[left,width,opacity]" : "transition-[translate,opacity]",
           "duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           (index < 0 || (measuring && !measured)) && "opacity-0",
@@ -154,7 +154,7 @@ export function Segmented<V extends SegmentedValue>({
               "group/seg relative flex min-w-0 cursor-pointer items-center justify-center gap-1.5 rounded-[9px] text-[14px] leading-5 font-medium",
               hug ? "flex-none px-2.5 @min-[340px]:flex-1 @min-[340px]:px-0.5" : "flex-1 px-0.5",
               fit === "content" && !hug && "min-w-fit",
-              on && measuring && !measured && "bg-[var(--fu-line,#404040)]",
+              on && measuring && !measured && "bg-[var(--fu-thumb,#404040)]",
               "transition-[color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               on ? "text-[var(--fu-text,#F8F5F1)]" : "text-[var(--fu-mute,#BDBDBD)] enabled:hover:text-[var(--fu-text,#F8F5F1)]",

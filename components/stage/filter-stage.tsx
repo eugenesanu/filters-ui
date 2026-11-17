@@ -38,7 +38,7 @@ const STAGE_FACETS: Record<string, CarFacet[]> = {
 const count = new Intl.NumberFormat("en-US");
 
 const RESET =
-  "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-white/[0.06] hover:text-text";
+  "h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text";
 
 function ResetButton({ onReset, className }: { onReset: () => void; className?: string }) {
   return (
@@ -73,7 +73,7 @@ function ExampleSwitch({ facets, value, onChange }: { facets: CarFacet[]; value:
           aria-pressed={f === value}
           onClick={() => onChange(f)}
           className={`inline-flex h-9 cursor-pointer items-center rounded-[10px] px-2 transition-[color,background-color] duration-200 ease-smooth ${
-            f === value ? "text-text" : "text-dim hover:bg-white/[0.06] hover:text-text"
+            f === value ? "text-text" : "text-dim hover:bg-wash hover:text-text"
           }`}
         >
           {CAR_FACET_TITLES[f]}
@@ -214,7 +214,7 @@ function SentenceStage() {
                   setTyped(sentence);
                   setRound((n) => n + 1);
                 }}
-                className="relative inline-flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[10px] px-2 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-white/[0.06] hover:text-text pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1"
+                className="relative inline-flex h-9 cursor-pointer items-center whitespace-nowrap rounded-[10px] px-2 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1"
               >
                 {sentence}
               </button>

@@ -7,7 +7,7 @@ export type LinkVariant = "inline" | "quiet";
 export type LinkStyle = {
   /** "inline": accent text, always underlined, for a link inside a sentence. "quiet": muted text that lights up, for navigation. Default "inline". */
   variant?: LinkVariant;
-  /** A quiet link's colour at rest: "mute" #BDBDBD or "dim" #8C8C8C. Default "mute". */
+  /** A quiet link's colour at rest: "mute" (--fu-mute) or "dim" (--fu-dim). Default "mute". */
   tone?: "mute" | "dim";
   /** A quiet link's height: "md" 36px, "lg" 44px (a header). Default "md". */
   size?: "md" | "lg";
@@ -30,7 +30,7 @@ export function linkClasses({ variant = "inline", tone = "mute", size = "md", cl
         )
       : cn(
           "relative inline-flex items-center gap-1 text-[14px] leading-5 whitespace-nowrap no-underline hover:text-[var(--fu-text,#F8F5F1)]",
-          tone === "dim" ? "text-[var(--fu-dim,#8C8C8C)]" : "text-[var(--fu-mute,#BDBDBD)]",
+          tone === "dim" ? "text-[var(--fu-dim,#929292)]" : "text-[var(--fu-mute,#BDBDBD)]",
           size === "lg" ? "h-11" : "h-9 pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
         ),
     className,
@@ -91,7 +91,7 @@ export type TextLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> &
   };
 
 /**
- * A link: "inline" inside a sentence (#8FAAFF, underlined, so colour is never its only mark) or "quiet" for
+ * A link: "inline" inside a sentence (--fu-accent-soft, underlined, so colour is never its only mark) or "quiet" for
  * navigation (muted, no underline). target="_blank" adds an up-right arrow, "opens in a new tab" and rel="noopener".
  * An action with no URL is a Button with variant "quiet", not a link.
  */

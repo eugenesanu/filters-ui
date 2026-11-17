@@ -44,7 +44,8 @@ const noop = () => () => {};
 const useClientRender = () => useSyncExternalStore(noop, () => true, () => false);
 
 function spoken<State>(fix: Fix<State>, noun: CountNoun, format: (n: number) => string) {
-  const changes = fix.changes.map((c) => `${c.label} ${c.to} instead of ${c.from}`).join(", and ");
+  // In the order the row shows them, so the name holds the visible words: "Seats 7+ → Any, 3 cars".
+  const changes = fix.changes.map((c) => `${c.label} ${c.from} → ${c.to}`).join("; ");
   return `${changes}, ${format(fix.count)} ${fix.count === 1 ? noun.one : noun.other}`;
 }
 
@@ -134,7 +135,7 @@ export function NoResults<Item, State>({
           <Heading id={`${id}-title`} className="m-0 text-[15px] font-semibold leading-5">
             {title}
           </Heading>
-          <p id={`${id}-said`} className="m-0 mt-0.5 text-[14px] leading-5 text-[var(--fu-dim,#8C8C8C)]">
+          <p id={`${id}-said`} className="m-0 mt-0.5 text-[14px] leading-5 text-[var(--fu-dim,#929292)]">
             {said}
           </p>
         </div>
@@ -170,9 +171,9 @@ export function NoResults<Item, State>({
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     {fix.changes.map((change) => (
                       <span key={change.key} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                        <span className="text-[13px] text-[var(--fu-dim,#8C8C8C)]">{change.label}</span>
+                        <span className="text-[13px] text-[var(--fu-dim,#929292)]">{change.label}</span>{" "}
                         <span className="flex min-w-0 items-center gap-1.5">
-                          <span className="relative truncate text-[var(--fu-mute,#BDBDBD)] transition-[color] duration-200 group-hover/fix:text-[var(--fu-dim,#8C8C8C)] group-focus-visible/fix:text-[var(--fu-dim,#8C8C8C)]">
+                          <span className="relative truncate text-[var(--fu-mute,#BDBDBD)] transition-[color] duration-200 group-hover/fix:text-[var(--fu-dim,#929292)] group-focus-visible/fix:text-[var(--fu-dim,#929292)]">
                             {change.from}
                             <span
                               className={cn(
@@ -181,22 +182,23 @@ export function NoResults<Item, State>({
                                 "group-hover/fix:scale-x-100 group-focus-visible/fix:scale-x-100",
                               )}
                             />
-                          </span>
+                          </span>{" "}
                           <ArrowRightIcon
                             size={12}
                             strokeWidth={2.25}
-                            className="shrink-0 text-[var(--fu-dim,#8C8C8C)] transition-[translate,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/fix:translate-x-0.5 group-hover/fix:text-[var(--fu-mute,#BDBDBD)] motion-reduce:transition-none"
+                            className="shrink-0 text-[var(--fu-dim,#929292)] transition-[translate,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/fix:translate-x-0.5 group-hover/fix:text-[var(--fu-mute,#BDBDBD)] motion-reduce:transition-none"
                           />
+                          {" "}
                           <span className="truncate font-medium transition-[color] duration-200 group-hover/fix:text-[var(--fu-accent-pale,#D1DDFF)] group-focus-visible/fix:text-[var(--fu-accent-pale,#D1DDFF)]">
                             {change.to}
                           </span>
                         </span>
                       </span>
                     ))}
-                  </span>
+                  </span>{" "}
                   <span className="shrink-0 tabular-nums">
                     <span className="text-[15px] font-medium text-[var(--fu-accent-soft,#8FAAFF)]">{formatCount(fix.count)}</span>
-                    <span className="text-[13px] text-[var(--fu-dim,#8C8C8C)]"> {fix.count === 1 ? noun.one : noun.other}</span>
+                    <span className="text-[13px] text-[var(--fu-dim,#929292)]"> {fix.count === 1 ? noun.one : noun.other}</span>
                   </span>
                 </span>
               </button>
@@ -207,7 +209,7 @@ export function NoResults<Item, State>({
 
       {onClearAll && (
         <div className="mx-4 flex min-h-12 items-center justify-between gap-3 border-t border-[var(--fu-card-border,#2A2A2A)] py-1">
-          <span className="text-[13px] leading-5 text-[var(--fu-dim,#8C8C8C)]">Or start again</span>
+          <span className="text-[13px] leading-5 text-[var(--fu-dim,#929292)]">Or start again</span>
           <button
             type="button"
             onClick={onClearAll}

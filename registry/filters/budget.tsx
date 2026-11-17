@@ -161,7 +161,7 @@ export function Budget({
               SMOOTH,
               on
                 ? "border-[var(--fu-accent-soft,#8FAAFF)] bg-[var(--fu-selected,#1F2747)] forced-colors:border-[Highlight]"
-                : "border-[var(--fu-surface-3,#2A2A2A)] hover:border-[var(--fu-line,#404040)] hover:bg-[var(--fu-surface-3,#2A2A2A)]",
+                : "border-[var(--fu-surface-3,#2A2A2A)] hover:border-[var(--fu-line,#404040)] hover:bg-[var(--fu-item-hover,#2A2A2A)]",
             )}
           >
             <button
@@ -217,7 +217,7 @@ export function Budget({
                   )}
                 >
                   <span className="min-h-0 overflow-hidden">
-                    <span id={`${id}-${way.key}-line`} className="block text-[13px] leading-5 text-[var(--fu-dim,#8C8C8C)]">
+                    <span id={`${id}-${way.key}-line`} className="block text-[13px] leading-5 text-[var(--fu-dim,#929292)]">
                       {way.line}
                     </span>
                   </span>
@@ -291,10 +291,10 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
           options={terms.map((t) => ({ value: t, label: String(t) }))}
           value={value.term}
           onChange={(term) => set({ term })}
-          className="min-w-0 flex-1 bg-[rgb(0_0_0/0.22)]"
+          className="min-w-0 flex-1 bg-[var(--fu-well,rgb(0_0_0/0.22))]"
         />
       </div>
-      <p className="mt-3 text-[12px] leading-4 text-[var(--fu-dim,#8C8C8C)]">
+      <p className="mt-3 text-[12px] leading-4 text-[var(--fu-dim,#929292)]">
         Example estimate at {rateText} a year.
       </p>
     </div>

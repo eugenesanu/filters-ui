@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HeaderFrame } from "@/components/header-frame";
 import { Logo } from "@/components/logo";
+import { ThemeSwitch } from "@/components/theme-switch";
 import { site } from "@/lib/site";
 import { version } from "@/lib/version";
 
@@ -28,13 +29,14 @@ export function SiteHeader() {
             v{version}
           </span>
         </div>
-        <nav aria-label="Site" className="flex items-center gap-4 sm:gap-5">
+        <nav aria-label="Site" className="flex items-center">
           <Link
             href="/about"
-            className="inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
+            className="mr-3 inline-flex h-11 items-center whitespace-nowrap rounded-[4px] text-[14px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
           >
             About
           </Link>
+          <ThemeSwitch />
           <a
             href={site.repoUrl}
             target="_blank"

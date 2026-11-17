@@ -132,7 +132,7 @@ export function AllFiltersStage() {
             setShown(null);
             setRound((n) => n + 1);
           }}
-          className="h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-white/[0.06] hover:text-text"
+          className="h-9 shrink-0 cursor-pointer rounded-[10px] px-3 text-[14px] font-medium leading-5 text-dim transition-[color,background-color] duration-200 ease-smooth hover:bg-wash hover:text-text"
         >
           Reset
         </button>

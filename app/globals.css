@@ -1,25 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --fu-page: #0a0a0a;
-  --fu-surface-1: #171717;
-  /* Site only: stages and panels. */
+  /* Colour tokens: the values come from lib/theme.ts (registry:check compares them). Dark is the default. */
+  --fu-page: #0A0A0A;
   --fu-panel: #141414;
-  --fu-card: #1f1f1f;
-  --fu-surface-3: #2a2a2a;
+  --fu-card: #1F1F1F;
+  --fu-card-hover: #262626;
+  --fu-surface-1: #171717;
+  --fu-surface-3: #2A2A2A;
   --fu-hover: #333333;
+  --fu-item-hover: #2A2A2A;
+  --fu-head-open: #333333;
+  --fu-thumb: #404040;
+  --fu-bar: rgb(31 31 31/0.94);
   --fu-line: #404040;
-  --fu-rail: #4a4a4a;
-  --fu-card-border: #2a2a2a;
+  --fu-card-border: #2A2A2A;
+  --fu-rail: #4A4A4A;
   --fu-control-border: #737373;
-  --fu-text: #f8f5f1;
-  --fu-mute: #bdbdbd;
-  --fu-dim: #8c8c8c;
-  --fu-accent: #3b57e6;
-  --fu-accent-hover: #3450d4;
-  --fu-accent-soft: #8faaff;
-  --fu-accent-pale: #d1ddff;
-  --fu-selected: #1f2747;
+  --fu-control-hover: #A3A3A3;
+  --fu-swatch-edge: rgb(255 255 255/0.2);
+  --fu-text: #F8F5F1;
+  --fu-mute: #BDBDBD;
+  --fu-dim: #929292;
+  --fu-pill-text: #C8C8C8;
+  --fu-swatch-text: #EDEAE6;
+  --fu-accent: #3B57E6;
+  --fu-accent-hover: #3450D4;
+  --fu-accent-soft: #8FAAFF;
+  --fu-accent-pale: #D1DDFF;
+  --fu-selected: #1F2747;
+  --fu-on-accent: #FFFFFF;
+  --fu-on-accent-mute: #E1E7FF;
+  --fu-link-line: rgb(143 170 255/0.4);
+  --fu-wash: rgb(255 255 255/0.08);
+  --fu-hover-wash: rgb(255 255 255/0.14);
+  --fu-field-wash: rgb(255 255 255/0.03);
+  --fu-track: rgb(255 255 255/0.06);
+  --fu-pill: rgb(255 255 255/0.1);
+  --fu-pill-hover: rgb(255 255 255/0.16);
+  --fu-row-active: rgb(255 255 255/0.07);
+  --fu-row-hover: rgb(255 255 255/0.1);
+  --fu-row-press: rgb(255 255 255/0.12);
+  --fu-share: rgb(255 255 255/0.05);
+  --fu-share-hover: rgb(255 255 255/0.1);
+  --fu-well: rgb(0 0 0/0.22);
+  --fu-handle: #F8F5F1;
+  --fu-handle-edge: rgb(0 0 0/0.25);
+  --fu-rim: rgb(255 255 255/0.04);
+  --fu-shadow: rgb(0 0 0/0.5);
+  --fu-shadow-deep: rgb(0 0 0/0.8);
+  --fu-scrim: rgb(0 0 0/0.6);
+  --fu-glow-blue: #4C6BFF;
+  --fu-glow-violet: #8A6CFF;
+  --fu-glow-rose: #EC8092;
+  --fu-glow-amber: #F59E6C;
+  --fu-glow-teal: #2DD4BF;
+  --fu-selection: #D1DDFF;
+  --fu-selection-text: #171717;
+  --fu-backdrop: #1F1F1F;
+  --fu-backdrop-near: #2A2A2A;
+  --fu-switch-off: #2A2A2A;
+  --fu-knob-edge: rgb(0 0 0/0);
+  --fu-knob-shadow: rgb(0 0 0/0);
 
   --fu-radius-card: 24px;
   --fu-radius-panel: 24px;
@@ -30,6 +72,139 @@
   --fu-ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
 
   color-scheme: dark;
+}
+
+/* Light: a choice stored by the header switch (data-theme, set before first paint), or the system preference. */
+:root[data-theme="light"] {
+  --fu-page: #F4F2EE;
+  --fu-panel: #ECE9E3;
+  --fu-card: #FDFCFA;
+  --fu-card-hover: #F6F4F0;
+  --fu-surface-1: #FDFCFA;
+  --fu-surface-3: #DBD6CD;
+  --fu-hover: #D1CBC1;
+  --fu-item-hover: #EFECE7;
+  --fu-head-open: #E6E2DB;
+  --fu-thumb: #FFFFFF;
+  --fu-bar: rgb(253 252 250/0.94);
+  --fu-line: #C8C1B6;
+  --fu-card-border: #E5E1DA;
+  --fu-rail: #D6D1C8;
+  --fu-control-border: #7D776E;
+  --fu-control-hover: #5F5A53;
+  --fu-swatch-edge: rgb(29 27 24/0.2);
+  --fu-text: #1D1B18;
+  --fu-mute: #48443E;
+  --fu-dim: #5A554E;
+  --fu-pill-text: #403C37;
+  --fu-swatch-text: #3A3632;
+  --fu-accent: #3B57E6;
+  --fu-accent-hover: #2F4AD0;
+  --fu-accent-soft: #3049D2;
+  --fu-accent-pale: #253A9E;
+  --fu-selected: #E8EDFD;
+  --fu-on-accent: #FFFFFF;
+  --fu-on-accent-mute: #E1E7FF;
+  --fu-link-line: rgb(52 80 216/0.4);
+  --fu-wash: rgb(29 27 24/0.05);
+  --fu-hover-wash: rgb(29 27 24/0.07);
+  --fu-field-wash: rgb(29 27 24/0.02);
+  --fu-track: rgb(29 27 24/0.07);
+  --fu-pill: rgb(29 27 24/0.06);
+  --fu-pill-hover: rgb(29 27 24/0.1);
+  --fu-row-active: rgb(29 27 24/0.05);
+  --fu-row-hover: rgb(29 27 24/0.06);
+  --fu-row-press: rgb(29 27 24/0.09);
+  --fu-share: rgb(29 27 24/0.04);
+  --fu-share-hover: rgb(29 27 24/0.07);
+  --fu-well: rgb(29 27 24/0.05);
+  --fu-handle: #FFFFFF;
+  --fu-handle-edge: rgb(29 27 24/0.55);
+  --fu-rim: rgb(255 255 255/0.7);
+  --fu-shadow: rgb(48 38 26/0.12);
+  --fu-shadow-deep: rgb(48 38 26/0.16);
+  --fu-scrim: rgb(29 27 24/0.32);
+  --fu-glow-blue: #4C6BFF;
+  --fu-glow-violet: #8A6CFF;
+  --fu-glow-rose: #E8708A;
+  --fu-glow-amber: #F29358;
+  --fu-glow-teal: #1FC2AD;
+  --fu-selection: #CBD6FF;
+  --fu-selection-text: #1D1B18;
+  --fu-backdrop: #E6E2DB;
+  --fu-backdrop-near: #D8D3CA;
+  --fu-switch-off: #878178;
+  --fu-knob-edge: rgb(29 27 24/0.55);
+  --fu-knob-shadow: rgb(48 38 26/0.12);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --fu-page: #F4F2EE;
+    --fu-panel: #ECE9E3;
+    --fu-card: #FDFCFA;
+    --fu-card-hover: #F6F4F0;
+    --fu-surface-1: #FDFCFA;
+    --fu-surface-3: #DBD6CD;
+    --fu-hover: #D1CBC1;
+    --fu-item-hover: #EFECE7;
+    --fu-head-open: #E6E2DB;
+    --fu-thumb: #FFFFFF;
+    --fu-bar: rgb(253 252 250/0.94);
+    --fu-line: #C8C1B6;
+    --fu-card-border: #E5E1DA;
+    --fu-rail: #D6D1C8;
+    --fu-control-border: #7D776E;
+    --fu-control-hover: #5F5A53;
+    --fu-swatch-edge: rgb(29 27 24/0.2);
+    --fu-text: #1D1B18;
+    --fu-mute: #48443E;
+    --fu-dim: #5A554E;
+    --fu-pill-text: #403C37;
+    --fu-swatch-text: #3A3632;
+    --fu-accent: #3B57E6;
+    --fu-accent-hover: #2F4AD0;
+    --fu-accent-soft: #3049D2;
+    --fu-accent-pale: #253A9E;
+    --fu-selected: #E8EDFD;
+    --fu-on-accent: #FFFFFF;
+    --fu-on-accent-mute: #E1E7FF;
+    --fu-link-line: rgb(52 80 216/0.4);
+    --fu-wash: rgb(29 27 24/0.05);
+    --fu-hover-wash: rgb(29 27 24/0.07);
+    --fu-field-wash: rgb(29 27 24/0.02);
+    --fu-track: rgb(29 27 24/0.07);
+    --fu-pill: rgb(29 27 24/0.06);
+    --fu-pill-hover: rgb(29 27 24/0.1);
+    --fu-row-active: rgb(29 27 24/0.05);
+    --fu-row-hover: rgb(29 27 24/0.06);
+    --fu-row-press: rgb(29 27 24/0.09);
+    --fu-share: rgb(29 27 24/0.04);
+    --fu-share-hover: rgb(29 27 24/0.07);
+    --fu-well: rgb(29 27 24/0.05);
+    --fu-handle: #FFFFFF;
+    --fu-handle-edge: rgb(29 27 24/0.55);
+    --fu-rim: rgb(255 255 255/0.7);
+    --fu-shadow: rgb(48 38 26/0.12);
+    --fu-shadow-deep: rgb(48 38 26/0.16);
+    --fu-scrim: rgb(29 27 24/0.32);
+    --fu-glow-blue: #4C6BFF;
+    --fu-glow-violet: #8A6CFF;
+    --fu-glow-rose: #E8708A;
+    --fu-glow-amber: #F29358;
+    --fu-glow-teal: #1FC2AD;
+    --fu-selection: #CBD6FF;
+    --fu-selection-text: #1D1B18;
+    --fu-backdrop: #E6E2DB;
+    --fu-backdrop-near: #D8D3CA;
+    --fu-switch-off: #878178;
+    --fu-knob-edge: rgb(29 27 24/0.55);
+    --fu-knob-shadow: rgb(48 38 26/0.12);
+
+    color-scheme: light;
+  }
 }
 
 @theme inline {
@@ -52,6 +227,8 @@
   --color-accent-soft: var(--fu-accent-soft);
   --color-accent-pale: var(--fu-accent-pale);
   --color-selected: var(--fu-selected);
+  --color-wash: var(--fu-wash);
+  --color-shadow: var(--fu-shadow);
 
   --radius-card: var(--fu-radius-card);
   --radius-panel: var(--fu-radius-panel);
@@ -76,8 +253,8 @@ body {
 }
 
 ::selection {
-  background-color: var(--fu-accent-pale);
-  color: #171717;
+  background-color: var(--fu-selection);
+  color: var(--fu-selection-text);
 }
 
 @layer base {
@@ -85,6 +262,44 @@ body {
     outline: 2px solid var(--fu-accent-soft);
     outline-offset: 3px;
   }
+}
+
+/* The theme switch: the icon for the theme a press leaves, so the sun shows in dark. Words for screen readers too. */
+:root[data-theme="light"] [data-theme-show="dark"],
+:root:not([data-theme="light"]) [data-theme-show="light"] {
+  opacity: 0;
+  scale: 0.6;
+  rotate: -45deg;
+}
+:root[data-theme="light"] [data-theme-say="dark"],
+:root:not([data-theme="light"]) [data-theme-say="light"] {
+  display: none;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) [data-theme-show="dark"] {
+    opacity: 0;
+    scale: 0.6;
+    rotate: -45deg;
+  }
+  :root:not([data-theme]) [data-theme-show="light"] {
+    opacity: 1;
+    scale: 1;
+    rotate: 0deg;
+  }
+  :root:not([data-theme]) [data-theme-say="dark"] {
+    display: none;
+  }
+  :root:not([data-theme]) [data-theme-say="light"] {
+    display: inline;
+  }
+}
+/* With JavaScript off a press could do nothing, so the switch is left out; the page still follows the system. */
+:root:not([data-js]) [data-theme-switch] {
+  display: none;
+}
+/* For one frame after a press the page swaps colours at once; only the switch's icon moves. */
+:root[data-theme-switching] *:not([data-theme-show]) {
+  transition: none !important;
 }
 
 /* Code highlighted by Shiki at build time; the colours come from lib/highlight.ts. */
@@ -144,8 +359,8 @@ body {
 }
 @keyframes fu-hero-tint {
   from {
-    fill: #2a2a2a;
-    stroke: #2a2a2a;
+    fill: var(--fu-backdrop-near);
+    stroke: var(--fu-backdrop-near);
     opacity: 1;
   }
 }

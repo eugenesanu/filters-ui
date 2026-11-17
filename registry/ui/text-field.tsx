@@ -18,7 +18,7 @@ export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value"
   inputClassName?: string;
 };
 
-/** 44px field, 12px radius, 1px #737373 border, 15px text, optional prefix and clear X. */
+/** 44px field, 12px radius, 1px --fu-control-border border, 15px text, optional prefix and clear X. */
 export function TextField({
   value,
   onChange,

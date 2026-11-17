@@ -149,7 +149,7 @@ export function CascadingDropdown({
       </div>
       {picks.length > 0 && (
         <div ref={chips} role="group" aria-label={popularLabel} className="mt-2.5 flex flex-wrap items-center gap-1.5 pl-7">
-          <span aria-hidden="true" className="mr-1 text-[12px] leading-4 font-medium text-[var(--fu-dim,#8C8C8C)]">
+          <span aria-hidden="true" className="mr-1 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
             {popularLabel}
           </span>
           {picks.map((child) => {
@@ -186,8 +186,8 @@ export function CascadingDropdown({
                   )}
                   style={{ width: `${most > 0 ? (child.count / most) * 100 : 0}%` }}
                 />
-                <span className="truncate">{child.label}</span>
-                <span className={cn("tabular-nums font-normal", on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)]")}>
+                <span className="truncate">{child.label}</span>{" "}
+                <span className={cn("tabular-nums font-normal", on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]")}>
                   {formatCount(child.count)}
                 </span>
               </button>

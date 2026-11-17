@@ -58,8 +58,8 @@ const FOCUSABLE =
 const PANEL_BG = "var(--fu-card,#1F1F1F)";
 const PANEL_LINE = "var(--fu-line,#404040)";
 const OPEN_LINE = "var(--fu-accent-soft,#8FAAFF)";
-const PANEL_SHADOW = "0 18px 48px rgb(0 0 0/0.5)";
-const NO_SHADOW = "0 0 0 rgb(0 0 0/0)";
+const PANEL_SHADOW = "0 18px 48px var(--fu-shadow,rgb(0 0 0/0.5))";
+const NO_SHADOW = "0 0 0 transparent";
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -727,7 +727,7 @@ function PillSheet({ id, titleId, title, summary, open, onClose, footer, onGone,
       <div
         aria-hidden="true"
         onClick={onClose}
-        className="absolute inset-0 bg-[rgb(0_0_0/0.6)] opacity-0 transition-[opacity] duration-300 ease-out group-data-[state=open]/sheet:opacity-100 motion-reduce:transition-none"
+        className="absolute inset-0 bg-[var(--fu-scrim,rgb(0_0_0/0.6))] opacity-0 transition-[opacity] duration-300 ease-out group-data-[state=open]/sheet:opacity-100 motion-reduce:transition-none"
       />
       <div
         ref={sheet}

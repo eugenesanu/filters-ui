@@ -33,7 +33,7 @@ function Tile({ item, heading: Heading, stageClassName, className, children }: {
         {/* On hover a ring of colour fades in and turns slowly behind a blurred plate, so it only glows in from the rim. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 -z-20 aspect-square w-[max(160%,480px)] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(#4C6BFF,#8A6CFF,#E56FB0,#F59E6C,#2DD4BF,#4C6BFF)] opacity-0 transition-[opacity,rotate] duration-[700ms,2400ms] ease-smooth group-hover/tile:rotate-[120deg] group-hover/tile:opacity-[0.36] motion-reduce:transition-[opacity] motion-reduce:group-hover/tile:rotate-0"
+          className="pointer-events-none absolute left-1/2 top-1/2 -z-20 aspect-square w-[max(160%,480px)] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(var(--fu-glow-blue),var(--fu-glow-violet),var(--fu-glow-rose),var(--fu-glow-amber),var(--fu-glow-teal),var(--fu-glow-blue))] opacity-0 transition-[opacity,rotate] duration-[700ms,2400ms] ease-smooth group-hover/tile:rotate-[120deg] group-hover/tile:opacity-[0.36] motion-reduce:transition-[opacity] motion-reduce:group-hover/tile:rotate-0"
         />
         <span aria-hidden className="pointer-events-none absolute inset-[3px] -z-10 rounded-[inherit] bg-panel blur-[14px]" />
         <div

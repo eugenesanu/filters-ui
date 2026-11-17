@@ -2,6 +2,7 @@
 import { FILTER_CARD_PROPS, type PropRow, type RegistryItem } from "../registry/items.ts";
 import { cssVariablesOf, getExampleSource, getItemFiles, INSTALL_ALIAS, INSTALL_DIR } from "./registry-files.ts";
 import { itemUrl, registryJsonUrl } from "./site.ts";
+import { TOKENS, type TokenName } from "./theme.ts";
 
 export type PromptTarget = "claude-code" | "cursor" | "v0" | "lovable" | "other";
 export type PromptLength = "full" | "short";
@@ -36,6 +37,12 @@ function LAST(target: PromptTarget, item: RegistryItem) {
 
 const licence = "It is free and MIT licensed, from filtersui.com.";
 const installLine = (item: RegistryItem) => `npx shadcn@latest add ${registryJsonUrl(item.slug)}`;
+
+function lightOf(name: string) {
+  const token = TOKENS[name as TokenName];
+  if (!token) throw new Error(`prompt: ${name} is not in lib/theme.ts`);
+  return token.light;
+}
 
 /** A fence longer than any run of backticks in the text, so a file can never close its own block. */
 function fence(text: string, lang: string) {
@@ -137,9 +144,13 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
     "",
     "## Keep the look",
     "",
-    "It is dark by default and needs no setup. To change colours, set these CSS variables on :root or on a parent element. These are the defaults:",
+    "It is dark by default and needs no setup. To change colours, set these CSS variables on :root or on a parent element. These are the dark defaults:",
     "",
     fence(`:root {\n${variables.map((v) => `  ${v.name}: ${v.fallback};`).join("\n")}\n}`, "css"),
+    "",
+    "To turn on the light theme, set these values under this project's own light selector (written as .light here). If it has none, put them on :root inside @media (prefers-color-scheme: light).",
+    "",
+    fence(`.light {\n${variables.map((v) => `  ${v.name}: ${lightOf(v.name)};`).join("\n")}\n}`, "css"),
     "",
     "Keep the sizes, corners, spacing and motion as they are.",
   );

@@ -99,10 +99,10 @@ function RangeField() {
     <Field height={H}>
       <defs>
         <linearGradient id="fu-hero-near" gradientUnits="userSpaceOnUse" x1={low - 900} x2={high + 900} y1={0} y2={0}>
-          <stop offset={0} stopColor="#1F1F1F" />
-          <stop offset={0.4} stopColor="#2A2A2A" />
-          <stop offset={0.6} stopColor="#2A2A2A" />
-          <stop offset={1} stopColor="#1F1F1F" />
+          <stop offset={0} style={{ stopColor: "var(--fu-backdrop)" }} />
+          <stop offset={0.4} style={{ stopColor: "var(--fu-backdrop-near)" }} />
+          <stop offset={0.6} style={{ stopColor: "var(--fu-backdrop-near)" }} />
+          <stop offset={1} style={{ stopColor: "var(--fu-backdrop)" }} />
         </linearGradient>
         <clipPath id="fu-hero-feet">
           <rect width={FIELD_W} height={base} />
@@ -110,12 +110,12 @@ function RangeField() {
       </defs>
       <g clipPath="url(#fu-hero-feet)" strokeWidth={6} strokeLinejoin="round">
         <path d={columns(rest, base)} fill="url(#fu-hero-near)" stroke="url(#fu-hero-near)" className="fu-hero-rise" />
-        <g fill="#A3A3A3" stroke="#A3A3A3" opacity={0.3} className="fu-hero-tint">
+        <g style={{ fill: "var(--fu-control-hover)", stroke: "var(--fu-control-hover)" }} opacity={0.3} className="fu-hero-tint">
           <path d={columns(band, base)} className="fu-hero-rise" style={{ animationDelay: "240ms" }} />
         </g>
       </g>
-      <rect y={rail - 2} width={FIELD_W} height={4} rx={2} fill="#1F1F1F" />
-      <rect x={low} y={rail - 2} width={high - low} height={4} fill="#A3A3A3" fillOpacity={0.5} className="fu-hero-open" />
+      <rect y={rail - 2} width={FIELD_W} height={4} rx={2} style={{ fill: "var(--fu-backdrop)" }} />
+      <rect x={low} y={rail - 2} width={high - low} height={4} style={{ fill: "var(--fu-control-hover)" }} fillOpacity={0.5} className="fu-hero-open" />
       {/* On load the handles start near the middle of the band and glide out to its edges. */}
       {[low, high].map((cx, i) => (
         <circle
@@ -123,9 +123,8 @@ function RangeField() {
           cx={cx}
           cy={rail}
           r={10}
-          fill="#F8F5F1"
           className="fu-hero-glide"
-          style={{ "--fu-glide": `${(i ? -0.4 : 0.4) * (high - low)}px` } as CSSProperties}
+          style={{ fill: "var(--fu-handle)", stroke: "var(--fu-knob-edge)", strokeWidth: 1, "--fu-glide": `${(i ? -0.4 : 0.4) * (high - low)}px` } as CSSProperties}
         />
       ))}
     </Field>
@@ -144,14 +143,14 @@ function DotField() {
   const high = band[band.length - 1].x + STEP * 1.5;
   const dot = (id: string, fill: string) => (
     <pattern id={id} width={STEP} height={STEP} patternUnits="userSpaceOnUse" y={base}>
-      <circle cx={STEP / 2} cy={STEP / 2} r={1.1} fill={fill} />
+      <circle cx={STEP / 2} cy={STEP / 2} r={1.1} style={{ fill }} />
     </pattern>
   );
   return (
     <Field height={H}>
       <defs>
-        {dot("fu-hero-dot", "#FFFFFF")}
-        {dot("fu-hero-dot-on", "#8FAAFF")}
+        {dot("fu-hero-dot", "var(--fu-text)")}
+        {dot("fu-hero-dot-on", "var(--fu-accent-soft)")}
         <mask id="fu-hero-rest" maskUnits="userSpaceOnUse">
           <path d={stems(rest, base)} stroke="#FFFFFF" strokeWidth={STEP * 2} />
         </mask>
@@ -162,10 +161,10 @@ function DotField() {
       <rect width={FIELD_W} height={base} fill="url(#fu-hero-dot)" opacity={0.06} />
       <rect width={FIELD_W} height={base} fill="url(#fu-hero-dot)" mask="url(#fu-hero-rest)" opacity={0.22} />
       <rect width={FIELD_W} height={base} fill="url(#fu-hero-dot-on)" mask="url(#fu-hero-band)" opacity={0.75} />
-      <rect y={base + 10} width={FIELD_W} height={2} rx={1} fill="#1F1F1F" />
-      <rect x={low} y={base + 10} width={high - low} height={2} fill="#8FAAFF" fillOpacity={0.7} />
-      <circle cx={low} cy={base + 11} r={6} fill="#F8F5F1" />
-      <circle cx={high} cy={base + 11} r={6} fill="#F8F5F1" />
+      <rect y={base + 10} width={FIELD_W} height={2} rx={1} style={{ fill: "var(--fu-backdrop)" }} />
+      <rect x={low} y={base + 10} width={high - low} height={2} style={{ fill: "var(--fu-accent-soft)" }} fillOpacity={0.7} />
+      <circle cx={low} cy={base + 11} r={6} style={{ fill: "var(--fu-handle)" }} />
+      <circle cx={high} cy={base + 11} r={6} style={{ fill: "var(--fu-handle)" }} />
     </Field>
   );
 }
@@ -188,17 +187,17 @@ function RailField() {
     <Field height={H}>
       {rows.map((row) => (
         <g key={row.y}>
-          <rect x={from} y={row.y - 1} width={FIELD_W - from} height={2} rx={1} fill="#1F1F1F" />
+          <rect x={from} y={row.y - 1} width={FIELD_W - from} height={2} rx={1} style={{ fill: "var(--fu-backdrop)" }} />
           <rect
             x={row.low}
             y={row.y - 1}
             width={row.high - row.low}
             height={2}
-            fill={row.last ? "#8FAAFF" : "#404040"}
+            style={{ fill: row.last ? "var(--fu-accent-soft)" : "var(--fu-line)" }}
             fillOpacity={0.7}
           />
           {[row.low, row.high].map((cx) => (
-            <circle key={cx} cx={cx} cy={row.y} r={row.last ? 6 : 4} fill={row.last ? "#F8F5F1" : "#404040"} />
+            <circle key={cx} cx={cx} cy={row.y} r={row.last ? 6 : 4} style={{ fill: row.last ? "var(--fu-handle)" : "var(--fu-line)" }} />
           ))}
         </g>
       ))}
@@ -230,8 +229,7 @@ function ChipField() {
           width={c.w - 1}
           height={23}
           rx={11.5}
-          fill={c.on ? "#1F2747" : "none"}
-          stroke={c.on ? "#8FAAFF" : "#1F1F1F"}
+          style={{ fill: c.on ? "var(--fu-selected)" : "none", stroke: c.on ? "var(--fu-accent-soft)" : "var(--fu-backdrop)" }}
           strokeOpacity={c.on ? 0.5 : 1}
         />
       ))}

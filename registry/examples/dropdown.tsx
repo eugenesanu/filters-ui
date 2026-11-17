@@ -66,13 +66,13 @@ export default function SortExample() {
   return (
     <div className="w-full max-w-[400px]">
       <div className="flex items-center justify-between gap-3 pr-[7px] pl-[21px]">
-        <p className="text-[14px] leading-5 text-[var(--fu-dim,#8C8C8C)]">{CARS.length} cars</p>
+        <p className="text-[14px] leading-5 text-[var(--fu-dim,#929292)]">{CARS.length} cars</p>
         <DropdownMenu label="Sort by" prefix="Sort by" variant="quiet" align="end" value={sort} onChange={setSort} options={OPTIONS} />
       </div>
       <div className="relative mt-2 flex rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] p-2">
         <ol aria-hidden="true" className="w-6 shrink-0 pl-2">
           {cars.map((car, i) => (
-            <li key={i} className="flex h-14 items-center text-[13px] leading-5 tabular-nums text-[var(--fu-dim,#8C8C8C)]">
+            <li key={i} className="flex h-14 items-center text-[13px] leading-5 tabular-nums text-[var(--fu-dim,#929292)]">
               {i + 1}
             </li>
           ))}
@@ -97,7 +97,7 @@ export default function SortExample() {
               </span>
               <span className="shrink-0 text-right">
                 <span className={`block text-[15px] leading-5 font-medium ${lit("price", "text-[var(--fu-text,#F8F5F1)]")}`}>{show.price(car)}</span>
-                <span className={`block text-[13px] leading-5 ${lit("days", "text-[var(--fu-dim,#8C8C8C)]")}`}>{show.days(car)}</span>
+                <span className={`block text-[13px] leading-5 ${lit("days", "text-[var(--fu-dim,#929292)]")}`}>{show.days(car)}</span>
               </span>
             </li>
           ))}

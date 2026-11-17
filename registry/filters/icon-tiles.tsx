@@ -66,7 +66,7 @@ export function IconTiles<V extends string>({
               "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               on
                 ? "border-[var(--fu-accent-soft,#8FAAFF)] text-[var(--fu-accent-soft,#8FAAFF)] [--tile-bg:var(--fu-selected,#1F2747)]"
-                : "border-[var(--fu-control-border,#737373)] text-[var(--fu-mute,#BDBDBD)] enabled:hover:border-[var(--fu-control-hover,#A3A3A3)] enabled:hover:text-[var(--fu-accent-soft,#8FAAFF)] enabled:hover:[--tile-bg:var(--fu-surface-3,#2A2A2A)]",
+                : "border-[var(--fu-control-border,#737373)] text-[var(--fu-mute,#BDBDBD)] enabled:hover:border-[var(--fu-control-hover,#A3A3A3)] enabled:hover:text-[var(--fu-accent-soft,#8FAAFF)] enabled:hover:[--tile-bg:var(--fu-item-hover,#2A2A2A)]",
               "disabled:cursor-default disabled:opacity-40",
               option.count === 0 && !on && "opacity-40",
             )}
@@ -75,7 +75,7 @@ export function IconTiles<V extends string>({
               {option.icon}
             </span>
             <span aria-hidden="true" className="flex min-w-0 items-center justify-between gap-1">
-              <span className="truncate text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]">{option.label}</span>
+              <span className="truncate text-[14px] leading-5 text-[var(--fu-text,#F8F5F1)]">{option.label}</span>{" "}
               <CountPill variant="square" on={on} count={option.count} format={formatCount} />
             </span>
           </button>

@@ -23,7 +23,7 @@ export function SiteFooter() {
             href={site.author.url}
             target="_blank"
             rel="noopener"
-            className="rounded-[4px] text-mute transition-[color] duration-200 ease-smooth hover:text-text"
+            className="rounded-[4px] text-mute underline decoration-control-border decoration-1 underline-offset-[3px] transition-[color,text-decoration-color] duration-200 ease-smooth hover:text-text hover:decoration-current"
           >
             {site.author.name}
           </a>

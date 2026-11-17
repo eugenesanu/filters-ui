@@ -139,7 +139,7 @@ export function FiltersBar({
       inert={!visible}
       data-state={visible ? "visible" : "hidden"}
       className={cn(
-        "fixed bottom-[max(26px,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-[20px] border border-[var(--fu-hover,#333333)] bg-[var(--fu-bar,rgb(31_31_31/0.94))] p-2 shadow-[0_16px_40px_rgb(0_0_0/0.5)] backdrop-blur-md",
+        "fixed bottom-[max(26px,env(safe-area-inset-bottom))] left-1/2 z-40 flex -translate-x-1/2 gap-2 rounded-[20px] border border-[var(--fu-hover,#333333)] bg-[var(--fu-bar,rgb(31_31_31/0.94))] p-2 shadow-[0_16px_40px_var(--fu-shadow,rgb(0_0_0/0.5))] backdrop-blur-md",
         "transition-[opacity,translate] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         "data-[state=hidden]:pointer-events-none data-[state=hidden]:translate-y-[18px] data-[state=hidden]:opacity-0",
         className,

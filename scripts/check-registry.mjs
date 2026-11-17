@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { ITEMS } from "../registry/items.ts";
 import { cssVariablesOf, EXAMPLE_ASSETS, getItemFiles, specifiersOf, varUses } from "../lib/registry-files.ts";
+import { TOKENS } from "../lib/theme.ts";
 
 const ROOT = process.cwd();
 const problems = [];
@@ -77,11 +78,155 @@ for (const path of EXAMPLE_ASSETS) {
   else if (specifiersOf(readFileSync(join(ROOT, path), "utf8")).some((s) => s.startsWith("."))) fail(`${path}: an example asset imports another registry file`);
 }
 
-// Registry files stay portable: no site code, no theme classes, every colour variable with a literal fallback.
+// Colour tokens: lib/theme.ts is the one list. Every token has a dark and a light value, and app/globals.css holds
+// exactly those values: dark on :root, light under :root[data-theme="light"] and under the light media query.
+const norm = (value) =>
+  value.replaceAll("_", " ").trim().toLowerCase().replace(/\s+/g, " ").replace(/\s*([(),/])\s*/g, "$1");
+const COLOUR = /^(#[0-9a-f]{6}|rgb\(\d{1,3} \d{1,3} \d{1,3}\/(0|1|0?\.\d+)\))$/;
+for (const [name, token] of Object.entries(TOKENS)) {
+  if (!/^--fu-[a-z0-9-]+$/.test(name)) fail(`lib/theme.ts: ${name} is not a --fu-* name`);
+  for (const scheme of ["dark", "light"]) {
+    if (typeof token[scheme] !== "string" || !token[scheme].trim()) fail(`lib/theme.ts: ${name} has no ${scheme} value`);
+    else if (!COLOUR.test(norm(token[scheme]))) fail(`lib/theme.ts: ${name} ${scheme} "${token[scheme]}" is not #RRGGBB or rgb(r g b/a)`);
+  }
+}
+
+const css = readFileSync(join(ROOT, "app/globals.css"), "utf8");
+/** The declarations directly inside the first block whose selector is exactly `selector`. */
+function blockOf(selector) {
+  const at = css.split("\n").findIndex((line) => line.trim() === `${selector} {`);
+  if (at === -1) return null;
+  const declared = new Map();
+  for (const line of css.split("\n").slice(at + 1)) {
+    if (line.trim() === "}") break;
+    const m = line.match(/^\s*(--fu-[a-z0-9-]+)\s*:\s*(.+?);\s*$/);
+    if (m && declared.has(m[1])) fail(`app/globals.css: ${selector} sets ${m[1]} twice`);
+    if (m) declared.set(m[1], m[2]);
+  }
+  return declared;
+}
+const SCHEME_BLOCKS = [
+  [":root", "dark"],
+  [':root[data-theme="light"]', "light"],
+  [':root:not([data-theme="dark"])', "light"],
+];
+if (!/@media \(prefers-color-scheme: light\) \{\s*:root:not\(\[data-theme="dark"\]\) \{/.test(css)) {
+  fail('app/globals.css: the light values must also sit under @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { … } }');
+}
+for (const [selector, scheme] of SCHEME_BLOCKS) {
+  const declared = blockOf(selector);
+  if (!declared) {
+    fail(`app/globals.css: no "${selector} {" block`);
+    continue;
+  }
+  for (const [name, token] of Object.entries(TOKENS)) {
+    if (!declared.has(name)) fail(`app/globals.css: ${selector} does not set ${name}`);
+    else if (norm(declared.get(name)) !== norm(token[scheme])) fail(`app/globals.css: ${selector} sets ${name} to ${declared.get(name)}, lib/theme.ts says ${token[scheme]}`);
+  }
+  for (const [name, value] of declared) {
+    if (!(name in TOKENS) && /^(#|rgb|hsl)/i.test(value.trim())) fail(`app/globals.css: ${selector} sets colour ${name}, which is not in lib/theme.ts`);
+  }
+}
+
+// Registry files stay portable: no site code, no theme classes, every colour a --fu-* token whose fallback is its dark value.
 const SITE = /^(@\/|~\/)?(app|components|lib)(\/|$)|^\.\.\/\.\.\/(app|components|lib)(\/|$)|^next(\/|$)/;
-const THEME_COLOURS = "page|surface-1|card|surface-3|hover|line|card-border|control-border|text|mute|dim|accent|accent-hover|accent-soft|accent-pale|selected";
-const THEME_CLASS = new RegExp(`(?<![\\w-])(?:[\\w-]+:)*(?:bg|text|border|outline|ring|fill|stroke|from|to|via|shadow|decoration|divide|placeholder|caret|accent)-(?:${THEME_COLOURS})(?![\\w-])`, "g");
-const FALLBACK = /^(#[0-9a-f]{3,8}|rgba?\([^)]*\)|transparent)$/i;
+const THEME_COLOURS = Object.keys(TOKENS).map((name) => name.slice("--fu-".length)).sort((a, b) => b.length - a.length).join("|");
+const THEME_CLASS = new RegExp(
+  `(?<![\\w-])(?:[\\w-]+:)*(?:bg|text|border(?:-[xytrblse])?|outline|ring(?:-offset)?|inset-ring|fill|stroke|from|to|via|shadow|inset-shadow|drop-shadow|text-shadow|decoration|divide|placeholder|caret|accent)-(?:${THEME_COLOURS})(?![\\w-])`,
+  "g",
+);
+
+// Every CSS named colour, longest first so "whitesmoke" is not read as "white".
+const NAMED_COLOURS = (
+  "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue blueviolet brown burlywood cadetblue " +
+  "chartreuse chocolate coral cornflowerblue cornsilk crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey " +
+  "darkkhaki darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen darkslateblue darkslategray " +
+  "darkslategrey darkturquoise darkviolet deeppink deepskyblue dimgray dimgrey dodgerblue firebrick floralwhite forestgreen " +
+  "fuchsia gainsboro ghostwhite gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki " +
+  "lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan lightgoldenrodyellow lightgray lightgreen " +
+  "lightgrey lightpink lightsalmon lightseagreen lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime " +
+  "limegreen linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen mediumslateblue " +
+  "mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive " +
+  "olivedrab orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum " +
+  "powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown seagreen seashell sienna silver " +
+  "skyblue slateblue slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet wheat white " +
+  "whitesmoke yellow yellowgreen"
+)
+  .split(" ")
+  .sort((a, b) => b.length - a.length)
+  .join("|");
+const NAMED_WORD = new RegExp(`(?<![\\w-])(?:${NAMED_COLOURS})(?![\\w-])`, "gi");
+// Tailwind colour utilities, with every prefix that takes a colour (ring-offset, inset-ring, drop-shadow, border sides…).
+const COLOUR_UTILITY =
+  "bg|text|border(?:-[xytrblse])?|outline|ring(?:-offset)?|inset-ring|fill|stroke|from|to|via|shadow|inset-shadow|drop-shadow|text-shadow|decoration|divide|placeholder|caret|accent";
+// A style or prop value that carries colour: boxShadow: "0 0 0 1px white", borderColor: "Black", background: "…".
+const STYLE_VALUE = /\b[A-Za-z-]*(?:color|background|border|outline|fill|stroke|shadow)[A-Za-z-]*\s*:\s*(["'`])((?:(?!\1).)*)\1/gi;
+// A raw colour anywhere in a registry file, comments included, once every var(--fu-…, fallback) is taken out.
+const RAW_COLOUR = [
+  /#[0-9a-f]{3,8}\b/gi,
+  // Not \b: a Tailwind arbitrary value puts "_" (a word character) right before the function, as in 0_1px_rgb(…).
+  /(?<![A-Za-z0-9-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch)\(/gi,
+  new RegExp(
+    `(?<![\\w-])(?:[\\w-]+:)*(?:${COLOUR_UTILITY})-(?:white|black|(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|mauve|olive|mist|taupe)-\\d{2,3})(?![\\w-])`,
+    "g",
+  ),
+  /\b(?:fill|stroke|stopColor|stop-color|floodColor|lightingColor)\s*=\s*\{?\s*["'](?!none|currentColor|transparent|inherit|url\(|var\(--)[a-z#]/gi,
+  // A named colour as a value inside brackets or a colour function: bg-[white], border-[color:black], color-mix(in_srgb,white_10%,…).
+  new RegExp(`(?<=[\\[:,_(]\\s*)(?:${NAMED_COLOURS})(?=\\s*[\\]_,)/]|\\s+\\d)`, "gi"),
+];
+/** Named colours inside a colour-carrying style value, in any letter case and at any place in it. */
+function namedInStyles(line) {
+  const hits = [];
+  for (const value of line.matchAll(STYLE_VALUE)) for (const word of value[2].matchAll(NAMED_WORD)) hits.push(word[0]);
+  return hits;
+}
+// Data, not theme: the paint of each colour swatch.
+const DATA_COLOUR = /^\s*[A-Z][a-z]+: "#[0-9A-F]{6}",$/;
+const DATA_FILES = new Set(["registry/demo/cars.ts", "registry/examples/color-swatches.tsx"]);
+// Data, not theme: the colour name of a demo car (a record line with make: "…" or name: "…"), only in demo and example files.
+const CAR_COLOUR = /\bcolor: "[A-Z][a-z]+"/g;
+const carRecord = (path, line) => /^registry\/(demo|examples)\//.test(path) && /\b(?:make|name): "/.test(line);
+// Alpha masks: only the opacity of their stops counts. Only the mask's own value is exempt: the string assigned to a
+// MASK_… constant, a [mask-image:…] class, a maskImage: "…" style or a mask-image: … declaration. The rest of the line is checked.
+const MASK_VALUE = [
+  /\bMASK_[A-Z_]+\s*=\s*(["'`])(?:(?!\1).)*\1/g,
+  /\bmaskImage\s*:\s*(["'`])(?:(?!\1).)*\1/g,
+  /mask-image\s*:[^;"'`]*/g,
+];
+
+/** The line with every mask value cut out. A [mask-image:…] class is cut up to its matching "]". */
+function withoutMasks(line) {
+  let out = line;
+  for (let at; (at = out.search(/\[(?:-webkit-)?mask-image:/)) !== -1; ) {
+    let depth = 0;
+    let j = at;
+    for (; j < out.length; j++) {
+      if (out[j] === "[") depth++;
+      else if (out[j] === "]" && --depth === 0) break;
+    }
+    out = out.slice(0, at) + "MASK" + out.slice(j + 1);
+  }
+  for (const pattern of MASK_VALUE) out = out.replace(pattern, "MASK");
+  return out;
+}
+
+function withoutTokens(source) {
+  let out = "";
+  let i = 0;
+  const start = /var\(\s*--fu-[a-z0-9-]+\s*,/gi;
+  for (let m; (m = start.exec(source)); ) {
+    out += source.slice(i, m.index) + "VAR";
+    let depth = 1;
+    let j = m.index + m[0].length;
+    for (; j < source.length && depth > 0; j++) {
+      if (source[j] === "(") depth++;
+      else if (source[j] === ")") depth--;
+    }
+    i = j;
+    start.lastIndex = j;
+  }
+  return out + source.slice(i);
+}
 
 for (const path of registryFiles) {
   if (path === "registry/items.ts") continue;
@@ -91,10 +236,20 @@ for (const path of registryFiles) {
   }
   for (const line of source.split("\n").map((text, i) => ({ text, n: i + 1 }))) {
     for (const match of line.text.matchAll(THEME_CLASS)) fail(`${path}:${line.n}: theme class "${match[0]}" (use var(--fu-…,#hex))`);
+    if (DATA_FILES.has(path) && DATA_COLOUR.test(line.text)) continue;
+    let bare = withoutTokens(withoutMasks(line.text));
+    if (carRecord(path, bare)) bare = bare.replace(CAR_COLOUR, "DATA");
+    const raw = RAW_COLOUR.flatMap((pattern) => [...bare.matchAll(pattern)].map((match) => match[0]));
+    for (const colour of new Set([...raw, ...namedInStyles(bare)])) {
+      fail(`${path}:${line.n}: raw colour "${colour}" (use var(--fu-token,<its dark value>) from lib/theme.ts)`);
+    }
   }
   for (const use of varUses(source)) {
+    const token = TOKENS[use.name];
     if (use.fallback === null) fail(`${path}: var(${use.name}) has no fallback`);
-    else if (!FALLBACK.test(use.fallback.replaceAll("_", " ").trim())) fail(`${path}: var(${use.name}) falls back to "${use.fallback}", not a hex or rgb() colour`);
+    else if (!token) fail(`${path}: ${use.name} is not a token in lib/theme.ts`);
+    else if (token.site) fail(`${path}: ${use.name} is a site-only token`);
+    else if (norm(use.fallback) !== norm(token.dark)) fail(`${path}: var(${use.name}) falls back to "${use.fallback}", but its dark value is ${token.dark}`);
   }
 }
 

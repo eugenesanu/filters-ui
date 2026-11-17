@@ -45,7 +45,7 @@ export function BodyIcon({ body, ...props }: SVGProps<SVGSVGElement> & { body: B
     <svg viewBox="0 0 320 140" height={28} aria-hidden="true" focusable="false" {...props}>
       <path d={outline} fill="currentColor" />
       {wheels.map((x) => (
-        <circle key={x} cx={x} cy={112} r={19} fill="currentColor" stroke="var(--tile-bg, #1F1F1F)" strokeWidth={7} />
+        <circle key={x} cx={x} cy={112} r={19} fill="currentColor" stroke="var(--tile-bg,var(--fu-card,#1F1F1F))" strokeWidth={7} />
       ))}
     </svg>
   );

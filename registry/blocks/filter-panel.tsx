@@ -66,13 +66,14 @@ const SHOWN = "opacity-100 blur-none translate-y-0";
 
 // Rose along the top, violet down the left, amber to teal down the right; each fades out about 28px in from the edge.
 const EDGE_LIGHT = {
-  top: "linear-gradient(90deg, rgb(236 128 146 / 0.2), rgb(232 122 150 / 0.13) 50%, rgb(245 158 108 / 0.16))",
-  left: "linear-gradient(180deg, rgb(236 128 146 / 0.2), rgb(150 112 255 / 0.17) 35%, rgb(112 110 255 / 0.15) 75%, rgb(90 110 255 / 0.08))",
-  right: "linear-gradient(180deg, rgb(245 158 108 / 0.17), rgb(60 210 180 / 0.13) 45%, rgb(45 200 200 / 0.11) 80%, rgb(76 107 255 / 0.05))",
-  fadeDown: "linear-gradient(180deg, #000, rgb(0 0 0 / 0.4) 35%, transparent)",
-  fadeRight: "linear-gradient(90deg, #000, rgb(0 0 0 / 0.4) 35%, transparent)",
-  fadeLeft: "linear-gradient(270deg, #000, rgb(0 0 0 / 0.4) 35%, transparent)",
+  top: "linear-gradient(90deg, color-mix(in srgb, var(--fu-glow-rose,#EC8092) 20%, transparent), color-mix(in srgb, var(--fu-glow-rose,#EC8092) 13%, transparent) 50%, color-mix(in srgb, var(--fu-glow-amber,#F59E6C) 16%, transparent))",
+  left: "linear-gradient(180deg, color-mix(in srgb, var(--fu-glow-rose,#EC8092) 20%, transparent), color-mix(in srgb, var(--fu-glow-violet,#8A6CFF) 17%, transparent) 35%, color-mix(in srgb, var(--fu-glow-violet,#8A6CFF) 15%, transparent) 75%, color-mix(in srgb, var(--fu-glow-blue,#4C6BFF) 8%, transparent))",
+  right: "linear-gradient(180deg, color-mix(in srgb, var(--fu-glow-amber,#F59E6C) 17%, transparent), color-mix(in srgb, var(--fu-glow-teal,#2DD4BF) 13%, transparent) 45%, color-mix(in srgb, var(--fu-glow-teal,#2DD4BF) 11%, transparent) 80%, color-mix(in srgb, var(--fu-glow-blue,#4C6BFF) 5%, transparent))",
 };
+// Alpha masks: only the opacity of these stops counts, not their colour.
+const MASK_DOWN = "linear-gradient(180deg, #000, rgb(0 0 0 / 0.4) 35%, transparent)";
+const MASK_RIGHT = "linear-gradient(90deg, #000, rgb(0 0 0 / 0.4) 35%, transparent)";
+const MASK_LEFT = "linear-gradient(270deg, #000, rgb(0 0 0 / 0.4) 35%, transparent)";
 
 /** The rim, and with glow a faint coloured light along the edges. Drawn over the rows, so pinned heads never hide it. */
 function Edge({ glow }: { glow: boolean }) {
@@ -81,14 +82,14 @@ function Edge({ glow }: { glow: boolean }) {
       <span
         className={cn(
           "absolute inset-0 rounded-[inherit]",
-          glow ? "shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)]" : "shadow-[inset_0_0_0_1px_var(--fu-card-border,#2A2A2A)]",
+          glow ? "shadow-[inset_0_0_0_1px_var(--fu-line,#404040)]" : "shadow-[inset_0_0_0_1px_var(--fu-card-border,#2A2A2A)]",
         )}
       />
       {glow && (
         <>
-          <span className="absolute inset-x-0 top-0 h-14" style={{ backgroundImage: EDGE_LIGHT.top, maskImage: EDGE_LIGHT.fadeDown }} />
-          <span className="absolute inset-y-0 left-0 w-12" style={{ backgroundImage: EDGE_LIGHT.left, maskImage: EDGE_LIGHT.fadeRight }} />
-          <span className="absolute inset-y-0 right-0 w-12" style={{ backgroundImage: EDGE_LIGHT.right, maskImage: EDGE_LIGHT.fadeLeft }} />
+          <span className="absolute inset-x-0 top-0 h-14" style={{ backgroundImage: EDGE_LIGHT.top, maskImage: MASK_DOWN }} />
+          <span className="absolute inset-y-0 left-0 w-12" style={{ backgroundImage: EDGE_LIGHT.left, maskImage: MASK_RIGHT }} />
+          <span className="absolute inset-y-0 right-0 w-12" style={{ backgroundImage: EDGE_LIGHT.right, maskImage: MASK_LEFT }} />
         </>
       )}
     </span>
@@ -130,7 +131,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
           "group/head sticky top-0 z-10 transition-[background-color] motion-reduce:transition-none",
           SMOOTH,
           open
-            ? "bg-[var(--fu-hover,#333333)] duration-[480ms]"
+            ? "bg-[var(--fu-head-open,#333333)] duration-[480ms]"
             : "duration-200 [@media(hover:hover)]:hover:bg-[var(--fu-card-hover,#262626)]",
         )}
       >
@@ -526,7 +527,7 @@ export function FilterPanel({
           Filters
           <span
             aria-hidden="true"
-            className={cn("font-normal tabular-nums text-[var(--fu-dim,#8C8C8C)]", SWAP, anySet ? SHOWN : GONE_DOWN)}
+            className={cn("font-normal tabular-nums text-[var(--fu-dim,#929292)]", SWAP, anySet ? SHOWN : GONE_DOWN)}
           >
             <TextSwap>{String(anySet ? setCount : lastSetCount)}</TextSwap>
           </span>

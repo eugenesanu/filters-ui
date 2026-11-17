@@ -18,7 +18,7 @@ export type SelectFieldProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, "va
 };
 
 /**
- * A native select drawn like TextField: 44px, 12px radius, 1px #737373 border, 15px text, a chevron.
+ * A native select drawn like TextField: 44px, 12px radius, 1px --fu-control-border border, 15px text, a chevron.
  * The browser's own picker opens, so keyboards, screen readers and phones need no popover code.
  * The option whose value is "" is the empty choice and shows muted, like a placeholder.
  */

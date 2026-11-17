@@ -79,7 +79,7 @@ export default function NoResultsExample() {
             <li key={car.name} className="flex h-12 items-center justify-between gap-3 px-3 text-[15px] leading-5 tabular-nums">
               <span className="min-w-0 truncate">
                 <span className="font-medium">{car.name}</span>{" "}
-                <span className="text-[13px] text-[var(--fu-dim,#8C8C8C)]">
+                <span className="text-[13px] text-[var(--fu-dim,#929292)]">
                   {car.fuel}, {car.seats} seats
                 </span>
               </span>
@@ -99,7 +99,7 @@ export default function NoResultsExample() {
         />
       )}
       <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
-        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">of {CARS.length} cars</span>
+        <span className="font-medium">{results.length}</span> <span className="text-[var(--fu-dim,#929292)]">of {CARS.length} cars</span>
       </p>
     </div>
   );

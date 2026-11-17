@@ -50,7 +50,7 @@ export default function MakeBarsExample() {
         <Segmented label="Body style" options={bodyOptions} value={body} onChange={setBody} countLabel={carCount} />
       </FilterCard>
       <p aria-live="polite" className="px-4 text-[14px] leading-5 tabular-nums">
-        <span className="font-medium">{count(makes, body)}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">{count(makes, body) === 1 ? "car" : "cars"}</span>
+        <span className="font-medium">{count(makes, body)}</span> <span className="text-[var(--fu-dim,#929292)]">{count(makes, body) === 1 ? "car" : "cars"}</span>
       </p>
     </div>
   );

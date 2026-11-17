@@ -3,17 +3,18 @@
 import { createHighlighterCore, type HighlighterCore, type ThemeRegistration } from "shiki/core";
 import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 
-// Only the product's own colours, so the code reads as part of the page.
-const TEXT = "#F8F5F1";
-const MUTE = "#BDBDBD";
-const DIM = "#8C8C8C";
-const SOFT = "#8FAAFF";
-const PALE = "#D1DDFF";
+// Only the product's own colour tokens, so the code reads as part of the page and follows the theme: the dark and
+// light sets are the tokens' values in lib/theme.ts (strings in --fu-accent-pale, keywords in --fu-accent-soft).
+const TEXT = "var(--fu-text)";
+const MUTE = "var(--fu-mute)";
+const DIM = "var(--fu-dim)";
+const SOFT = "var(--fu-accent-soft)";
+const PALE = "var(--fu-accent-pale)";
 
 const theme: ThemeRegistration = {
   name: "filters-ui",
   type: "dark",
-  colors: { "editor.background": "#00000000", "editor.foreground": MUTE },
+  colors: { "editor.background": "transparent", "editor.foreground": MUTE },
   tokenColors: [
     { settings: { foreground: MUTE } },
     { scope: ["comment", "punctuation.definition.comment"], settings: { foreground: DIM } },

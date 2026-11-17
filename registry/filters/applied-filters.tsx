@@ -30,6 +30,10 @@ type Box = { x: number; y: number; w: number; h: number };
 
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const CLEAR_KEY = "\u0000clear-all";
+// A changed chip flashes these; when the page sets no --fu-* variables the fallbacks inside are used.
+const TINT = "var(--fu-selected,#1F2747)";
+const PALE = "var(--fu-accent-pale,#D1DDFF)";
+const fallbackOf = (value: string) => value.slice(value.indexOf(",") + 1, -1);
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
@@ -170,8 +174,8 @@ export function AppliedFilters({
       const chip = node.querySelector<HTMLElement>("button");
       if (!chip) continue;
       const style = getComputedStyle(chip);
-      const tint = style.getPropertyValue("--fu-selected").trim() || "#1F2747";
-      const pale = style.getPropertyValue("--fu-accent-pale").trim() || "#D1DDFF";
+      const tint = style.getPropertyValue("--fu-selected").trim() || fallbackOf(TINT);
+      const pale = style.getPropertyValue("--fu-accent-pale").trim() || fallbackOf(PALE);
       chip.animate([{ backgroundColor: tint }], { duration: 1600, easing: EASE });
       chip.querySelector<HTMLElement>("[data-chip-value]")?.animate([{ color: pale }], { duration: 1600, easing: EASE });
     }
@@ -256,16 +260,19 @@ export function AppliedFilters({
                 TAP,
               )}
             >
-              <span aria-hidden="true" className="shrink-0 text-[var(--fu-dim,#8C8C8C)]">
+              <span
+                aria-hidden="true"
+                className="shrink-0 text-[var(--fu-dim,#929292)] transition-[color] duration-200 motion-reduce:transition-none [@media(hover:hover)]:group-hover/chip:text-[var(--fu-mute,#BDBDBD)]"
+              >
                 {filter.label}
-              </span>
+              </span>{" "}
               <TextSwap aria-hidden="true" data-chip-value="" className="min-w-0 font-medium text-[var(--fu-text,#F8F5F1)]">
                 {filter.value}
               </TextSwap>
               <span
                 aria-hidden="true"
                 className={cn(
-                  "ml-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--fu-dim,#8C8C8C)] transition-[color,background-color] duration-200",
+                  "ml-0.5 flex size-5 shrink-0 items-center justify-center rounded-[6px] text-[var(--fu-dim,#929292)] transition-[color,background-color] duration-200",
                   "group-hover/chip:bg-[var(--fu-line,#404040)] group-hover/chip:text-[var(--fu-text,#F8F5F1)] group-focus-visible/chip:text-[var(--fu-text,#F8F5F1)]",
                 )}
               >
@@ -275,7 +282,7 @@ export function AppliedFilters({
           </li>
         ))}
         {showClear && (
-          <li role="none" data-key={CLEAR_KEY} className="flex">
+          <li data-key={CLEAR_KEY} className="flex">
             <button
               type="button"
               onClick={clearAll}

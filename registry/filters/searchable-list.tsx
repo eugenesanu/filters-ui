@@ -81,7 +81,7 @@ function Marked({ text, query, panel = false }: { text: string; query: string; p
   const at = query ? text.toLowerCase().indexOf(query) : -1;
   if (at < 0) return <>{text}</>;
   if (panel) {
-    const dim = "text-[var(--fu-dim,#8C8C8C)]";
+    const dim = "text-[var(--fu-dim,#929292)]";
     return (
       <>
         <span className={dim}>{text.slice(0, at)}</span>
@@ -142,7 +142,7 @@ type RowProps = {
 };
 
 // The whole row is the checkbox's label. The native box is hidden and drawn again: 18px, 5px radius, the tile's selected fill with an accent check that draws in.
-// The panel look draws it 20px with 6px corners, filled with the accent and a white check once ticked.
+// The panel look draws it 20px with 6px corners, filled with the accent and an --fu-on-accent check once ticked.
 function Row({ label, query, count, checked, disabled, nested, panel, formatCount, countLabel, onToggle, onBlur }: RowProps) {
   return (
     <label
@@ -177,7 +177,7 @@ function Row({ label, query, count, checked, disabled, nested, panel, formatCoun
           SMOOTH,
           "[@media(hover:hover)]:group-hover/row:peer-enabled:border-[var(--fu-control-hover,#A3A3A3)]",
           panel
-            ? "size-5 rounded-[6px] border-[1.5px] bg-[var(--fu-field,rgb(255_255_255/0.03))] text-[var(--fu-on-accent,#FFFFFF)] peer-checked:border-[var(--fu-accent,#3B57E6)] peer-checked:bg-[var(--fu-accent,#3B57E6)] [@media(hover:hover)]:group-hover/row:peer-checked:border-[var(--fu-accent,#3B57E6)]"
+            ? "size-5 rounded-[6px] border-[1.5px] bg-[var(--fu-field-wash,rgb(255_255_255/0.03))] text-[var(--fu-on-accent,#FFFFFF)] peer-checked:border-[var(--fu-accent,#3B57E6)] peer-checked:bg-[var(--fu-accent,#3B57E6)] [@media(hover:hover)]:group-hover/row:peer-checked:border-[var(--fu-accent,#3B57E6)]"
             : "peer-checked:border-[var(--fu-accent-soft,#8FAAFF)] peer-checked:bg-[var(--fu-selected,#1F2747)] [@media(hover:hover)]:group-hover/row:peer-checked:border-[var(--fu-accent-soft,#8FAAFF)]",
         )}
       >
@@ -383,7 +383,7 @@ export function SearchableList({
           clearLabel="Clear search"
           autoComplete="off"
           spellCheck={false}
-          className={panel ? "h-12 gap-3 bg-[var(--fu-field,rgb(255_255_255/0.03))] px-3.5 text-[17px]" : undefined}
+          className={panel ? "h-12 gap-3 bg-[var(--fu-field-wash,rgb(255_255_255/0.03))] px-3.5 text-[17px]" : undefined}
           inputClassName="[&::-webkit-search-cancel-button]:appearance-none"
           onKeyDown={(event) => {
             if (event.key === "Escape" && query) {

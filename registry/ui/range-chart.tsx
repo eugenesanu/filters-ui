@@ -290,13 +290,13 @@ export function RangeChart({
                 data-handle={handle}
                 data-grabbed={grabbed || undefined}
                 className={cn(
-                  "absolute top-[2px] -ml-[10px] size-5 cursor-grab touch-none rounded-full bg-[var(--fu-text,#F8F5F1)]",
-                  "shadow-[0_0_0_0_color-mix(in_srgb,var(--fu-accent-soft,#8FAAFF)_28%,transparent),0_0_0_1px_rgb(0_0_0/0.25),0_2px_6px_rgb(0_0_0/0.45)]",
+                  "absolute top-[2px] -ml-[10px] size-5 cursor-grab touch-none rounded-full bg-[var(--fu-handle,#F8F5F1)]",
+                  "shadow-[0_0_0_0_color-mix(in_srgb,var(--fu-accent-soft,#8FAAFF)_28%,transparent),0_0_0_1px_var(--fu-handle-edge,rgb(0_0_0/0.25)),0_2px_6px_var(--fu-shadow,rgb(0_0_0/0.5))]",
                   "transition-[left,scale,box-shadow] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                   "before:absolute before:-inset-[10px] before:rounded-full before:content-['']",
                   "hover:scale-[1.15]",
                   "peer-focus-visible:z-[1] data-[grabbed]:z-[1] data-[grabbed]:scale-[1.15] data-[grabbed]:cursor-grabbing",
-                  "data-[grabbed]:shadow-[0_0_0_6px_color-mix(in_srgb,var(--fu-accent-soft,#8FAAFF)_28%,transparent),0_0_0_1px_rgb(0_0_0/0.25),0_2px_6px_rgb(0_0_0/0.45)]",
+                  "data-[grabbed]:shadow-[0_0_0_6px_color-mix(in_srgb,var(--fu-accent-soft,#8FAAFF)_28%,transparent),0_0_0_1px_var(--fu-handle-edge,rgb(0_0_0/0.25)),0_2px_6px_var(--fu-shadow,rgb(0_0_0/0.5))]",
                   "group-data-[dragging]/range:data-[grabbed]:transition-[scale,box-shadow]",
                   "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-solid peer-focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
                 )}

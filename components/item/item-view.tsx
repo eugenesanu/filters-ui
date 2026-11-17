@@ -34,6 +34,8 @@ export async function ItemView({ item }: { item: RegistryItem }) {
           }
         >
           <div className={wide ? "" : "lg:self-stretch"}>
+            {/* Examples title their cards at h3 or below; this keeps the outline in order under the page's h1. */}
+            <h2 className="sr-only">Live example</h2>
             <FilterStage slug={item.slug} />
           </div>
           <CopyPanel

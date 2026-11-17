@@ -244,7 +244,7 @@ export function AllFilters({
         {onClearAll && setCount > 0 && (
           <button
             type="button"
-            aria-label={`Clear all ${setCount} filters`}
+            aria-label={`${setCount} set, clear all`}
             onClick={() => {
               onClearAll();
               focusFind();
@@ -323,7 +323,7 @@ export function AllFilters({
               const groupId = `${id}-group-${index}`;
               return (
                 <div key={group.label} role="group" aria-labelledby={groupId} className="relative">
-                  <div id={groupId} className="px-3 pt-4 pb-1.5 text-[12px] leading-4 font-medium text-[var(--fu-dim,#8C8C8C)]">
+                  <div id={groupId} className="px-3 pt-4 pb-1.5 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
                     {group.label}
                   </div>
                   {shown.map((entry) => (
@@ -349,7 +349,7 @@ export function AllFilters({
             {visible.length === 0 && (
               <p role="status" className="m-0 px-3 pt-6 pb-4 text-center text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
                 No filter called &ldquo;{query.trim()}&rdquo;.
-                <span className="block text-[var(--fu-dim,#8C8C8C)]">Try another word.</span>
+                <span className="block text-[var(--fu-dim,#929292)]">Try another word.</span>
               </p>
             )}
           </div>
@@ -409,7 +409,7 @@ export function AllFilters({
                 <div className="mt-5 max-w-[420px]">{current.content}</div>
               </>
             ) : (
-              <p className="m-0 grid min-h-[240px] place-items-center text-center text-[15px] leading-6 text-[var(--fu-dim,#8C8C8C)]">
+              <p className="m-0 grid min-h-[240px] place-items-center text-center text-[15px] leading-6 text-[var(--fu-dim,#929292)]">
                 Pick a filter on the left.
               </p>
             )}
@@ -474,7 +474,7 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
         >
           <Marked text={entry.label} query={query} />
           {via && (
-            <span className="ml-1.5 text-[13px] font-normal text-[var(--fu-dim,#8C8C8C)]">
+            <span className="ml-1.5 text-[13px] font-normal text-[var(--fu-dim,#929292)]">
               <Marked text={via} query={query} />
             </span>
           )}
@@ -484,7 +484,7 @@ function Row({ id, entry, query, picked, tabbable, buttonRef, onPick, onFocus, o
           size={16}
           className={cn(
             "shrink-0 -rotate-90 transition-[color,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-            picked ? "translate-x-0.5 text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)] group-hover/row:translate-x-0.5",
+            picked ? "translate-x-0.5 text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)] group-hover/row:translate-x-0.5",
           )}
         />
       </button>
@@ -601,7 +601,7 @@ function ValueChips({ values, picked }: { values: readonly FilterValue[]; picked
                   )}
                 >
                   {value.color && (
-                    <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_rgb(255_255_255/0.2)]" style={{ backgroundColor: value.color }} />
+                    <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full shadow-[inset_0_0_0_1px_var(--fu-swatch-edge,rgb(255_255_255/0.2))]" style={{ backgroundColor: value.color }} />
                   )}
                   {value.label}
                   {!more && (

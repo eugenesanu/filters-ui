@@ -37,7 +37,7 @@ export type SelectProps = Omit<
   formatCount?: (n: number) => string;
   /** Screen-reader words for a count, read after the option's name. Default "6 results". */
   countLabel?: (n: number) => string;
-  /** A quieter field (#404040 border, dim text) while it waits on another choice, such as Model before a make. It still opens. */
+  /** A quieter field (--fu-line border, dim text) while it waits on another choice, such as Model before a make. It still opens. */
   waiting?: boolean;
   /** Classes for the outer wrapper, e.g. its width. */
   className?: string;
@@ -50,7 +50,7 @@ const PAGE = 10;
 const defaultCountLabel = (n: number) => (n === 1 ? "1 result" : `${new Intl.NumberFormat("en-US").format(n)} results`);
 
 /**
- * A select drawn like TextField (44px, 12px radius, #737373 border, 15px text, a chevron) whose list grows out of the
+ * A select drawn like TextField (44px, 12px radius, --fu-control-border border, 15px text, a chevron) whose list grows out of the
  * field in a panel of its own instead of the system menu. One highlight marks the active row; the chosen row is
  * tinted with a check that draws in; options with counts show a bar for their share that grows in the first time the list opens.
  * Focus stays on the field: arrows, Home, End, Page Up and Page Down move, typing finds an option by its first letters,
@@ -258,7 +258,7 @@ export function Select({
           data-empty={empty || undefined}
           className={cn(
             "min-w-0 flex-1 grid-cols-[minmax(0,1fr)] tabular-nums transition-[color] duration-[480ms] [&>span]:truncate",
-            waiting ? "text-[var(--fu-dim,#8C8C8C)]" : "data-[empty]:text-[var(--fu-mute,#BDBDBD)]",
+            waiting ? "text-[var(--fu-dim,#929292)]" : "data-[empty]:text-[var(--fu-mute,#BDBDBD)]",
           )}
         >
           {shown}
@@ -290,12 +290,12 @@ export function Select({
       >
         <RowHighlight activeId={open && current !== null ? optionId(current) : null} open={open} />
         {heading != null && (
-          <div aria-hidden="true" className="px-2.5 pt-1.5 pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#8C8C8C)]">
+          <div aria-hidden="true" className="px-2.5 pt-1.5 pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
             {heading}
           </div>
         )}
         {options.length === 0 && (
-          <div role="presentation" className="flex min-h-10 items-center px-2.5 text-[14px] leading-5 text-[var(--fu-dim,#8C8C8C)]">
+          <div role="presentation" className="flex min-h-10 items-center px-2.5 text-[14px] leading-5 text-[var(--fu-dim,#929292)]">
             {emptyText}
           </div>
         )}
@@ -329,7 +329,7 @@ export function Select({
                 "forced-colors:data-[active]:bg-[Highlight] forced-colors:data-[active]:text-[HighlightText]",
               )}
             >
-              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{option.label}</span>
+              <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{option.label}</span>{" "}
               {counted && <ListCount count={option.count ?? 0} max={most} order={order} on={selected} bar={option.value !== ""} format={formatCount} />}
               <ListCheck on={selected} />
             </div>

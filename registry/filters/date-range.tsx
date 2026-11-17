@@ -105,6 +105,12 @@ const spokenDay = (iso: string) => {
   const [y, m, d] = parts(iso);
   return `${WEEKDAYS[new Date(timeOf(iso)).getUTCDay()]}, ${MONTHS[m]} ${d}, ${y}`;
 };
+// A day cell's name: the grid is named by its month and year, and the day number comes last so the count read
+// after it follows it, as on screen.
+const cellDay = (iso: string) => {
+  const [, m, d] = parts(iso);
+  return `${WEEKDAYS[new Date(timeOf(iso)).getUTCDay()]}, ${MONTHS[m]} ${d}`;
+};
 
 function describe(value: DateRangeValue, presets: readonly DatePreset[], today: string | null, long: boolean) {
   if (!value) return null;
@@ -503,7 +509,7 @@ export function DateRange({
               aria-selected={live ? selected : undefined}
               aria-disabled={live && !can ? true : undefined}
               aria-current={live && isToday ? "date" : undefined}
-              aria-label={live ? `${spokenDay(day)}${count !== null ? `, ${countLabel(count)}` : ""}` : undefined}
+              aria-label={live ? `${cellDay(day)}${count !== null ? `, ${countLabel(count)}` : ""}` : undefined}
               data-day={day}
               onClick={live ? () => pickDay(day) : undefined}
               onPointerEnter={live && pending && can ? () => setPreview(day) : undefined}
@@ -544,26 +550,26 @@ export function DateRange({
                         ? "text-[var(--fu-accent-pale,#D1DDFF)]"
                         : can
                           ? count === 0
-                            ? "text-[var(--fu-dim,#8C8C8C)]"
+                            ? "text-[var(--fu-dim,#929292)]"
                             : "text-[var(--fu-text,#F8F5F1)]"
                           : "text-[var(--fu-line,#404040)]",
                   isToday && !isEdge && !isPreviewEnd && "shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
                   // Forced colours drop the band's fill, so the picked days take the system highlight instead.
                   (inBand || isEdge) && "forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:[forced-color-adjust:none]",
-                  can && !isEdge && !inBand && "group-hover/day:bg-[var(--fu-surface-3,#2A2A2A)]",
+                  can && !isEdge && !inBand && "group-hover/day:bg-[var(--fu-item-hover,#2A2A2A)]",
                   can && "group-active/day:scale-[0.94] group-active/day:duration-75",
                   live && "group-focus-visible/day:outline-2 group-focus-visible/day:outline-offset-1 group-focus-visible/day:outline-solid group-focus-visible/day:outline-[var(--fu-accent-soft,#8FAAFF)]",
                 )}
                 // The day's colours change as the band reaches it; a hover never waits.
                 style={{ transitionDelay: isEdge ? `${timing.delay}ms` : `${timing.delay}ms, 0ms, 0ms, 0ms` }}
               >
-                <span className="text-[14px] font-medium leading-4 tabular-nums">{n}</span>
+                <span className="text-[14px] font-medium leading-4 tabular-nums">{n}</span>{" "}
                 {/* Every date keeps the count's line, so the numbers sit on one baseline whether a day has items or not. */}
                 {countOf && (
                   <span
                     className={cn(
                       "mt-px h-3 text-[10px] leading-3 tabular-nums transition-colors duration-[180ms] motion-reduce:transition-none",
-                      isEdge && !isPreviewEnd ? "text-[rgb(255_255_255/0.72)]" : inBand ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)]",
+                      isEdge && !isPreviewEnd ? "text-[var(--fu-on-accent-mute,#E1E7FF)]" : inBand ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]",
                     )}
                     style={{ transitionDelay: `${timing.delay}ms` }}
                   >
@@ -705,7 +711,7 @@ export function DateRange({
                   FOCUS_RING,
                   choice.on
                     ? cn("text-[var(--fu-accent-pale,#D1DDFF)]", !wash && "bg-[var(--fu-selected,#1F2747)]")
-                    : "text-[var(--fu-mute,#BDBDBD)] hover:bg-[var(--fu-surface-3,#2A2A2A)] hover:text-[var(--fu-text,#F8F5F1)]",
+                    : "text-[var(--fu-mute,#BDBDBD)] hover:bg-[var(--fu-item-hover,#2A2A2A)] hover:text-[var(--fu-text,#F8F5F1)]",
                 )}
               >
                 <span className="truncate">{choice.label}</span>
@@ -748,7 +754,7 @@ export function DateRange({
                 className={cn(
                   "relative -ml-2 flex h-9 min-w-0 cursor-pointer items-center gap-1 rounded-[10px] px-2 text-[15px] leading-5 font-semibold text-[var(--fu-text,#F8F5F1)]",
                   "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
-                  "transition-colors duration-200 hover:bg-[var(--fu-surface-3,#2A2A2A)]",
+                  "transition-colors duration-200 hover:bg-[var(--fu-item-hover,#2A2A2A)]",
                   FOCUS_RING,
                 )}
               >
@@ -767,7 +773,7 @@ export function DateRange({
                     onClick={() => step(by)}
                     className={cn(
                       "grid size-9 cursor-pointer place-items-center rounded-[10px] border border-[var(--fu-line,#404040)] text-[var(--fu-mute,#BDBDBD)]",
-                      "transition-[border-color,background-color,color,scale] duration-200 hover:border-[var(--fu-control-border,#737373)] hover:bg-[var(--fu-surface-3,#2A2A2A)] hover:text-[var(--fu-text,#F8F5F1)]",
+                      "transition-[border-color,background-color,color,scale] duration-200 hover:border-[var(--fu-control-border,#737373)] hover:bg-[var(--fu-item-hover,#2A2A2A)] hover:text-[var(--fu-text,#F8F5F1)]",
                       "active:scale-[0.94] active:duration-75 motion-reduce:transition-none",
                       "pointer-coarse:relative pointer-coarse:after:absolute pointer-coarse:after:-inset-1 pointer-coarse:after:content-['']",
                       FOCUS_RING,
@@ -787,7 +793,7 @@ export function DateRange({
                   mode === "days" ? "opacity-100" : "pointer-events-none -translate-y-1 opacity-0 blur-[2px]",
                 )}
               >
-                <div aria-hidden="true" className="grid h-8 grid-cols-7 items-center text-center text-[12px] leading-4 text-[var(--fu-dim,#8C8C8C)]">
+                <div aria-hidden="true" className="grid h-8 grid-cols-7 items-center text-center text-[12px] leading-4 text-[var(--fu-dim,#929292)]">
                   {weekdays.map((name) => (
                     <abbr key={name} title={name} className="no-underline">
                       {name.slice(0, 2)}
@@ -852,7 +858,8 @@ export function DateRange({
                       tabIndex={m === focusedMonth ? 0 : -1}
                       aria-current={isShown || undefined}
                       aria-disabled={!can || undefined}
-                      aria-label={`${name} ${viewYear ?? ""}${count !== null ? `, ${countLabel(count)}` : ""}`}
+                      /* Named as shown: short month, then its count. The group around it names the year. */
+                      aria-label={`${name.slice(0, 3)}${count !== null ? `, ${countLabel(count)}` : ""}`}
                       onClick={() => openMonth(m)}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
@@ -866,13 +873,13 @@ export function DateRange({
                         SMOOTH,
                         FOCUS_RING,
                         can ? "cursor-pointer active:scale-[0.97] active:duration-75" : "cursor-default text-[var(--fu-line,#404040)]",
-                        can && (covered ? "bg-[var(--fu-selected,#1F2747)] text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-text,#F8F5F1)] hover:bg-[var(--fu-surface-3,#2A2A2A)]"),
+                        can && (covered ? "bg-[var(--fu-selected,#1F2747)] text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-text,#F8F5F1)] hover:bg-[var(--fu-item-hover,#2A2A2A)]"),
                         holdsToday && "shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
                       )}
                     >
-                      {name.slice(0, 3)}
+                      {name.slice(0, 3)}{" "}
                       {countOf && (
-                        <span className={cn("mt-1 h-3 text-[10px] leading-3 font-normal tabular-nums", covered ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#8C8C8C)]")}>
+                        <span className={cn("mt-1 h-3 text-[10px] leading-3 font-normal tabular-nums", covered ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]")}>
                           {count ? formatCount(count) : ""}
                         </span>
                       )}

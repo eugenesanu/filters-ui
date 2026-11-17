@@ -53,7 +53,7 @@ function useSpinner(busy: boolean) {
 const SWAP = "transition-[opacity,translate,filter] ease-in-out motion-reduce:transition-none";
 
 /**
- * A button in five looks and three sizes, 10px corners. It presses to 0.97 and shows a 2px #8FAAFF focus ring.
+ * A button in five looks and three sizes, 10px corners. It presses to 0.97 and shows a 2px --fu-accent-soft focus ring.
  * It is never drawn disabled: while busy it keeps its look, its width and its focus, and ignores presses.
  */
 export function Button({
@@ -129,7 +129,7 @@ export type IconButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "chi
   label: string;
   /** "sm" 32px, "md" 36px, "lg" 44px square. Default "md". */
   size?: ButtonSize;
-  /** "ghost": no fill until hovered. "secondary": a #2A2A2A square. Default "ghost". */
+  /** "ghost": no fill until hovered. "secondary": a --fu-surface-3 square. Default "ghost". */
   variant?: "ghost" | "secondary";
   children: ReactNode;
 };
@@ -142,7 +142,7 @@ const ICON_SIZES: Record<ButtonSize, string> = {
   lg: "size-11 [&_svg]:size-5",
 };
 
-/** A square button holding one icon, #BDBDBD until hovered. */
+/** A square button holding one icon, --fu-mute until hovered. */
 export function IconButton({ label, size = "md", variant = "ghost", type = "button", className, children, ...props }: IconButtonProps) {
   return (
     <button

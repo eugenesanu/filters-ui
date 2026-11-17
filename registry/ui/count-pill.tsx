@@ -5,7 +5,7 @@ export type CountPillProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> &
   count: number;
   /** "default": 20px high, 6px radius. "square": 18px high, 5px radius, 11px text. */
   variant?: "default" | "square";
-  /** Selected look: accent fill, white text. */
+  /** Selected look: accent fill, --fu-on-accent text. */
   on?: boolean;
   format?: (n: number) => string;
 };

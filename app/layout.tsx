@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import { ThemeScript } from "@/components/theme-switch";
+import { THEME_COLOR } from "@/lib/theme";
 
 const outfit = Outfit({
   subsets: ["latin", "latin-ext"],
@@ -20,14 +22,20 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0A0A0A",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
+  ],
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={outfit.variable} data-scroll-behavior="smooth">
+    <html lang="en" className={outfit.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
+      <head>
+        <ThemeScript />
+      </head>
       <body className="min-h-dvh font-sans antialiased">{children}</body>
     </html>
   );

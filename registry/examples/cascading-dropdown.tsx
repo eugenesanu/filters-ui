@@ -56,7 +56,7 @@ export default function MakeModelExample() {
         />
       </FilterCard>
       <p aria-live="polite" className="mt-3 px-4 text-[14px] leading-5 tabular-nums">
-        <span className="font-medium">{results}</span> <span className="text-[var(--fu-dim,#8C8C8C)]">{results === 1 ? "car" : "cars"}</span>
+        <span className="font-medium">{results}</span> <span className="text-[var(--fu-dim,#929292)]">{results === 1 ? "car" : "cars"}</span>
       </p>
     </div>
   );

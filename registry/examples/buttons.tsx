@@ -9,7 +9,7 @@ import { TextLink } from "../ui/link";
 function Row({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="@container flex flex-col gap-3">
-      <h3 className="text-[13px] leading-5 font-medium text-[var(--fu-dim,#8C8C8C)]">{title}</h3>
+      <h3 className="text-[13px] leading-5 font-medium text-[var(--fu-dim,#929292)]">{title}</h3>
       <div className="flex flex-wrap items-center gap-2">{children}</div>
     </section>
   );
