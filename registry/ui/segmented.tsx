@@ -138,7 +138,8 @@ export function Segmented<V extends SegmentedValue>({
         )}
         style={
           measuring
-            ? { [measured?.rtl ? "right" : "left"]: measured?.start, width: measured?.width }
+            ? // physical: the start offset is measured in script from the physical edge that is the start in this direction.
+              { [measured?.rtl ? "right" : "left"]: measured?.start, width: measured?.width }
             : { width: `calc((100% - 8px) / ${options.length})`, translate: `calc(var(--flip,1) * ${Math.max(index, 0) * 100}%) 0` }
         }
       />

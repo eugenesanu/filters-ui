@@ -186,7 +186,8 @@ function NumberPill({
   const [editing, setEditing] = useState(false);
   if (!editing && draft !== shown) setDraft(shown);
   return (
-    <label className={PILL}>
+    // The prefix and the number read as one left-to-right unit ("$45,000"), as formatted prices do in right to left.
+    <label dir="ltr" className={PILL}>
       {prefix && (
         <span aria-hidden="true" className="text-[var(--fu-mute,#BDBDBD)]">
           {prefix}

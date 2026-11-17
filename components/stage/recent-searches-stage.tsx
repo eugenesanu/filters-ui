@@ -5,7 +5,7 @@ import { StageControlRow, useStage, useStageFrame } from "@/components/stage/sta
 import { formatsFor } from "@/registry/lib/format";
 import { CARS, type Car } from "@/registry/demo/cars";
 import { carFormats, matchingCars, type CarFilters } from "@/registry/demo/cars-facets";
-import { carVocabulary } from "@/registry/demo/cars-vocabulary";
+import { carVocabulary, carVocabularyFor } from "@/registry/demo/cars-vocabulary";
 import { RecentSearches, remember, type SavedSearch } from "@/registry/filters/recent-searches";
 import { readSentence } from "@/registry/lib/sentence";
 import { TextSwap } from "@/registry/ui/text-swap";
@@ -30,6 +30,7 @@ export function RecentSearchesStage() {
   const { locale } = useStage();
   const f = carFormats(locale);
   const n = formatsFor(locale).number;
+  const vocabulary = carVocabularyFor(locale);
   const [round, setRound] = useState(0);
   const [filters, setFilters] = useState<CarFilters>(carVocabulary.empty);
   const [recent, setRecent] = useState(RECENT);
@@ -61,13 +62,13 @@ export function RecentSearchesStage() {
           <RecentSearches<Car, CarFilters>
             locale={locale}
             key={round}
-            vocabulary={carVocabulary}
+            vocabulary={vocabulary}
             items={CARS}
             value={filters}
             onChange={setFilters}
             recent={recent}
             saved={saved}
-            onSearch={(value) => setRecent((list) => remember(carVocabulary, list, value))}
+            onSearch={(value) => setRecent((list) => remember(vocabulary, list, value))}
             onSave={(value, name) => setSaved((list) => [...list, { id: `saved-${(made += 1)}`, name, value }])}
             onForget={(id) => {
               setRecent((list) => list.filter((entry) => entry.id !== id));

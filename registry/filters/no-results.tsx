@@ -176,7 +176,8 @@ export function NoResults<Item, State>({
                     {fix.changes.map((change) => (
                       <span key={change.key} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                         <span className="text-[13px] text-[var(--fu-dim,#929292)]">{change.label}</span>{" "}
-                        <span className="flex min-w-0 items-center gap-1.5">
+                        {/* When old and new do not fit on one line, the new value moves to the next one whole, never cut. */}
+                        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
                           <span className="relative truncate text-[var(--fu-mute,#BDBDBD)] transition-[color] duration-200 group-hover/fix:text-[var(--fu-dim,#929292)] group-focus-visible/fix:text-[var(--fu-dim,#929292)]">
                             {change.from}
                             <span
@@ -193,7 +194,7 @@ export function NoResults<Item, State>({
                             className="shrink-0 text-[var(--fu-dim,#929292)] transition-[translate,color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] [--flip:1] rtl:[--flip:-1] rtl:-scale-x-100 group-hover/fix:translate-x-[calc(var(--flip,1)*0.125rem)] group-hover/fix:text-[var(--fu-mute,#BDBDBD)] motion-reduce:transition-none"
                           />
                           {" "}
-                          <span className="truncate font-medium transition-[color] duration-200 group-hover/fix:text-[var(--fu-accent-pale,#D1DDFF)] group-focus-visible/fix:text-[var(--fu-accent-pale,#D1DDFF)]">
+                          <span className="font-medium transition-[color] duration-200 group-hover/fix:text-[var(--fu-accent-pale,#D1DDFF)] group-focus-visible/fix:text-[var(--fu-accent-pale,#D1DDFF)]">
                             {change.to}
                           </span>
                         </span>

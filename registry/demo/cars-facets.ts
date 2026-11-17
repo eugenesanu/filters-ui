@@ -102,12 +102,12 @@ export const yearBuckets = (f: CarFilters, cars: readonly Car[] = CARS) => {
 export const kmBuckets = (f: CarFilters, cars: readonly Car[] = CARS) =>
   histogram(carFacets.pool(cars, f, "km"), (car) => car.km, { min: 0, max: KM_MAX, count: KM_BARS });
 
-/** Seat options: Any, then "at least" each minimum, counted with the seats choice left out. */
-export const seatOptions = (f: CarFilters, cars: readonly Car[] = CARS) => [
+/** Seat options: Any, then "at least" each minimum, counted with the seats choice left out. Digits follow the locale. */
+export const seatOptions = (f: CarFilters, cars: readonly Car[] = CARS, locale?: string) => [
   { value: null, label: "Any" },
   ...SEAT_MINIMUMS.map((min) => ({
     value: min,
-    label: `${min}+`,
+    label: `${formatsFor(locale).plain(min)}+`,
     count: carFacets.countIf(cars, f, "seats", (car) => car.seats !== null && car.seats >= min),
   })),
 ];
@@ -240,7 +240,7 @@ export function carFormats(locale?: string): CarFormats {
   const f = formatsFor(locale);
   let known = carFormatsByLocale.get(f.locale);
   if (!known) {
-    known = { money: f.price, moneyShort: f.priceShort, carCount: (n) => (n === 1 ? "1 car" : `${f.number(n)} cars`), km: f.distance };
+    known = { money: f.price, moneyShort: f.priceShort, carCount: (n) => (n === 1 ? `${f.number(1)} car` : `${f.number(n)} cars`), km: f.distance };
     carFormatsByLocale.set(f.locale, known);
   }
   return known;

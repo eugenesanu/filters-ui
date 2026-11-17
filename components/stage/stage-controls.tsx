@@ -131,7 +131,7 @@ function ControlGroup<K extends keyof StageValues>({ control, value }: { control
             type="button"
             aria-pressed={on}
             onClick={() => setValue(control.key, option.value)}
-            className={`${OPTION} ${on ? "bg-wash text-text" : "text-dim hover:bg-wash hover:text-text"}`}
+            className={`${OPTION} ${on ? "text-text" : "text-dim hover:bg-wash hover:text-text"}`}
           >
             {option.label}
           </button>

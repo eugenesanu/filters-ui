@@ -122,7 +122,7 @@ export function AllFiltersStage() {
       keywords: KEYWORDS[facet],
       values: valuesOf(filters, facet, setFilters, locale),
       onClear: () => setFilters((f) => clearFacet(f, facet)),
-      content: <CarFilterBody facet={facet} filters={filters} set={patch} />,
+      content: <CarFilterBody facet={facet} filters={filters} set={patch} locale={locale} />,
     })),
   }));
 

@@ -101,7 +101,8 @@ export function resolveDateRange(value: DateRangeValue, today: string): { start:
 }
 
 const yearOf = (iso: string) => Number(iso.slice(0, 4));
-const english = (f: Formats) => f.locale === "en" || f.locale.startsWith("en-");
+// US English keeps its hand-built dates; every other locale, English ones too, takes its own from Intl.
+const english = (f: Formats) => f.locale === "en" || f.locale === "en-US";
 const weekdayOf = (iso: string) => new Date(timeOf(iso)).getUTCDay();
 
 // "Nov 3", with the year only when it is not this year's.
@@ -133,9 +134,9 @@ function describe(f: Formats, value: DateRangeValue, presets: readonly DatePrese
   if (!english(f)) {
     const day = (iso: string, withYear: boolean) => f.day(iso, { month, day: "numeric", ...(withYear ? { year: "numeric" } : {}) });
     if (start === end) return day(start, !thisYear(start));
-    if (yearOf(start) !== yearOf(end)) return `${day(start, true)} to ${day(end, true)}`;
-    const last = sameMonth ? f.day(end, { day: "numeric" }) : day(end, false);
-    return `${day(start, false)} to ${last}${thisYear(end) ? "" : ` ${f.plain(yearOf(end))}`}`;
+    // Both ends whole: a bare last day or year after a day-first date reads as unfinished ("3. Nov. to 9").
+    if (yearOf(start) !== yearOf(end) || !thisYear(end)) return `${day(start, true)} to ${day(end, true)}`;
+    return `${day(start, false)} to ${day(end, false)}`;
   }
   const name = (iso: string) => (long ? f.month(parts(iso)[1]) : monthShort(f, parts(iso)[1]));
   const day = (iso: string) => `${name(iso)} ${f.plain(parts(iso)[2])}`;
@@ -165,25 +166,53 @@ const dayFirst = (locale: string) => {
 };
 
 /**
+ * A date written as the locale writes it ("11月3日", "3 בנוב׳ 2025"), found by writing the days out: with no year, the
+ * latest such day up to today; with one, a day of that year as the locale's calendar counts it.
+ */
+function shownDay(f: Formats, typed: string, today: string, norm: (text: string) => string) {
+  const year = typed.match(/\d{4}/)?.[0];
+  let from = today;
+  let days = 366;
+  if (year) {
+    // 2569 in th-TH is 2026.
+    const offset = Number(norm(f.day(today, { year: "numeric" })).match(/\d+/)?.[0] ?? yearOf(today)) - yearOf(today);
+    const gregorian = Number(year) - offset;
+    if (gregorian < 1000 || gregorian > 9998) return null;
+    // Another calendar's year can start in any month, so its neighbours are searched too.
+    from = `${offset ? gregorian + 1 : gregorian}-12-31`;
+    days = offset ? 3 * 366 : 366;
+  }
+  const forms = (["short", "long"] as const).map((month): Intl.DateTimeFormatOptions => ({ month, day: "numeric", ...(year ? { year: "numeric" } : {}) }));
+  for (let i = 0; i < days; i++) {
+    const iso = addDays(from, -i);
+    if (forms.some((o) => norm(f.day(iso, o)) === typed)) return iso;
+  }
+  return null;
+}
+
+/**
  * Reads a typed date: "Nov 3", "November 3, 2026", "3 Nov", "11/3", "11/3/26", "2026-11-03", "today" or "yesterday".
  * With a locale it also reads that locale's month names and digits, and takes numeric dates in its order: "3.11." and
- * "3/11/26" are 3 November in de-DE. With no year it takes the latest such day that is not after today. Returns null
- * for anything else.
+ * "3/11/26" are 3 November in de-DE. It reads back any date as the fields show it ("11月3日" in ja-JP). With no year it
+ * takes the latest such day that is not after today. Returns null for anything else.
  */
 export function parseDate(text: string, today: string, locale?: string): string | null {
   const f = formatsFor(locale);
   const months = english(f) ? ENGLISH_MONTHS : Array.from({ length: 12 }, (_, m) => f.month(m).toLocaleLowerCase(f.locale));
   const shortMonths = english(f) ? [] : Array.from({ length: 12 }, (_, m) => f.month(m, "short").toLocaleLowerCase(f.locale).replace(/\./g, ""));
   const swap = !english(f) && dayFirst(f.locale);
-  let typed = text;
-  for (let i = 0; i < 10; i++) typed = typed.split(f.digits[i]).join(String(i));
-  const t = typed
-    .trim()
-    .toLocaleLowerCase(f.locale)
-    .replace(/(\d)(st|nd|rd|th)\b/g, "$1")
-    .replace(/[.,\u060c]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const norm = (text: string) => {
+    let typed = text;
+    for (let i = 0; i < 10; i++) typed = typed.split(f.digits[i]).join(String(i));
+    return typed
+      .trim()
+      .toLocaleLowerCase(f.locale)
+      .replace(/(\d)(st|nd|rd|th)\b/g, "$1")
+      .replace(/[.,\u060c]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+  const t = norm(text);
   if (!t) return null;
   if (t === "today") return today;
   if (t === "yesterday") return addDays(today, -1);
@@ -208,7 +237,7 @@ export function parseDate(text: string, today: string, locale?: string): string 
   } else if ((match = t.match(/^(\d{1,2}) (\p{L}+)(?: (\d{4}))?$/u)) && monthAt(match[2]) >= 0) {
     [m, d] = [monthAt(match[2]), Number(match[1])];
     if (match[3]) y = Number(match[3]);
-  } else return null;
+  } else return shownDay(f, t, today, norm);
   if (m === null || d === null || m < 0 || m > 11 || d < 1) return null;
   const guess = y === null;
   let year = y ?? Number(today.slice(0, 4));

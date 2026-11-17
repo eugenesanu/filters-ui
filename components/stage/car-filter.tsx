@@ -94,7 +94,7 @@ export function CarFilterBody({ facet, filters, set, locale }: Props): ReactNode
         <SegmentedChoice<number | null>
           locale={locale}
           label="Seats"
-          options={seatOptions(filters)}
+          options={seatOptions(filters, undefined, locale)}
           value={filters.seatsMin}
           onChange={(seatsMin) => set({ seatsMin })}
           countLabel={f.carCount}

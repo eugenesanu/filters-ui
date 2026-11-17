@@ -467,7 +467,7 @@ export function FilterPanel({
           <SegmentedChoice<number | null>
             locale={locale}
             label="Seats"
-            options={seatOptions(filters, cars)}
+            options={seatOptions(filters, cars, locale)}
             value={filters.seatsMin}
             onChange={(seatsMin) => set({ seatsMin })}
             countLabel={f.carCount}

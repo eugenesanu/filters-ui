@@ -65,7 +65,8 @@ function MoreSection({ facet, filters, set, onClear }: { facet: CarFacet; filter
 
 function ResultList({ filters }: { filters: CarFilters }) {
   const { locale } = useStage();
-  const n = formatsFor(locale).number;
+  const f = carFormats(locale);
+  const year = formatsFor(locale).plain;
   const cars = [...matchingCars(filters)].sort((a, b) => b.year - a.year || a.price - b.price).slice(0, 4);
   return (
     <ul aria-label="Matching cars" className="mt-3 rounded-[24px] border border-card-border bg-card p-2 [mask-image:linear-gradient(to_bottom,#000_60%,transparent)]">
@@ -76,11 +77,11 @@ function ResultList({ filters }: { filters: CarFilters }) {
               {car.make} {car.model}
             </span>
             <span className="block text-[13px] leading-5 text-mute">
-              {car.year}
-              {car.km !== null && <> · {n(car.km)} km</>}
+              {year(car.year)}
+              {car.km !== null && <> · {f.km(car.km)}</>}
             </span>
           </span>
-          <span className="shrink-0 text-[15px] font-medium leading-5 text-text">${n(car.price)}</span>
+          <span className="shrink-0 text-[15px] font-medium leading-5 text-text">{f.money(car.price)}</span>
         </li>
       ))}
       {cars.length === 0 && <li className="flex h-14 items-center px-3 text-[15px] leading-5 text-mute">No cars match. Clear a filter to see more.</li>}
