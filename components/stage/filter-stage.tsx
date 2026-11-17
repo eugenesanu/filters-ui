@@ -147,6 +147,7 @@ function CarFilterStage({ slug, facets }: { slug: string; facets: CarFacet[] }) 
 
 function BoardStage() {
   const { locale } = useStage();
+  const { state, ...states } = useStageStatus();
   const n = formatsFor(locale).number;
   const [round, setRound] = useState(0);
   const [away, setAway] = useState(false);
@@ -184,6 +185,7 @@ function BoardStage() {
         defaultOpen={["price", "body", "make"]}
         onShow={(cars) => setShown(cars.length)}
         locale={locale}
+        {...states}
       />
       <p aria-live="polite" className="mx-auto mt-6 h-5 max-w-[929px] text-[14px] leading-5 text-dim">
         {shown !== null && <>{n(shown)} {shown === 1 ? "car" : "cars"} sent to onShow</>}
@@ -295,6 +297,7 @@ function BudgetStage() {
 
 function PanelStage() {
   const { locale } = useStage();
+  const { state, ...states } = useStageStatus();
   const [round, setRound] = useState(0);
   const [shown, setShown] = useState<number | null>(null);
   return (
@@ -312,6 +315,7 @@ function PanelStage() {
           defaultOpen={PANEL_PRESET.open}
           onShow={(cars) => setShown(cars.length)}
           locale={locale}
+          {...states}
         />
         <p aria-live="polite" className="mt-3 h-5 ps-5 text-[14px] leading-5 text-dim tabular-nums">
           {shown !== null && <>{formatsFor(locale).number(shown)} {shown === 1 ? "car" : "cars"} sent to onShow</>}

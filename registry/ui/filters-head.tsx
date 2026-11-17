@@ -1,8 +1,9 @@
 "use client";
 
-import type { HTMLAttributes, ReactNode } from "react";
+import { useEffect, useState, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
+import { ARRIVING, SKELETON_FILL, useLoading } from "./skeleton";
 import { TextSwap } from "./text-swap";
 
 export type CountNoun = { one: string; other: string };
@@ -23,6 +24,8 @@ type SharedProps = {
   /** False hides "Clear all" (nothing to clear). Default true. */
   canClear?: boolean;
   clearAllLabel?: string;
+  /** The count is on its way: the number in Show draws as a placeholder of its width. Default false. */
+  loading?: boolean;
 };
 
 function labelOf({ count, noun = { one: "result", other: "results" }, formatCount, locale, showLabel }: SharedProps) {
@@ -52,8 +55,37 @@ export function ClearAllButton({ className, children = "Clear all", ...props }: 
   );
 }
 
-/** Primary accent button whose label swaps with TextSwap as the count changes. */
-export function ShowButton({ label, className, ...props }: Omit<HTMLAttributes<HTMLButtonElement>, "children"> & { label: string }) {
+/** The first number in a label, in any script, with the marks that group its digits: "1,234", "1.234", "١٬٢٣٤". */
+const NUMBER = /\p{Nd}(?:[\p{Nd}.,\u066B\u066C\u00A0\u202F\u2009\u2019']*\p{Nd})?/u;
+/** How long an arriving number keeps its fade-in class: a little more than the 300ms fade. */
+const ARRIVAL_MS = 400;
+
+export type ShowButtonProps = Omit<HTMLAttributes<HTMLButtonElement>, "children"> & {
+  label: string;
+  /** The count is on its way: the number in the label draws as a soft bar of its width. Default: the nearest StatusFrame's loading state. */
+  loading?: boolean;
+};
+
+/**
+ * Primary accent button whose label swaps with TextSwap as the count changes. While loading, the number in its label
+ * draws as a placeholder of the number's own width, so the button keeps its size; it fades in once when it arrives.
+ */
+export function ShowButton({ label, loading: loadingProp, className, ...props }: ShowButtonProps) {
+  const frame = useLoading();
+  const loading = loadingProp ?? frame.loading;
+  const [was, setWas] = useState(loading);
+  const [arrived, setArrived] = useState(false);
+  if (was !== loading) {
+    setWas(loading);
+    setArrived(was && !loading);
+  }
+  useEffect(() => {
+    if (!arrived) return;
+    const timer = setTimeout(() => setArrived(false), ARRIVAL_MS);
+    return () => clearTimeout(timer);
+  }, [arrived]);
+  const number = loading || arrived ? NUMBER.exec(label) : null;
+
   return (
     <button
       type="button"
@@ -65,7 +97,30 @@ export function ShowButton({ label, className, ...props }: Omit<HTMLAttributes<H
       )}
       {...props}
     >
-      <TextSwap>{label}</TextSwap>
+      {number ? (
+        // The same boxes as TextSwap's, so nothing moves between the placeholder, the arrival and the swap after it.
+        <span className="inline-grid whitespace-nowrap">
+          <span className="[grid-area:1/1]">
+            {label.slice(0, number.index)}
+            {loading ? (
+              <span key="skeleton" className="relative inline-block align-top">
+                <span className="invisible">{number[0]}</span>
+                <span
+                  aria-hidden="true"
+                  className={cn("absolute inset-x-0 inset-y-[0.22lh] rounded-[4px]", SKELETON_FILL, "bg-[var(--fu-on-accent,#FFFFFF)]/30")}
+                />
+              </span>
+            ) : (
+              <span key="arrived" className={ARRIVING}>
+                {number[0]}
+              </span>
+            )}
+            {label.slice(number.index + number[0].length)}
+          </span>
+        </span>
+      ) : (
+        <TextSwap>{label}</TextSwap>
+      )}
     </button>
   );
 }
@@ -92,6 +147,7 @@ export function FiltersHead({
   onClearAll,
   canClear = true,
   clearAllLabel,
+  loading = false,
   actionsClassName,
   className,
   ...props
@@ -106,7 +162,7 @@ export function FiltersHead({
       </span>
       <div className={cn("flex items-center gap-2", actionsClassName)}>
         {canClear && <ClearAllButton onClick={onClearAll}>{clearAllLabel ?? "Clear all"}</ClearAllButton>}
-        <ShowButton label={label} onClick={onShow} />
+        <ShowButton label={label} onClick={onShow} loading={loading} />
       </div>
     </div>
   );
@@ -133,6 +189,7 @@ export function FiltersBar({
   onClearAll,
   canClear = true,
   clearAllLabel,
+  loading = false,
   className,
   ...props
 }: FiltersBarProps) {
@@ -150,7 +207,7 @@ export function FiltersBar({
       {...props}
     >
       {canClear && <ClearAllButton onClick={onClearAll}>{clearAllLabel ?? "Clear all"}</ClearAllButton>}
-      <ShowButton label={label} onClick={onShow} />
+      <ShowButton label={label} onClick={onShow} loading={loading} />
     </div>
   );
 }

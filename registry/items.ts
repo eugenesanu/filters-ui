@@ -1054,7 +1054,14 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/filter-pills.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
+    stateNotes: {
+      loading: "Each pill keeps its size and outline, and a set pill its fill, while its name, its value and Clear all draw as placeholders; no panel opens until the data is in.",
+      error: "The line and Retry take the pills' place. The default line is \"Couldn't load the filters.\"",
+      disabled: "Every pill is turned off and no panel opens; the crosses and Clear all are left out.",
+      "long-labels": "A long name or value stops at 200px with an ellipsis, and the name gives way before the value; the whole words stay in the pill's spoken name.",
+      "many-options": "The bar wraps onto as many rows as it needs, Clear all at the end of the last; it never scrolls sideways.",
+    },
     value: "None of its own: each pill shows a filter you keep in your own state. open is the id of the open pill, or null.",
     props: [
       { name: "pills", type: "readonly FilterPill[]", required: true, meaning: "One per pill, in order: { id, label, summary?, count?, onClear?, icon?, width?, content }." },
@@ -1068,6 +1075,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "showLabel / onShow", type: "string / () => void", default: "\"Done\"", meaning: "The button at the foot of each panel, e.g. \"Show 34 cars\". It closes the panel; filters apply as they change." },
       { name: "clearAllLabel / formatCount", type: "string / (n: number) => string", default: "\"Clear all\" / 1,234", meaning: "Words of Clear all, and the text in a pill's count." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
+      ...statusProps("\"Couldn't load the filters.\""),
+      { ...DISABLED_PROP, meaning: "Dims the bar, turns every pill off and leaves the crosses and Clear all out." },
     ],
     does: [
       "A pill's panel unfolds out of the pill: its outline grows into a card under it while the filter rises in from a blur, then folds back on close.",
@@ -1079,11 +1088,13 @@ export const ITEMS: RegistryItem[] = [
       "Each pill is one tab stop, and a set pill's cross is the next.",
       "Enter, Space or Down opens a pill and moves focus to the first control in its panel; Down on an open pill does the same.",
       "Escape closes the panel and returns to the pill; tabbing past the last control closes it too.",
+      "While disabled no pill takes focus; in an error Tab reaches Retry.",
     ],
     accessibility: [
       "Pills are buttons with aria-expanded and aria-controls, read as their label and value (\"Price, $15k to $45k\").",
       "The panel is a non-modal dialog named after its pill; on phones the sheet is a modal dialog that keeps focus inside and gives it back on close.",
       "Each cross is a button named \"Clear price\"; the value swap and the unfold are skipped when reduced motion is asked for.",
+      "Loading, the bar is aria-busy and says \"Loading\" once; an error is read out politely, and Retry keeps focus in the bar. Disabled, the bar is aria-disabled and every pill is a disabled button.",
     ],
     related: ["range-histogram", "chip-group", "searchable-list"],
     connect:
@@ -1101,7 +1112,14 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/all-filters.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
+    stateNotes: {
+      loading: "The list keeps its groups and names while the values in its chips, the find box and the number in Show draw as placeholders; the picked filter draws its own.",
+      error: "The line and Retry take the picked filter's place under its title, and the list stays, so another filter can be picked.",
+      disabled: "The list and the picked filter are turned off, and the list holds still; Show stays, and the \"3 set\" chip, Clear and the chips' crosses are left out.",
+      "long-labels": "A long filter name wraps in its row and a long value wraps in its chip; the chevron and the cross stay in place.",
+      "many-options": "Thirty filters in five groups: the list scrolls under the find box, which narrows it as you type.",
+    },
     value: "None of its own: each entry shows a filter you keep in your own state. picked is the id of the filter open on the right.",
     props: [
       { name: "groups", type: "readonly { label: string; filters: FilterEntry[] }[]", required: true, meaning: "The list, in groups such as \"Price and age\"." },
@@ -1113,6 +1131,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "title / headingLevel", type: "string / 2 | 3", default: "\"Filters\" / 2", meaning: "The head's title; the picked filter's title sits one level below." },
       { name: "findLabel / height", type: "string / number", default: "\"Find a filter\" / 560", meaning: "The find box's words, and the height of the two columns in px from 520px wide." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the \"3 set\" count, e.g. \"ar-EG\". Words stay English." },
+      ...statusProps(),
+      { ...DISABLED_PROP, meaning: "Dims the list and the picked filter and blocks their input; Show stays, and the \"3 set\" chip, Clear and the chips' crosses are left out." },
     ],
     does: [
       "The picked row is tinted, and the filter on the right rises in from a blur.",
@@ -1124,11 +1144,13 @@ export const ITEMS: RegistryItem[] = [
       "Tab runs the head, the find box, the list (one stop) and then the picked filter.",
       "In the list, Up and Down move between rows, Home and End jump, Enter or Space picks; Down in the find box enters the list, Enter picks the first match.",
       "On a narrow panel, picking moves focus to Back, and Back or Escape returns to the row.",
+      "While disabled Tab reaches only Show; in an error Tab reaches Retry after the list.",
     ],
     accessibility: [
       "Rows are buttons in named groups, read as the filter and its values (\"Body style, SUV, Sedan\"); the picked one has aria-current.",
       "A chip's cross is a button named \"Remove SUV\" kept out of the tab order; every value can also be changed in the filter itself.",
       "The result count is announced politely; the hidden side of a narrow panel is inert, and motion stops when reduced motion is asked for.",
+      "Loading, the list and the filter are aria-busy and say \"Loading\" once; an error is read out politely, and Retry keeps focus in the filter's side. Disabled, the find box, rows and filter controls are disabled.",
     ],
     related: ["filter-pills", "searchable-list", "chip-group"],
     connect:
@@ -1299,7 +1321,12 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/cars-board.tsx",
     addedIn: "1.0.0",
     updatedIn: "1.0.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "disabled"],
+    stateNotes: {
+      loading: "The filters take no input, but every card keeps its head and value and still opens; each open card's filter draws its own placeholders, and the number in Show draws as one.",
+      error: "Each open card shows the line in place of its filter, and the line shows once more under the head with the one Retry; cards still open and close. The default line is \"Couldn't load the cars.\"",
+      disabled: "Every card's filter is turned off and the cards still open to show it; Clear on each card and Clear all are left out, and Show stays.",
+    },
     value: "The board keeps its own filters. onShow receives the matching cars.",
     props: [
       { name: "cars", type: "readonly Car[]", default: "256 sample cars", meaning: "The listings to filter." },
@@ -1308,6 +1335,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "onShow", type: "(cars: Car[]) => void", meaning: "Called by Show N cars with the matching cars." },
       { name: "headingLevel", type: "1 | 2 | 3", default: "2", meaning: "Level of the Filters heading; card headings sit one below." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Numbers, prices and distances on every card follow it, e.g. \"de-DE\". Words stay English." },
+      ...statusProps("\"Couldn't load the cars.\""),
+      { ...DISABLED_PROP, meaning: "Turns every card's filter off and leaves Clear and Clear all out; the cards still open and Show stays." },
     ],
     does: [
       "Eleven filters, each on its own card. Each count shows what picking that option would give.",
@@ -1318,11 +1347,13 @@ export const ITEMS: RegistryItem[] = [
     keyboard: [
       "Tab runs the head, then each column top to bottom.",
       "Each card head is a button: Enter or Space opens and closes it.",
+      "In an error Tab reaches Retry under the head; while disabled Tab skips every filter's controls and only the card heads and Show take focus.",
     ],
     accessibility: [
       "The result count is announced politely as it changes.",
       "Each card head is a heading with an expanded state and a region for its body.",
       "A closed card's summary is read with its title.",
+      "Loading, every card's filter is aria-busy and the head says \"Loading\" once; an error is read out once, and Retry hands focus to the head. Disabled, every filter's controls are disabled.",
     ],
     related: ["range-histogram", "searchable-list", "icon-tiles"],
   },
@@ -1337,7 +1368,12 @@ export const ITEMS: RegistryItem[] = [
     example: "registry/examples/filter-panel.tsx",
     addedIn: "1.1.0",
     updatedIn: "1.1.0",
-    states: ["ready"],
+    states: ["ready", "loading", "error", "disabled"],
+    stateNotes: {
+      loading: "The filters take no input, but every row keeps its head and value and still opens; each open row's filter draws its own placeholders, and the number in Show draws as one.",
+      error: "Each open row shows the line in place of its filter, and the line shows once more under the head with the one Retry; rows still open and close. The default line is \"Couldn't load the cars.\"",
+      disabled: "Every row's filter is turned off and the rows still open to show it; Clear on each row and Clear all are left out, and Show stays.",
+    },
     value: "The panel keeps its own filters. onShow receives the matching cars.",
     props: [
       { name: "cars", type: "readonly Car[]", default: "256 sample cars", meaning: "The listings to filter." },
@@ -1348,6 +1384,8 @@ export const ITEMS: RegistryItem[] = [
       { name: "headingLevel", type: "2 | 3 | 4", default: "2", meaning: "Level of the Filters heading; row headings sit one below." },
       { name: "className", type: "string", meaning: "Give the panel a height or a max height, e.g. h-[600px], and the rows scroll between the head and Show." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Numbers, prices and distances on every card follow it, e.g. \"de-DE\". Words stay English." },
+      ...statusProps("\"Couldn't load the cars.\""),
+      { ...DISABLED_PROP, meaning: "Turns every row's filter off and leaves Clear and Clear all out; the rows still open and Show stays." },
     ],
     does: [
       "Eleven filters stacked as rows in one panel. Several can be open at once.",
@@ -1359,11 +1397,13 @@ export const ITEMS: RegistryItem[] = [
     keyboard: [
       "Tab runs Clear all, then each row head with its Clear and its open body, then Show.",
       "Enter or Space opens and closes a row; Up and Down move between row heads; Home and End jump to the first and last.",
+      "In an error Tab reaches Retry under the head; while disabled Tab skips every filter's controls and only the row heads and Show take focus.",
     ],
     accessibility: [
       "Each row head is a heading holding a button with aria-expanded and aria-controls; the body is a region named by its head.",
       "A closed row's value is read with its title, and each Clear button is named, e.g. \"Clear price\".",
       "The result count is announced politely as it changes.",
+      "Loading, every row's filter is aria-busy and the panel says \"Loading\" once; an error is read out once, and Retry hands focus to the panel. Disabled, every filter's controls are disabled.",
       "Focus is always visible; motion is skipped when reduced motion is asked for.",
     ],
     related: ["searchable-list", "range-histogram", "chip-group"],
