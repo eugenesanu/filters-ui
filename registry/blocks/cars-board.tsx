@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type HTMLAttributes, type ReactNode } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { BodyIcon } from "../demo/body-icons";
 import { BODIES, CARS, COLORS, COLOR_PAINTS, DRIVES, FUELS, type Car, type Condition, type Transmission } from "../demo/cars";
@@ -8,6 +8,7 @@ import {
   CAR_FACET_COLUMNS,
   CAR_FACET_TITLES,
   EMPTY_CAR_FILTERS,
+  FACET_FIELDS,
   KM_MAX,
   KM_STEP,
   PRICE_MAX,
@@ -111,6 +112,7 @@ export function CarsBoard({
   const [headSeen, setHeadSeen] = useState(true);
   const root = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLDivElement>(null);
+  const dragged = useRef(false);
   const columns = useSyncExternalStore(subscribe, columnCount, () => 3);
   const phone = columns === 1;
   const matches = matchingCars(filters, cars);
@@ -128,7 +130,7 @@ export function CarsBoard({
   const show = onShow && (() => onShow(matches));
   const set = (patch: Partial<CarFilters>) => setFilters((f) => ({ ...f, ...patch }));
 
-  const bodyOf = (facet: CarFacet): ReactNode => {
+  const bodyOf = (facet: CarFacet, filters: CarFilters): ReactNode => {
     switch (facet) {
       case "price":
         return (
@@ -272,13 +274,35 @@ export function CarsBoard({
     }
   };
 
+  const framed = (facet: CarFacet, from: CarFilters) => (
+    <StatusFrame status={status} errorText={errorText} disabled={disabled} announce={false}>
+      {bodyOf(facet, from)}
+    </StatusFrame>
+  );
+  // While a handle is dragged, a card whose own filter did not change draws from the deferred filters, so only the
+  // dragged card renders at once and the others' counts follow when the main thread is free. Taps and keys update every card together.
+  const dragging = dragged.current;
+  const later = useDeferredValue(filters);
+  const from = dragging ? later : filters;
+  const settled = useMemo(() => new Map(CAR_FACET_COLUMNS.flat().map((facet) => [facet, framed(facet, from)])), [from, cars, locale, status, errorText, disabled]);
+  const bodyFor = (facet: CarFacet) => (dragging && FACET_FIELDS[facet].some((key) => filters[key] !== later[key]) ? framed(facet, filters) : settled.get(facet));
+
   const layout = columns === 3 ? CAR_FACET_COLUMNS : columns === 2 ? TWO_COLUMNS : ONE_COLUMN;
   // Clear all leaves while disabled, and Retry once it reloads: focus that sat on either moves to the head.
   useFocusKept(root, `${status}|${disabled}`, head);
 
   return (
     // On phones the bottom padding keeps the last card clear of the floating bar.
-    <div ref={root} className={cn("w-full", phone && "pb-24", className)} {...props}>
+    <div
+      ref={root}
+      className={cn("w-full", phone && "pb-24", className)}
+      onPointerMoveCapture={(event) => (dragged.current = event.buttons !== 0)}
+      onPointerUpCapture={() => (dragged.current = false)}
+      onPointerCancelCapture={() => (dragged.current = false)}
+      onClickCapture={() => (dragged.current = false)}
+      onKeyDownCapture={() => (dragged.current = false)}
+      {...props}
+    >
       {/* Retry hands focus to the head, which stays while the board reloads. */}
       <div
         ref={head}
@@ -316,9 +340,7 @@ export function CarsBoard({
                   onOpenChange={(next) => setOpen((list) => (next ? [...list, facet] : list.filter((f) => f !== facet)))}
                   headingLevel={headingLevel === 1 ? 2 : 3}
                 >
-                  <StatusFrame status={status} errorText={errorText} disabled={disabled} announce={false}>
-                    {bodyOf(facet)}
-                  </StatusFrame>
+                  {bodyFor(facet)}
                 </FilterCard>
             ))}
           </div>

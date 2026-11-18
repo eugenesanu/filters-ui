@@ -190,6 +190,22 @@ export const colorCounts = (f: CarFilters, cars: readonly Car[] = CARS) => carFa
 
 export const matchingCars = (f: CarFilters, cars: readonly Car[] = CARS) => carFacets.filter(cars, f);
 
+/** The fields each facet sets. */
+export const FACET_FIELDS: Record<CarFacet, (keyof CarFilters)[]> = {
+  condition: ["condition"],
+  price: ["priceMin", "priceMax"],
+  make: ["makes"],
+  body: ["bodies"],
+  year: ["yearMin", "yearMax"],
+  km: ["kmMax"],
+  fuel: ["fuels"],
+  drive: ["drives"],
+  transmission: ["transmission"],
+  color: ["colors"],
+  seats: ["seatsMin"],
+  listed: ["listedMin", "listedMax"],
+};
+
 /** What one facet's Clear does. */
 export function clearFacet(f: CarFilters, facet: CarFacet): CarFilters {
   const e = EMPTY_CAR_FILTERS;

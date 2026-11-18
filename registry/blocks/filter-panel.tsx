@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
+import { useDeferredValue, useEffect, useId, useMemo, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
 import { SCROLL } from "../lib/scroll";
@@ -9,6 +9,7 @@ import { BODIES, CARS, COLORS, COLOR_PAINTS, DRIVES, FUELS, type Car, type Condi
 import {
   CAR_FACET_TITLES,
   EMPTY_CAR_FILTERS,
+  FACET_FIELDS,
   KM_MAX,
   KM_STEP,
   MAKES_UP_FRONT,
@@ -292,6 +293,7 @@ export function FilterPanel({
 }: FilterPanelProps) {
   const titleId = useId();
   const root = useRef<HTMLElement>(null);
+  const dragged = useRef(false);
   const [filters, setFilters] = useState(defaultFilters);
   const [open, setOpen] = useState<CarFacet[]>(defaultOpen);
   const scroller = useRef<HTMLDivElement>(null);
@@ -394,7 +396,7 @@ export function FilterPanel({
     };
   }, []);
 
-  const bodyOf = (facet: CarFacet): ReactNode => {
+  const bodyOf = (facet: CarFacet, filters: CarFilters): ReactNode => {
     switch (facet) {
       case "price":
         return (
@@ -539,6 +541,19 @@ export function FilterPanel({
     }
   };
 
+  const framed = (facet: CarFacet, from: CarFilters) => (
+    <StatusFrame status={status} errorText={errorText} disabled={disabled} announce={false}>
+      {bodyOf(facet, from)}
+    </StatusFrame>
+  );
+  // While a handle is dragged, a row whose own filter did not change draws from the deferred filters, so only the
+  // dragged row renders at once and the others' counts follow when the main thread is free. Taps and keys update every row together.
+  const dragging = dragged.current;
+  const later = useDeferredValue(filters);
+  const from = dragging ? later : filters;
+  const settled = useMemo(() => new Map(FILTER_PANEL_FACETS.map((facet) => [facet, framed(facet, from)])), [from, cars, locale, status, errorText, disabled]);
+  const bodyFor = (facet: CarFacet) => (dragging && FACET_FIELDS[facet].some((key) => filters[key] !== later[key]) ? framed(facet, filters) : settled.get(facet));
+
   const Heading = `h${headingLevel}` as const;
   const rowLevel = (headingLevel + 1) as 3 | 4 | 5;
   const anySet = setCount > 0;
@@ -559,6 +574,11 @@ export function FilterPanel({
         "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
         className,
       )}
+      onPointerMoveCapture={(event) => (dragged.current = event.buttons !== 0)}
+      onPointerUpCapture={() => (dragged.current = false)}
+      onPointerCancelCapture={() => (dragged.current = false)}
+      onClickCapture={() => (dragged.current = false)}
+      onKeyDownCapture={() => (dragged.current = false)}
       {...props}
     >
       <div data-panel-head="" className="flex h-[60px] shrink-0 items-center gap-3 border-b border-[var(--fu-line,#404040)] pe-3 ps-5">
@@ -616,9 +636,7 @@ export function FilterPanel({
                 onHeadKeyDown={onHeadKeyDown}
                 headingLevel={rowLevel}
               >
-                <StatusFrame status={status} errorText={errorText} disabled={disabled} announce={false}>
-                  {bodyOf(facet)}
-                </StatusFrame>
+                {bodyFor(facet)}
               </PanelRow>
             ))}
           </div>
