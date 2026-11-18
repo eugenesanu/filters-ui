@@ -3,6 +3,7 @@
 import { useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
+import type { NumberDrag } from "../ui/drag-handle";
 import { RangeChart, type RangeValue } from "../ui/range-chart";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 import { TextField } from "../ui/text-field";
@@ -119,6 +120,7 @@ export function RangeHistogram({
               label={lowLabel}
               placeholder={lowPlaceholder}
               onCommit={(typed) => commit(0, typed)}
+              scale={{ min, max, step, emptyAt: "min", ceiling: (value[1] ?? max) - step }}
             />
           )}
           <RangeField
@@ -128,6 +130,7 @@ export function RangeHistogram({
             label={highLabel}
             placeholder={highPlaceholder}
             onCommit={(typed) => commit(1, typed)}
+            scale={{ min, max, step, emptyAt: "max", floor: (single ? min : (value[0] ?? min)) + step }}
           />
         </div>
       </StatusFrame>
@@ -142,10 +145,13 @@ type RangeFieldProps = {
   label: string;
   placeholder: string;
   onCommit: (value: number | null) => void;
+  /** The scale the field's drag handle moves along. */
+  scale: Omit<NumberDrag, "value" | "onChange">;
 };
 
-// Shows the formatted value; while focused it holds what the person types, and commits on Enter or blur.
-function RangeField({ value, format, parse, label, placeholder, onCommit }: RangeFieldProps) {
+// Shows the formatted value; while focused it holds what the person types, and commits on Enter or blur. Dragging its
+// handle commits each step.
+function RangeField({ value, format, parse, label, placeholder, onCommit, scale }: RangeFieldProps) {
   const [draft, setDraft] = useState<string | null>(null);
   const shown = value === null ? "" : format(value);
 
@@ -172,6 +178,14 @@ function RangeField({ value, format, parse, label, placeholder, onCommit }: Rang
         onCommit(null);
       }}
       onBlur={commit}
+      drag={{
+        ...scale,
+        value,
+        onChange: (dragged) => {
+          setDraft(null);
+          onCommit(dragged);
+        },
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.preventDefault();

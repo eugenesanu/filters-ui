@@ -2,6 +2,7 @@
 
 import { useRef, type InputHTMLAttributes, type ReactNode } from "react";
 import { cn } from "../lib/cn";
+import { DragHandle, type NumberDrag } from "./drag-handle";
 import { XIcon } from "./icons";
 import { ARRIVING, Skeleton, useLoading } from "./skeleton";
 
@@ -15,6 +16,8 @@ export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value"
   /** Shows a 16px clear button while the field has a value. Defaults to emptying the value. */
   onClear?: () => void;
   clearLabel?: string;
+  /** For a field that holds a number: a handle to drag it along a scale, as on a slider. See DragHandle. */
+  drag?: NumberDrag;
   className?: string;
   inputClassName?: string;
 };
@@ -27,6 +30,7 @@ export function TextField({
   prefix,
   onClear,
   clearLabel,
+  drag,
   className,
   inputClassName,
   disabled,
@@ -45,6 +49,7 @@ export function TextField({
         "hover:border-[var(--fu-control-hover,#A3A3A3)] focus-within:border-[var(--fu-accent-soft,#8FAAFF)] focus-within:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
         "focus-within:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",
         disabled && "pointer-events-none opacity-50",
+        drag && "group/field relative isolate",
         className,
       )}
       onPointerDown={(event) => {
@@ -82,7 +87,8 @@ export function TextField({
             input.current?.focus();
           }}
           className={cn(
-            "-me-1 grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-[var(--fu-mute,#BDBDBD)]",
+            // Above the drag handle's layer, so the cross can always be pressed.
+            "relative z-[1] -me-1 grid size-6 shrink-0 cursor-pointer place-items-center rounded-[6px] text-[var(--fu-mute,#BDBDBD)]",
             "transition-colors duration-150 hover:text-[var(--fu-text,#F8F5F1)]",
             "focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
           )}
@@ -90,6 +96,7 @@ export function TextField({
           <XIcon size={16} />
         </button>
       )}
+      {drag && !loading && !disabled && <DragHandle drag={drag} input={input} />}
     </div>
   );
 }

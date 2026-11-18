@@ -305,6 +305,10 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
     const typed = formats.readNumber(text);
     return typed === null ? null : Math.round(typed);
   };
+  // The scales the two fields' drag handles move along: up to the payment that buys the top of the price scale with
+  // nothing down, and up to half that price as a down payment.
+  const r = rate / 100 / 12;
+  const most = Math.ceil((r === 0 ? max / value.term : (max * r) / (1 - Math.pow(1 + r, -value.term))) / 50) * 50;
   return (
     <div className="pt-1">
       <p aria-live="polite" className="flex items-baseline justify-between gap-3">
@@ -318,8 +322,8 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
       </p>
       <CeilingBars buckets={buckets} min={min} max={max} ceiling={ceiling} />
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <MoneyField label="Each month" value={value.monthly} placeholder={format(0)} onCommit={(monthly) => set({ monthly })} format={format} read={read} />
-        <MoneyField label="Down payment" value={value.down || null} placeholder={format(0)} onCommit={(down) => set({ down: down ?? 0 })} format={format} read={read} />
+        <MoneyField label="Each month" value={value.monthly} placeholder={format(0)} onCommit={(monthly) => set({ monthly })} format={format} read={read} scale={{ max: most, step: 10 }} />
+        <MoneyField label="Down payment" value={value.down || null} placeholder={format(0)} onCommit={(down) => set({ down: down ?? 0 })} format={format} read={read} scale={{ max: Math.ceil(max / 1000) * 500, step: 500 }} />
       </div>
       <div className="mt-3 flex items-center gap-3">
         <span id={`${id}-term`} className="shrink-0 text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
@@ -430,10 +434,13 @@ type MoneyFieldProps = {
   format: (value: number) => string;
   read: (text: string) => number | null;
   onCommit: (value: number | null) => void;
+  /** The top and the step of the scale the field's drag handle moves along, from 0. */
+  scale: { max: number; step: number };
 };
 
-// Applies as you type, so the top price moves with each digit; leaving the field tidies the text.
-function MoneyField({ label, placeholder, value, format, read, onCommit }: MoneyFieldProps) {
+// Applies as you type, so the top price moves with each digit; leaving the field tidies the text. Dragging its handle
+// sets the amount in steps; dragged back to 0 the field is empty again.
+function MoneyField({ label, placeholder, value, format, read, onCommit, scale }: MoneyFieldProps) {
   const [draft, setDraft] = useState<string | null>(null);
   return (
     <div className="min-w-0">
@@ -460,6 +467,16 @@ function MoneyField({ label, placeholder, value, format, read, onCommit }: Money
         onCommit(null);
       }}
       onBlur={() => setDraft(null)}
+      drag={{
+        value,
+        min: 0,
+        max: scale.max,
+        step: scale.step,
+        onChange: (dragged) => {
+          setDraft(null);
+          onCommit(dragged > 0 ? dragged : null);
+        },
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
           event.preventDefault();

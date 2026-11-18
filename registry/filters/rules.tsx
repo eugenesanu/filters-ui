@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { cn } from "../lib/cn";
 import { formatsFor, resultsLabel } from "../lib/format";
 import { Button, IconButton } from "../ui/button";
+import { DragHandle, type NumberDrag } from "../ui/drag-handle";
 import { DropdownMenu } from "../ui/dropdown-menu";
 import { ListTreeIcon, PlusIcon, XIcon } from "../ui/icons";
 import { ARRIVING, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
@@ -136,6 +137,37 @@ export function matchRules<Item>(item: Item, set: RuleSet, fields: readonly Rule
   return joined(set.join, live, (entry) => (isGroup(entry) ? joined(entry.join, liveRules(entry.rules), test) : test(entry)));
 }
 
+type Scale = { min: number; max: number; step: number };
+const scales = new WeakMap<object, Map<string, Scale | null>>();
+
+/**
+ * The scale a number field's drag handle moves along: from the lowest to the highest value among the items, widened to
+ * a round step of about a hundredth of that span. Worked out once per list of items; null when the values do not differ.
+ */
+function scaleOf<Item>(items: readonly Item[], field: RuleField<Item> & { kind: "number" }): Scale | null {
+  let known = scales.get(items);
+  if (!known) scales.set(items, (known = new Map()));
+  const kept = known.get(field.key);
+  if (kept !== undefined) return kept;
+  let low = Infinity;
+  let high = -Infinity;
+  for (const item of items) {
+    const n = field.get(item);
+    if (n === null) continue;
+    if (n < low) low = n;
+    if (n > high) high = n;
+  }
+  let scale: Scale | null = null;
+  if (high > low) {
+    const rough = (high - low) / 100;
+    const power = 10 ** Math.floor(Math.log10(rough));
+    const step = Math.max(1, (rough / power >= 5 ? 5 : rough / power >= 2 ? 2 : 1) * power);
+    scale = { min: Math.floor(low / step) * step, max: Math.ceil(high / step) * step, step };
+  }
+  known.set(field.key, scale);
+  return scale;
+}
+
 const emptyFor = (op: RuleOp): RuleValue => (op === "between" ? [null, null] : op === "anyOf" || op === "noneOf" ? [] : null);
 
 /** A new rule on the first field not used yet. */
@@ -165,7 +197,10 @@ const PILL = cn(
   "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
 );
 
-/** A number typed into a pill that grows with it. It applies while typed and tidies itself on leaving: "45k" becomes "45,000". */
+/**
+ * A number typed into a pill that grows with it. It applies while typed and tidies itself on leaving: "45k" becomes
+ * "45,000". With a scale it can be dragged as well, by the handle that shows under a mouse.
+ */
 function NumberPill({
   value,
   onValue,
@@ -174,6 +209,7 @@ function NumberPill({
   placeholder,
   format,
   parse,
+  scale,
 }: {
   value: number | null;
   onValue: (value: number | null) => void;
@@ -182,7 +218,9 @@ function NumberPill({
   placeholder: string;
   format: (n: number) => string;
   parse: (text: string) => number | null;
+  scale?: Omit<NumberDrag, "value" | "onChange"> | null;
 }) {
+  const input = useRef<HTMLInputElement>(null);
   const shown = value === null ? "" : format(value);
   const [draft, setDraft] = useState(shown);
   const [editing, setEditing] = useState(false);
@@ -191,7 +229,7 @@ function NumberPill({
   const { loading, arriving } = useLoading();
   return (
     // The prefix and the number read as one left-to-right unit ("$45,000"), as formatted prices do in right to left.
-    <label dir="ltr" className={PILL}>
+    <label dir="ltr" className={cn(PILL, scale && "group/field isolate")}>
       {prefix && (
         <span aria-hidden="true" className="text-[var(--fu-mute,#BDBDBD)]">
           {prefix}
@@ -205,6 +243,7 @@ function NumberPill({
       )}
       <input
         key={loading ? "loading" : "ready"}
+        ref={input}
         value={draft}
         aria-label={label}
         placeholder={placeholder}
@@ -239,6 +278,20 @@ function NumberPill({
         )}
       />
       </span>
+      {scale && !loading && (
+        <DragHandle
+          pad={10}
+          input={input}
+          drag={{
+            ...scale,
+            value,
+            onChange: (dragged) => {
+              setDraft(format(dragged));
+              onValue(dragged);
+            },
+          }}
+        />
+      )}
     </label>
   );
 }
@@ -270,7 +323,8 @@ function NamesPills({
           aria-label={`Remove ${name}`}
           onClick={() => onValue(value.filter((v) => v !== name))}
           className={cn(
-            "relative flex h-[26px] max-w-full cursor-pointer items-center gap-1 rounded-full border pe-[7px] ps-[10px]",
+            // 5px above and below, so a line of chips is as tall as the field beside it and sits level with it.
+            "relative my-[5px] flex h-[26px] max-w-full cursor-pointer items-center gap-1 rounded-full border pe-[7px] ps-[10px]",
             loading ? cn(SKELETON_FILL, "border-transparent") : "border-[var(--fu-selected,#1F2747)] bg-[var(--fu-selected,#1F2747)]",
             "font-[inherit] text-[14px] leading-5 font-medium text-[var(--fu-accent-pale,#D1DDFF)]",
             "transition-[background-color,color,border-color,opacity,filter,scale] duration-300 motion-reduce:transition-none",
@@ -377,13 +431,34 @@ function Left({ count, word, format, className }: { count: number; word: string;
 
 // Wide, a row is one line: field and condition, the value, then the count and the cross. Narrow, field and condition share
 // the first line with the count (a row in a group has none, so they take the whole line), and the value takes the second
-// with the cross.
+// with the cross. Everything hangs from the top, so a value that wraps grows the row downward and nothing else moves.
 const ROW = cn(
-  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5",
+  "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-1.5",
   "@min-[440px]/well:grid-cols-[auto_minmax(min-content,1fr)_auto_auto] @min-[440px]/well:[grid-template-areas:'head_value_left_x']",
 );
 const ROW_AREAS = "[grid-template-areas:'head_left'_'value_x']";
 const NESTED_AREAS = "[grid-template-areas:'head_head'_'value_x']";
+
+// What a cross would remove lights up while the pointer or the focus ring is on it: a rule's well, a group's well, or a
+// row inside a group, which has no well and takes a plate 4px larger than itself. The plate's corners run parallel to
+// the 10px corners of the controls it holds: 10px on the row, so 14px on the plate.
+const DOOMED = "transition-[background-color,box-shadow] duration-200 motion-reduce:transition-none";
+const DOOMED_RULE = cn(
+  DOOMED,
+  "has-[[data-remove=rule]:hover]:bg-[var(--fu-card-hover,#262626)] has-[[data-remove=rule]:hover]:shadow-[inset_0_0_0_1px_var(--fu-line,#404040)]",
+  "has-[[data-remove=rule]:focus-visible]:bg-[var(--fu-card-hover,#262626)] has-[[data-remove=rule]:focus-visible]:shadow-[inset_0_0_0_1px_var(--fu-line,#404040)]",
+);
+const DOOMED_GROUP = cn(
+  DOOMED,
+  "has-[[data-remove=group]:hover]:bg-[var(--fu-card-hover,#262626)] has-[[data-remove=group]:hover]:shadow-[inset_0_0_0_1px_var(--fu-line,#404040)]",
+  "has-[[data-remove=group]:focus-visible]:bg-[var(--fu-card-hover,#262626)] has-[[data-remove=group]:focus-visible]:shadow-[inset_0_0_0_1px_var(--fu-line,#404040)]",
+);
+const DOOMED_NESTED = cn(
+  DOOMED,
+  "rounded-[10px]",
+  "has-[[data-remove=rule]:hover]:bg-[var(--fu-card-hover,#262626)] has-[[data-remove=rule]:hover]:shadow-[0_0_0_4px_var(--fu-card-hover,#262626),0_0_0_5px_var(--fu-line,#404040)]",
+  "has-[[data-remove=rule]:focus-visible]:bg-[var(--fu-card-hover,#262626)] has-[[data-remove=rule]:focus-visible]:shadow-[0_0_0_4px_var(--fu-card-hover,#262626),0_0_0_5px_var(--fu-line,#404040)]",
+);
 
 /**
  * Rows of field, condition and value that read as sentences, joined by And or Or along a hairline rail, with one level of
@@ -511,17 +586,18 @@ export function Rules<Item>({
       );
     }
     const number = { format: field.format ?? numbers.number, parse: field.parse ?? parseFor(locale), ...(field.prefix && { prefix: field.prefix }) };
+    const scale = scaleOf(items, field);
     if (rule.op === "between") {
       const [low, high] = rule.value as readonly [number | null, number | null];
       return (
         <>
-          <NumberPill {...number} value={low} onValue={(next) => update(rule.id, (r) => ({ ...r, value: [next, high] }))} label={`Lowest ${name}`} placeholder="Min" />
+          <NumberPill {...number} value={low} onValue={(next) => update(rule.id, (r) => ({ ...r, value: [next, high] }))} label={`Lowest ${name}`} placeholder="Min" scale={scale && { ...scale, emptyAt: "min", ceiling: high ?? scale.max }} />
           <span className="text-[14px] leading-5 text-[var(--fu-dim,#929292)]">and</span>
-          <NumberPill {...number} value={high} onValue={(next) => update(rule.id, (r) => ({ ...r, value: [low, next] }))} label={`Highest ${name}`} placeholder="Max" />
+          <NumberPill {...number} value={high} onValue={(next) => update(rule.id, (r) => ({ ...r, value: [low, next] }))} label={`Highest ${name}`} placeholder="Max" scale={scale && { ...scale, emptyAt: "max", floor: low ?? scale.min }} />
         </>
       );
     }
-    return <NumberPill {...number} value={rule.value as number | null} onValue={(next) => update(rule.id, (r) => ({ ...r, value: next }))} label={said} placeholder="Any" />;
+    return <NumberPill {...number} value={rule.value as number | null} onValue={(next) => update(rule.id, (r) => ({ ...r, value: next }))} label={said} placeholder="Any" scale={scale && { ...scale, emptyAt: rule.op === "atMost" ? "max" : "min" }} />;
   };
 
   const spoken = (rule: Rule) => {
@@ -563,7 +639,9 @@ export function Rules<Item>({
         <span
           key={`${rule.field}-${rule.op === "between"}`}
           className={cn(
-            "flex min-w-0 flex-wrap items-center gap-1.5 [grid-area:value] [&>*]:transition-[opacity,filter,translate] [&>*]:duration-150 motion-reduce:[&>*]:transition-none",
+            "flex min-w-0 flex-wrap items-center gap-x-1.5 [grid-area:value] [&>*]:transition-[opacity,filter,translate] [&>*]:duration-150 motion-reduce:[&>*]:transition-none",
+            // Chips carry their own space above and below; fields that wrap need the gap between their lines.
+            field.kind === "list" ? "gap-y-0" : "gap-y-1.5",
             "[&>*]:ease-[cubic-bezier(0.22,1,0.36,1)] starting:[&>*]:translate-y-1 starting:[&>*]:opacity-0 starting:[&>*]:blur-[2px]",
           )}
         >
@@ -593,12 +671,12 @@ export function Rules<Item>({
             return (
               <li key={item.id} data-flip={item.id} className={cn("flex", ENTER)}>
                 {rail}
-                <div role="group" aria-label={`Rule ${i + 1}: ${spoken(item)}. ${leftWords}`} data-rule={item.id} className={cn("@container/well min-w-0 flex-1 p-1.5 @min-[440px]/well:ps-2", WELL)}>
+                <div role="group" aria-label={`Rule ${i + 1}: ${spoken(item)}. ${leftWords}`} data-rule={item.id} className={cn("@container/well min-w-0 flex-1 p-1.5 @min-[440px]/well:ps-2", WELL, DOOMED_RULE)}>
                   {sentence(
                     item,
                     <>
-                      <Left count={after[i]} word={leftLabel} format={formatCount} className="[grid-area:left] me-1" />
-                      <IconButton size="sm" label={`Remove rule ${i + 1}`} onClick={() => remove(item.id)} className="h-9 w-8 [grid-area:x]">
+                      <Left count={after[i]} word={leftLabel} format={formatCount} className="[grid-area:left] me-1 mt-2" />
+                      <IconButton size="sm" data-remove="rule" label={`Remove rule ${i + 1}`} onClick={() => remove(item.id)} className="h-9 w-8 [grid-area:x]">
                         <XIcon size={16} />
                       </IconButton>
                     </>,
@@ -611,11 +689,11 @@ export function Rules<Item>({
           return (
             <li key={item.id} data-flip={item.id} className={cn("flex", ENTER)}>
               {rail}
-              <div role="group" aria-label={`Group ${i + 1}, ${word.toLowerCase()}. ${leftWords}`} className={cn("@container/well min-w-0 flex-1 p-1.5", WELL)}>
+              <div role="group" aria-label={`Group ${i + 1}, ${word.toLowerCase()}. ${leftWords}`} className={cn("@container/well min-w-0 flex-1 p-1.5", WELL, DOOMED_GROUP)}>
                 <div className="flex min-h-9 items-center gap-2 ps-2.5">
                   <TextSwap className="me-auto text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">{word}</TextSwap>
                   <Left count={after[i]} word={leftLabel} format={formatCount} className="me-1" />
-                  <IconButton size="sm" label={`Remove group ${i + 1}`} onClick={() => remove(item.id)} className="h-9 w-8">
+                  <IconButton size="sm" data-remove="group" label={`Remove group ${i + 1}`} onClick={() => remove(item.id)} className="h-9 w-8">
                     <XIcon size={16} />
                   </IconButton>
                 </div>
@@ -623,10 +701,10 @@ export function Rules<Item>({
                   {item.rules.map((rule, j) => (
                     <li key={rule.id} data-flip={rule.id} className={cn("flex", ENTER)}>
                       <Rail nested at={j} of={item.rules.length} join={item.join} onToggle={() => setItems(value.items.map((other) => (other.id === item.id && isGroup(other) ? { ...other, join: other.join === "and" ? "or" : "and" } : other)))} />
-                      <div role="group" aria-label={spoken(rule)} data-rule={rule.id} className="min-w-0 flex-1">
+                      <div role="group" aria-label={spoken(rule)} data-rule={rule.id} className={cn("min-w-0 flex-1", DOOMED_NESTED)}>
                         {sentence(
                           rule,
-                          <IconButton size="sm" label={`Remove ${fieldOf(rule.field).label.toLowerCase()} from group ${i + 1}`} onClick={() => remove(rule.id)} className="h-9 w-8 [grid-area:x]">
+                          <IconButton size="sm" data-remove="rule" label={`Remove ${fieldOf(rule.field).label.toLowerCase()} from group ${i + 1}`} onClick={() => remove(rule.id)} className="h-9 w-8 [grid-area:x]">
                             <XIcon size={16} />
                           </IconButton>,
                           true,

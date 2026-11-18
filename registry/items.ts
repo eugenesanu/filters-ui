@@ -390,7 +390,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     does: [
       "Bars show how many items sit along the range; bars inside the range light up.",
-      "Drag a handle, press a bar or the rail, or type a number: the chart and fields stay in step.",
+      "Drag a handle, press a bar or the rail, or type a number: the chart and fields stay in step. Under a mouse each field shows a thin handle of its own: drag it and the field fills like a slider.",
       "Typed values accept \"45000\", \"45,000\", \"$45k\" or \"1.2m\" and snap outwards to the step.",
       "A handle at either end, or an empty field, leaves that end open.",
       "Handles never cross: each stops one step short of the other.",
@@ -542,7 +542,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     does: [
       "Bars below the limit light up; bars above it dim.",
-      "Drag the handle, press a bar, or type a number: chart and field stay in step.",
+      "Drag the handle, press a bar, or type a number: chart and field stay in step. Under a mouse the field shows a thin handle of its own: drag it and the field fills like a slider.",
       "A typed value snaps to the step and stays at least one step above min.",
       "The top of the scale, or an empty field, is no limit.",
     ],
@@ -810,7 +810,7 @@ export const ITEMS: RegistryItem[] = [
     does: [
       "Two radio cards: the picked one opens with its fields; the other folds to its title and a one-line note.",
       "Total price is the price chart with two handles and typed fields.",
-      "Monthly payment takes an amount, a term and a down payment, and works out the top price they buy.",
+      "Monthly payment takes an amount, a term and a down payment, and works out the top price they buy. Under a mouse each amount shows a thin handle in its field: drag it and the field fills like a slider.",
       "The top price is a pin on the price bars: the bars up to it are lit, the bar it stands in splits at it, and the lit part glides with the pin when it moves.",
       "Each way keeps what was set in it, so switching back finds it as it was. Total price with no range yet starts at the monthly top price.",
     ],
@@ -1036,8 +1036,8 @@ export const ITEMS: RegistryItem[] = [
       DISABLED_PROP,
     ],
     does: [
-      "Each row reads field, condition and value; the value control follows the field: typed numbers, one picked step, or names as chips.",
-      "Rows hang off a hairline rail; the And or Or on the rail switches every join in its group at once.",
+      "Each row reads field, condition and value; the value control follows the field: typed numbers (under a mouse, also dragged by a thin handle in the field), one picked step, or names as chips.",
+      "Rows hang off a hairline rail; the And or Or on the rail switches every join in its group at once. A row whose value wraps grows downward from its first line, and a cross under the pointer lights up what it would remove.",
       "Each top row shows how many items are left once it applies, as a count pill such as 196 left, so the column reads as a funnel.",
       "Groups hold rules joined the other way, one level deep: price and fuel, and seven seats or a minivan.",
       "A row with no value yet tests nothing, so a new row never empties the results.",
