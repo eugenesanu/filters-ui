@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStage, useStageStatus } from "@/components/stage/stage-controls";
+import { useStage, useStageStatus, useUnpickedAtZero } from "@/components/stage/stage-controls";
 import { MAKE_STATES, optionsInState } from "@/components/stage/state-data";
 import { BarList } from "@/registry/filters/bar-list";
 import { formatsFor } from "@/registry/lib/format";
@@ -45,6 +45,7 @@ export function BarListStateStage() {
   const carCount = (n: number) => (n === 1 ? "1 car" : `${number(n)} cars`);
   const [makes, setMakes] = useState<string[]>(["Toyota"]);
   const [body, setBody] = useState<Body | null>(null);
+  useUnpickedAtZero<string[]>(state, makes, setMakes, () => []);
   // Nothing to count from in these two states, so the body style counts and the result are 0 as well.
   const none = state === "empty" || state === "zero-results";
 

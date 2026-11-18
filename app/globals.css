@@ -393,6 +393,25 @@ body {
     scroll-behavior: smooth;
   }
 
+  /* The notes on an item page (components/item/item-details.tsx) open and close smoothly where the browser can
+     animate to an auto height. Elsewhere they open at once and the text still fades in. */
+  .fu-notes {
+    interpolate-size: allow-keywords;
+  }
+  .fu-notes::details-content {
+    block-size: 0;
+    overflow-y: clip;
+    transition:
+      block-size 320ms var(--fu-ease-smooth),
+      content-visibility 320ms allow-discrete;
+  }
+  .fu-notes[open]::details-content {
+    block-size: auto;
+  }
+  .fu-notes[open] > div {
+    animation: fu-notes-in 320ms var(--fu-ease-smooth) both;
+  }
+
   /* The home hero's backdrop, once on load: the range opens, and each bar rises when the opening reaches it. The
      timings and each bar's delay come from components/hero-backdrop.tsx. */
   .fu-hero-bars > path {
@@ -410,6 +429,12 @@ body {
   }
 }
 
+@keyframes fu-notes-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
 @keyframes fu-hero-grow {
   from {
     opacity: 0;

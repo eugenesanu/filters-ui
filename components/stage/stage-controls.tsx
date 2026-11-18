@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useId, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useContext, useId, useState, useSyncExternalStore, type ReactNode } from "react";
 import { specOf, type StageSpec } from "@/components/stage/stage-specs";
 import type { ItemState } from "@/registry/items";
 import type { Status } from "@/registry/ui/status-frame";
@@ -160,6 +160,29 @@ export function useStageStatus(): StageStatus {
   };
 }
 
+/**
+ * In Zero results every option counts 0 and cannot be picked, and in Empty there are none, so a pick left over from
+ * Ready could be taken off and never put back. A demo therefore enters those states with nothing picked and gets
+ * its picks back on leaving them.
+ */
+const nothingToPick = (state: ItemState) => state === "zero-results" || state === "empty";
+
+export function useUnpickedAtZero<T>(state: ItemState, value: T, setValue: (value: T) => void, unpicked: (value: T) => T) {
+  // Null until the first draw, so a demo that is first drawn in one of those states starts unpicked too.
+  const [seen, setSeen] = useState<ItemState | null>(null);
+  const [kept, setKept] = useState<{ value: T } | null>(null);
+  if (seen !== state) {
+    setSeen(state);
+    if (nothingToPick(state) && !(seen && nothingToPick(seen))) {
+      setKept({ value });
+      setValue(unpicked(value));
+    } else if (!nothingToPick(state) && seen && nothingToPick(seen) && kept) {
+      setValue(kept.value);
+      setKept(null);
+    }
+  }
+}
+
 /** The props an example's default export gets from its stage. */
 export function useStageProps(): StageProps {
   const { values, spec } = useContext(StageContext);
@@ -177,29 +200,33 @@ export function useStageFrame(): { dir?: "rtl" | "ltr"; lang?: string } {
 }
 
 const OPTION =
-  "relative inline-flex h-8 cursor-pointer items-center rounded-[8px] px-2 transition-[color,background-color,scale] duration-200 ease-smooth active:scale-[0.96] active:duration-75 motion-reduce:transition-none pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5";
+  "relative inline-flex h-8 cursor-pointer items-center rounded-[8px] px-2.5 transition-[color,background-color,scale] duration-200 ease-smooth active:scale-[0.96] active:duration-75 motion-reduce:transition-none pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5";
 
 function ControlGroup<K extends keyof StageValues>({ control, value, item }: { control: Control<K>; value: StageValues[K]; item: ItemStage }) {
   const id = useId();
   return (
-    <div role="group" aria-labelledby={id} className="flex flex-wrap items-center gap-0.5">
-      <span id={id} className="me-1 text-dim max-sm:sr-only">
+    <div role="group" aria-labelledby={id} className="flex min-w-0 items-start gap-1.5">
+      {/* The name reads as a label, not one more option; options that wrap line up under the first one. */}
+      <span id={id} className="flex h-8 shrink-0 items-center text-[11px] font-semibold tracking-[0.08em] text-mute uppercase max-sm:sr-only">
         {control.label}
       </span>
-      {control.options.filter((option) => !control.offers || control.offers(item, option.value)).map((option) => {
-        const on = option.value === value;
-        return (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={on}
-            onClick={() => setValue(control.key, option.value)}
-            className={`${OPTION} ${on ? "text-text" : "text-dim hover:bg-wash hover:text-text"}`}
-          >
-            {option.label}
-          </button>
-        );
-      })}
+      <div className="flex min-w-0 flex-wrap items-center gap-0.5">
+        {control.options.filter((option) => !control.offers || control.offers(item, option.value)).map((option) => {
+          const on = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setValue(control.key, option.value)}
+              // The chosen option is a filled pill, so it differs by shape and not by colour alone.
+              className={`${OPTION} ${on ? "bg-surface-3 text-text" : "text-dim hover:bg-wash hover:text-text"}`}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

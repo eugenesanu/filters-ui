@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useStage, useStageStatus } from "@/components/stage/stage-controls";
+import { useStage, useStageStatus, useUnpickedAtZero } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
 import { ResetButton, StagePanel } from "@/components/stage/stage-panel";
 import { CARS } from "@/registry/demo/cars";
@@ -41,6 +41,7 @@ export function ListedDemo({ reset, wide = false }: { reset: ReactNode; wide?: b
   const today = useToday();
   const [value, setValue] = useState<DateRangeValue>(LISTED_PRESET);
   const [open, setOpen] = useState(true);
+  useUnpickedAtZero<DateRangeValue>(state, value, setValue, () => null);
   const filters = listedFilters(value, today);
   const perDay = listedCounts(filters);
   const matches = matchingCars(filters).length;

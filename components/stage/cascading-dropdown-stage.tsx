@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStage, useStageStatus } from "@/components/stage/stage-controls";
+import { useStage, useStageStatus, useUnpickedAtZero } from "@/components/stage/stage-controls";
 import { MAKE_STATES, optionsInState, type Counted } from "@/components/stage/state-data";
 import { CascadingDropdown, type CascadeOption } from "@/registry/filters/cascading-dropdown";
 import { formatsFor } from "@/registry/lib/format";
@@ -36,6 +36,7 @@ export function CascadingDropdownStateStage() {
   const { number } = formatsFor(locale);
   const carCount = (n: number) => (n === 1 ? "1 car" : `${number(n)} cars`);
   const [pick, setPick] = useState<Pick>(["Toyota", null]);
+  useUnpickedAtZero<Pick>(state, pick, setPick, () => [null, null]);
   const [make, model] = pick;
   const options: CascadeOption[] = optionsInState(state, OPTIONS, MAKE_STATES).map((option) => ({ ...option, children: option.children ?? [] }));
   const parent = options.find((option) => option.value === make);
@@ -66,7 +67,7 @@ export function CascadingDropdownStateStage() {
           countLabel={carCount}
           locale={locale}
           errorText="Couldn't load the makes."
-          emptyText="No makes to show."
+          emptyText="No makes to show"
           {...stage}
         />
       </FilterCard>

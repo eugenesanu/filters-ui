@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useStage, useStageStatus } from "@/components/stage/stage-controls";
+import { useStage, useStageStatus, useUnpickedAtZero } from "@/components/stage/stage-controls";
 import { formatsFor, type Formats } from "@/registry/lib/format";
 import { DropdownMenu, type MenuOption } from "@/registry/ui/dropdown-menu";
 import { Select, type SelectOption } from "@/registry/ui/select";
@@ -154,6 +154,7 @@ export function SelectStateStage() {
   const carCount = (n: number) => (n === 1 ? "1 car" : `${f.number(n)} cars`);
   const options = yearsIn(state, f);
   const [from, setFrom] = useState("2021");
+  useUnpickedAtZero(state, from, setFrom, () => "");
   const picked = from !== "" && options.some((option) => option.value === from) ? Number(from) : null;
   const cut = picked === null ? 0 : Math.max(0, TIMELINE.indexOf(picked));
   const shown = TIMELINE.reduce((n, year) => (picked === null || year >= picked ? n + perYearIn(state, year) : n), 0);

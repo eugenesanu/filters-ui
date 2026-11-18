@@ -81,7 +81,7 @@ export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Pr
           format={f.money}
           locale={locale}
           labels={{ low: "Lowest price", high: "Highest price" }}
-          emptyText="No prices to show."
+          emptyText="No prices to show"
           {...states}
         />
       );
@@ -111,7 +111,7 @@ export function CarFilterBody({ facet, filters, set, locale, stage = READY }: Pr
           format={f.km}
           locale={locale}
           label="Maximum kilometres"
-          emptyText="No distances to show."
+          emptyText="No distances to show"
           {...states}
         />
       );

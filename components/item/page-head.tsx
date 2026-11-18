@@ -17,13 +17,17 @@ export function PageHead({ item }: { item: RegistryItem }) {
       </Link>
       <h1 className="mt-4 text-[34px] font-semibold leading-[1.1] tracking-[-0.025em] text-text sm:text-[40px]">{item.title}</h1>
       <p className="mt-3 max-w-[760px] text-[16px] leading-[1.55] text-pretty text-mute sm:text-[17px]">{item.description}</p>
-      <p className="mt-2 text-[13px] leading-5 text-dim">Added in v{item.addedIn}</p>
     </div>
   );
 }
 
+// The words turn the link blue with the card; the arrow sits 1px low, on the middle of the lowercase letters.
+const PAGER_TITLE =
+  "flex min-w-0 items-center gap-1.5 text-[16px] font-medium leading-6 text-text transition-[color] duration-200 ease-smooth group-hover/link:text-accent-soft motion-reduce:transition-none";
+const PAGER_ARROW = "size-[18px] translate-y-px";
+
 const PAGER_CARD =
-  "group/link flex min-w-0 flex-col gap-1 rounded-[20px] border border-card bg-panel px-5 py-4 outline-none transition-[border-color,scale] duration-200 ease-smooth hover:border-surface-3 active:scale-[0.99] active:duration-75 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-solid focus-visible:outline-accent-soft motion-reduce:transition-none";
+  "group/link flex min-w-0 flex-col gap-1 rounded-[20px] border border-card bg-panel px-5 py-4 outline-none transition-[background-color,border-color,scale] duration-200 ease-smooth hover:border-surface-3 hover:bg-page active:scale-[0.99] active:duration-75 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-solid focus-visible:outline-accent-soft motion-reduce:transition-none";
 
 /** The items before and after this one in its own section (basics, or filters and blocks), at the end of the page. */
 export function ItemPager({ item }: { item: RegistryItem }) {
@@ -37,8 +41,8 @@ export function ItemPager({ item }: { item: RegistryItem }) {
       {previous ? (
         <Link href={itemPath(previous.slug)} className={PAGER_CARD}>
           <span className="text-[13px] leading-5 text-dim">Previous</span>{" "}
-          <span className="flex min-w-0 items-center gap-1 text-[16px] font-medium leading-6 text-text">
-            <LinkArrow direction="back" className="-ms-1" />
+          <span className={PAGER_TITLE}>
+            <LinkArrow direction="back" className={`${PAGER_ARROW} -ms-1.5`} />
             <span className="truncate">{previous.title}</span>
           </span>
         </Link>
@@ -48,9 +52,9 @@ export function ItemPager({ item }: { item: RegistryItem }) {
       {next && (
         <Link href={itemPath(next.slug)} className={`${PAGER_CARD} items-end text-end`}>
           <span className="text-[13px] leading-5 text-dim">Next</span>{" "}
-          <span className="flex min-w-0 items-center gap-1 text-[16px] font-medium leading-6 text-text">
+          <span className={PAGER_TITLE}>
             <span className="truncate">{next.title}</span>
-            <LinkArrow className="-me-1" />
+            <LinkArrow className={`${PAGER_ARROW} -me-1.5`} />
           </span>
         </Link>
       )}

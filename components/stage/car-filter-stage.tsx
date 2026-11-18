@@ -6,7 +6,7 @@ import { CAR_FACET_TITLES, clearFacet, matchingCars, summaryOf, type CarFacet, t
 import { FilterCard } from "@/registry/ui/filter-card";
 import { CarFilterBody } from "@/components/stage/car-filter";
 import { presetFilters } from "@/components/tile/presets";
-import { useStage, useStageStatus } from "@/components/stage/stage-controls";
+import { useStage, useStageStatus, useUnpickedAtZero } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
 import { ResetButton, StagePanel } from "@/components/stage/stage-panel";
 
@@ -38,6 +38,7 @@ export function CarFilterStage({ slug, facets }: { slug: string; facets: CarFace
   const [filters, setFilters] = useState<CarFilters>(() => presetFilters(slug, facets[0]));
   const [open, setOpen] = useState(true);
   const [round, setRound] = useState(0);
+  useUnpickedAtZero(stage.state, filters, setFilters, (f) => clearFacet(f, facet));
   const matches = matchingCars(filters).length;
   const set = (patch: Partial<CarFilters>) => setFilters((f) => ({ ...f, ...patch }));
 
