@@ -63,7 +63,7 @@ export const TOKENS = {
   "--fu-token": { dark: "#D1DDFF", light: "#E8EDFD" },
   "--fu-token-edge": { dark: "#D1DDFF", light: "#3049D2" },
   "--fu-token-text": { dark: "#171717", light: "#3049D2" },
-  // A chart bar outside the chosen range. Light is a soft tint of the accent.
+  // A chart bar outside the chosen range: a faint grey in both themes.
   "--fu-bar-out": { dark: "#4A4A4A", light: "#D6D6D2" },
   "--fu-on-accent": { dark: "#FFFFFF", light: "#FFFFFF" },
   "--fu-on-accent-mute": { dark: "#E1E7FF", light: "#E1E7FF" },

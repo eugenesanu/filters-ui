@@ -25,6 +25,7 @@ export const C = {
   line: dark("--fu-line"),
   rail: dark("--fu-rail"),
   control: dark("--fu-control-border"),
+  controlHover: dark("--fu-control-hover"),
   text: dark("--fu-text"),
   mute: dark("--fu-mute"),
   dim: dark("--fu-dim"),
@@ -149,6 +150,7 @@ export function Bars({
   height,
   gap = 4.5,
   barScale = 1,
+  lit = C.accentSoft,
 }: {
   values: readonly number[];
   on: (index: number) => boolean;
@@ -156,6 +158,8 @@ export function Bars({
   height: number;
   gap?: number;
   barScale?: number;
+  /** The colour of the bars that are on. Default: the accent, for bars that can be pressed. */
+  lit?: string;
 }) {
   const top = Math.max(...values, 1);
   const slot = (width - gap * (values.length - 1)) / values.length;
@@ -169,7 +173,7 @@ export function Bars({
               width: bar,
               height: Math.max(3, Math.round((value / top) * height)),
               borderRadius: "4.5px 4.5px 0 0",
-              background: on(index) ? C.accentSoft : C.barOut,
+              background: on(index) ? lit : C.barOut,
             }}
           />
         </div>

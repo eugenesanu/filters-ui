@@ -472,17 +472,17 @@ const MOTIFS: Record<string, () => ReactNode> = {
           {radio(false)}
           Total price
         </div>
-        <div style={col({ marginTop: 12, padding: "18px 18px 15px", borderRadius: 21, border: `1.5px solid ${C.accentSoft}`, background: C.selected })}>
+        <div style={col({ marginTop: 12, padding: "18px 18px 15px", borderRadius: 21, border: `1.5px solid ${C.accentSoft}` })}>
           <div style={row({ gap: 15, fontSize: 21, color: C.text })}>
             {radio(true)}
             Monthly payment
           </div>
           <div style={row({ justifyContent: "space-between", alignItems: "flex-end", marginTop: 15 })}>
-            <div style={{ fontSize: 18, color: C.accentSoft }}>Top price</div>
+            <div style={{ fontSize: 18, color: C.mute }}>Top price</div>
             <div style={{ fontSize: 30, fontWeight: 600, color: C.text }}>$25,700</div>
           </div>
           <div style={col({ marginTop: 12 })}>
-            <Bars values={PRICE.slice(0, 14)} on={(i) => i <= 5} width={340} height={60} gap={4.5} />
+            <Bars values={PRICE.slice(0, 14)} on={(i) => i <= 5} width={340} height={60} gap={4.5} lit={C.controlHover} />
             <div style={{ height: 4.5, width: 340, borderRadius: 3, background: C.rail }} />
           </div>
           <div style={row({ justifyContent: "space-between", marginTop: 12, fontSize: 18, color: C.mute })}>

@@ -283,6 +283,13 @@ export function Budget({
   );
 }
 
+/** A round step near a rough one: 1, 2 or 5 times a power of ten, and never under 1, since money is typed whole. */
+function roundStep(rough: number) {
+  if (!(rough > 1)) return 1;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  return (rough / power >= 5 ? 5 : rough / power >= 2 ? 2 : 1) * power;
+}
+
 type MonthlyBodyProps = {
   id: string;
   value: BudgetValue & { by: "monthly" };
@@ -308,7 +315,11 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
   // The scales the two fields' drag handles move along: up to the payment that buys the top of the price scale with
   // nothing down, and up to half that price as a down payment.
   const r = rate / 100 / 12;
-  const most = Math.ceil((r === 0 ? max / value.term : (max * r) / (1 - Math.pow(1 + r, -value.term))) / 50) * 50;
+  const pay = r === 0 ? max / value.term : (max * r) / (1 - Math.pow(1 + r, -value.term));
+  const monthly = { step: roundStep(pay / 200), max: 0 };
+  monthly.max = Math.ceil(pay / (monthly.step * 5)) * monthly.step * 5;
+  const down = { step: roundStep(max / 200), max: 0 };
+  down.max = Math.ceil(max / 2 / down.step) * down.step;
   return (
     <div className="pt-1">
       <p aria-live="polite" className="flex items-baseline justify-between gap-3">
@@ -322,8 +333,8 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
       </p>
       <CeilingBars buckets={buckets} min={min} max={max} ceiling={ceiling} />
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <MoneyField label="Each month" value={value.monthly} placeholder={format(0)} onCommit={(monthly) => set({ monthly })} format={format} read={read} scale={{ max: most, step: 10 }} />
-        <MoneyField label="Down payment" value={value.down || null} placeholder={format(0)} onCommit={(down) => set({ down: down ?? 0 })} format={format} read={read} scale={{ max: Math.ceil(max / 1000) * 500, step: 500 }} />
+        <MoneyField label="Each month" value={value.monthly} placeholder={format(0)} onCommit={(monthly) => set({ monthly })} format={format} read={read} scale={monthly} />
+        <MoneyField label="Down payment" value={value.down || null} placeholder={format(0)} onCommit={(down) => set({ down: down ?? 0 })} format={format} read={read} scale={down} />
       </div>
       <div className="mt-3 flex items-center gap-3">
         <span id={`${id}-term`} className="shrink-0 text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">

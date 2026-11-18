@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor, resultsLabel } from "../lib/format";
 import { Button, IconButton } from "../ui/button";
@@ -151,18 +151,23 @@ function scaleOf<Item>(items: readonly Item[], field: RuleField<Item> & { kind: 
   if (kept !== undefined) return kept;
   let low = Infinity;
   let high = -Infinity;
+  let whole = true;
   for (const item of items) {
     const n = field.get(item);
     if (n === null) continue;
     if (n < low) low = n;
     if (n > high) high = n;
+    if (!Number.isInteger(n)) whole = false;
   }
   let scale: Scale | null = null;
   if (high > low) {
     const rough = (high - low) / 100;
     const power = 10 ** Math.floor(Math.log10(rough));
-    const step = Math.max(1, (rough / power >= 5 ? 5 : rough / power >= 2 ? 2 : 1) * power);
-    scale = { min: Math.floor(low / step) * step, max: Math.ceil(high / step) * step, step };
+    const round = (rough / power >= 5 ? 5 : rough / power >= 2 ? 2 : 1) * power;
+    // Whole numbers step by at least 1; ratings and ratios keep a step below it, written with its own decimals.
+    const step = whole ? Math.max(1, round) : round;
+    const tidy = (n: number) => Number(n.toFixed(Math.max(0, -Math.floor(Math.log10(step)))));
+    scale = { min: tidy(Math.floor(low / step) * step), max: tidy(Math.ceil(high / step) * step), step: tidy(step) };
   }
   known.set(field.key, scale);
   return scale;
@@ -222,6 +227,9 @@ function NumberPill({
 }) {
   const input = useRef<HTMLInputElement>(null);
   const shown = value === null ? "" : format(value);
+  // While its handle is dragged the pill holds the width of the longest value on the scale, so it does not grow and
+  // shrink under the pointer as digits come and go.
+  const widest = scale ? Math.max(format(scale.min).length, format(scale.max).length) : 0;
   const [draft, setDraft] = useState(shown);
   const [editing, setEditing] = useState(false);
   if (!editing && draft !== shown) setDraft(shown);
@@ -250,6 +258,7 @@ function NumberPill({
         inputMode="decimal"
         autoComplete="off"
         size={Math.max(3, (draft || placeholder).length)}
+        style={scale ? ({ "--widest": `${widest}ch` } as CSSProperties) : undefined}
         onChange={(event) => {
           const text = event.target.value;
           setDraft(text);
@@ -273,6 +282,7 @@ function NumberPill({
         }}
         className={cn(
           "min-w-0 bg-transparent font-[inherit] font-medium text-[var(--fu-text,#F8F5F1)] tabular-nums outline-none placeholder:font-normal placeholder:text-[var(--fu-mute,#BDBDBD)]",
+          scale && "group-has-[[data-dragging]]/field:min-w-[var(--widest)]",
           loading && "invisible",
           arriving && ARRIVING,
         )}
