@@ -87,7 +87,13 @@ const LOADING_ROWS = 4;
 function Label({ label, typed }: { label: string; typed: string }) {
   const hit = matchIn(label, typed);
   return (
-    <span className={cn("min-w-0 [overflow-wrap:anywhere]", hit ? "text-[var(--fu-dim,#929292)]" : "text-[var(--fu-text,#F8F5F1)]")}>
+    <span
+      className={cn(
+        "min-w-0 [overflow-wrap:anywhere]",
+        // On the highlighted row the dim letters lift to mute, so they keep 4.5:1 against it.
+        hit ? "text-[var(--fu-dim,#929292)] group-aria-selected/opt:text-[var(--fu-mute,#BDBDBD)]" : "text-[var(--fu-text,#F8F5F1)]",
+      )}
+    >
       <SkeletonText>
         {hit ? (
           <>
@@ -587,7 +593,7 @@ export function SentenceSearch<Item, State>({
                       pick(row);
                       field.current?.focus();
                     }}
-                    className={cn(ROW, "cursor-pointer")}
+                    className={cn(ROW, "group/opt cursor-pointer")}
                   >
                     {row.swatch &&
                       (loading ? (

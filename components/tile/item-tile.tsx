@@ -1,8 +1,8 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import type { RegistryItem } from "@/registry/items";
 import { itemPath } from "@/lib/site";
 import { cn } from "@/registry/lib/cn";
+import { IntentLink } from "@/components/tile/intent-link";
 import { BoardPreview, TilePreview } from "@/components/tile/previews";
 
 // The link's ::after covers the whole tile, so the tile is one target while the preview stays outside the link.
@@ -37,12 +37,12 @@ function Tile({ item, heading: Heading, stageClassName, className, children }: {
       </div>
       <div className="flex h-12 items-center justify-between gap-3 pt-1">
         <Heading className="min-w-0 truncate text-[15px] font-semibold leading-5 text-text transition-[color] duration-200 ease-smooth group-hover/tile:text-accent-soft">
-          <Link
+          <IntentLink
             href={itemPath(item.slug)}
             className="outline-none after:absolute after:inset-0 after:rounded-[24px] after:content-['']"
           >
             {item.title}
-          </Link>
+          </IntentLink>
         </Heading>
       </div>
     </div>

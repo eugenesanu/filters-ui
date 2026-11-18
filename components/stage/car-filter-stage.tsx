@@ -6,7 +6,7 @@ import { CAR_FACET_TITLES, clearFacet, matchingCars, summaryOf, type CarFacet, t
 import { FilterCard } from "@/registry/ui/filter-card";
 import { CarFilterBody } from "@/components/stage/car-filter";
 import { presetFilters } from "@/components/tile/presets";
-import { useStage, useStageStatus, useUnpickedAtZero } from "@/components/stage/stage-controls";
+import { FORCED_ON, useStage, useStageStatus, useUnpickedAtZero } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
 import { ResetButton, StagePanel } from "@/components/stage/stage-panel";
 
@@ -21,7 +21,7 @@ function ExampleSwitch({ facets, value, onChange }: { facets: CarFacet[]; value:
           aria-pressed={f === value}
           onClick={() => onChange(f)}
           className={`inline-flex h-9 cursor-pointer items-center rounded-[10px] px-2 transition-[color,background-color] duration-200 ease-smooth ${
-            f === value ? "text-text" : "text-dim hover:bg-wash hover:text-text"
+            f === value ? `text-text ${FORCED_ON}` : "text-dim hover:bg-wash hover:text-text"
           }`}
         >
           {CAR_FACET_TITLES[f]}

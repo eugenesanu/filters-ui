@@ -3,6 +3,7 @@
 import { useId, useState, type HTMLAttributes } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor, resultsLabel } from "../lib/format";
+import { useOverflows } from "../lib/overflow";
 import { SCROLL } from "../lib/scroll";
 import { CheckIcon, ChevronDownIcon } from "../ui/icons";
 import { placeholderLabels, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
@@ -44,20 +45,24 @@ type RowProps = {
   /** The row's place in the list, for its loading bar. */
   rank: number;
   checked: boolean;
+  /** Just unticked under the pointer or keyboard at 0: it stays enabled until both have left it. */
+  kept: boolean;
   format: (n: number) => string;
   countLabel: (n: number) => string;
-  onToggle: () => void;
+  onToggle: (input: HTMLInputElement) => void;
+  onRelease: () => void;
 };
 
 // The whole row is the checkbox's label; the native box is hidden and drawn again. The bar behind the name is the row's
 // count as a share of the largest one (a small share is a hairline), growing from the start edge, and eases to a new width over 480ms when other
 // filters change the counts. A ticked row is tinted end to end under its bar. A long name wraps; the box and the count stay in the row.
 // While loading the bar pulses at a calm falling width and the name and count draw as placeholders; the tick stays, as it is the person's.
-function Row({ label, count, share, rank, checked, format, countLabel, onToggle }: RowProps) {
+function Row({ label, count, share, rank, checked, kept, format, countLabel, onToggle, onRelease }: RowProps) {
   const { loading } = useLoading();
   return (
     <label
       data-state={checked ? "on" : "off"}
+      onPointerLeave={(event) => kept && !event.currentTarget.contains(document.activeElement) && onRelease()}
       className={cn(
         "group/row relative isolate flex min-h-10 min-w-0 cursor-pointer items-center gap-3 rounded-[10px] py-2.5 pe-3 ps-3 text-[14px] leading-5 pointer-coarse:min-h-11",
         "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:-outline-offset-2 has-[input:focus-visible]:outline-solid has-[input:focus-visible]:outline-[var(--fu-accent-soft,#8FAAFF)]",
@@ -88,9 +93,10 @@ function Row({ label, count, share, rank, checked, format, countLabel, onToggle 
       <input
         type="checkbox"
         checked={checked}
-        disabled={count === 0 && !checked}
+        disabled={count === 0 && !checked && !kept}
         aria-label={`${label}, ${countLabel(count)}`}
-        onChange={onToggle}
+        onChange={(event) => onToggle(event.currentTarget)}
+        onBlur={(event) => kept && !event.currentTarget.parentElement?.matches(":hover") && onRelease()}
         className="peer absolute size-[18px] cursor-[inherit] opacity-0"
       />
       <span
@@ -167,9 +173,14 @@ export function BarList<V extends string = string>({
   // Opens on its own when a ticked row would be hidden.
   const [all, setAll] = useState(() => options.slice(collapsedCount).some((option) => value.includes(option.value)));
   const most = Math.max(0, ...options.map((option) => option.count));
+  const scrollBox = useOverflows();
 
-  const toggle = (v: V) => {
+  // A row turned off under the pointer or keyboard would become disabled at 0 and drop focus; it stays as it is until
+  // focus and the pointer have both left it.
+  const [kept, setKept] = useState<V | null>(null);
+  const toggle = (v: V, input: HTMLInputElement) => {
     const on = value.includes(v);
+    setKept(on && (document.activeElement === input || input.parentElement?.matches(":hover")) ? v : null);
     onChange(options.flatMap((option) => ((option.value === v ? !on : value.includes(option.value)) ? [option.value] : [])));
   };
 
@@ -187,9 +198,11 @@ export function BarList<V extends string = string>({
         share={most > 0 ? option.count / most : 0}
         rank={rank}
         checked={value.includes(option.value)}
+        kept={kept === option.value}
         format={formatCount}
         countLabel={countLabel}
-        onToggle={() => toggle(option.value)}
+        onToggle={(input) => toggle(option.value, input)}
+        onRelease={() => setKept(null)}
       />
     </li>
   );
@@ -201,7 +214,7 @@ export function BarList<V extends string = string>({
       <StatusFrame status={status} onRetry={onRetry} errorText={errorText} empty={options.length === 0} emptyText={emptyText} disabled={disabled}>
         <div className="flex flex-col">
           {/* Every row scrolls in the same box, so all rows keep one width when a scrollbar shows. */}
-          <div className={cn("max-h-[460px] overflow-y-auto overscroll-contain", SCROLL)}>
+          <div ref={scrollBox} className={cn("max-h-[460px] overflow-y-auto data-[overflows]:overscroll-contain", SCROLL)}>
             <ul className="m-0 flex list-none flex-col p-0">{listed.slice(0, collapsedCount).map(row)}</ul>
             {rest.length > 0 && (
               <div

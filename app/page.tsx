@@ -49,7 +49,7 @@ export default function Home() {
         </div>
 
         <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-8">
-          <section id="filters" aria-labelledby="filters-heading" className="scroll-mt-24">
+          <section id="filters" aria-labelledby="filters-heading" className="scroll-mt-6">
             <h2 id="filters-heading" className="mb-5 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">
               Filters
             </h2>
@@ -61,7 +61,7 @@ export default function Home() {
           </section>
 
           {basics.length > 0 && (
-            <section id="basics" aria-labelledby="basics-heading" className="scroll-mt-24 pt-14 sm:pt-16">
+            <section id="basics" aria-labelledby="basics-heading" className="scroll-mt-6 pt-14 sm:pt-16">
               <h2 id="basics-heading" className="mb-5 text-[20px] font-semibold leading-7 tracking-[-0.01em] text-text">
                 Basics
               </h2>

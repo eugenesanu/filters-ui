@@ -297,7 +297,8 @@ export function SearchableList({
       node.removeEventListener("scroll", measure);
       observer.disconnect();
     };
-  }, []);
+    // The frame takes the list away in an error or with no options; its listeners go on the new box when it is back.
+  }, [status, options.length === 0]);
 
   // Its own status, or the loading frame of an item around it, such as a block's card.
   const loading = useLoading().loading || status === "loading";

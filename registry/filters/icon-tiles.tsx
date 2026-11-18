@@ -37,6 +37,11 @@ const TILE = "flex min-w-0 flex-col gap-1.5 rounded-[16px] border px-3 py-2.5 te
 // an ellipsis (the tile's accessible name keeps it whole), so a word is never broken in two.
 const NAME_ROW = "flex min-w-0 items-start justify-between gap-1";
 const NAME = "min-w-0 overflow-hidden text-[14px] leading-5 text-ellipsis text-[var(--fu-text,#F8F5F1)]";
+// Forced colours draw every tile's edge alike and drop fills, so a chosen tile takes the system highlight. Its colours
+// stay as given: left to the browser, its words would sit on a backplate in the page colour.
+const FORCED_ON =
+  "forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:[--tile-bg:Highlight] forced-colors:[forced-color-adjust:none] forced-colors:focus-visible:outline-[CanvasText]";
+const FORCED_ON_PILL = "forced-colors:bg-transparent forced-colors:text-[HighlightText]";
 
 /** Placeholder tiles while the options are on their way. */
 const LOADING_TILES = 4;
@@ -127,14 +132,15 @@ export function IconTiles<V extends string>({
                           : "border-[var(--fu-control-border,#737373)] text-[var(--fu-mute,#BDBDBD)] enabled:hover:border-[var(--fu-control-hover,#A3A3A3)] enabled:hover:text-[var(--fu-accent-soft,#8FAAFF)] enabled:hover:[--tile-bg:var(--fu-item-hover,#2A2A2A)]",
                       "disabled:cursor-not-allowed",
                       option.count === 0 && !on && !loading && "opacity-40",
+                      on && FORCED_ON,
                     )}
                   >
                     <TileIcon>{option.icon}</TileIcon>
                     <span aria-hidden="true" className={NAME_ROW}>
-                      <span className={NAME}>
+                      <span className={cn(NAME, on && "forced-colors:text-[HighlightText]")}>
                         <SkeletonText>{option.label}</SkeletonText>
                       </span>{" "}
-                      <CountPill variant="square" on={on} count={option.count} format={formatCount} locale={locale} className="mt-px" />
+                      <CountPill variant="square" on={on} count={option.count} format={formatCount} locale={locale} className={cn("mt-px", on && !loading && FORCED_ON_PILL)} />
                     </span>
                   </button>
                 );

@@ -118,7 +118,7 @@ export function RangeSelect<V extends number>({
           barScale={barScale}
           locale={locale}
         />
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2">
           <Select
             label={lowLabel}
             prefix={lowPrefix}

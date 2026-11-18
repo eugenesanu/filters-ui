@@ -115,7 +115,7 @@ export function RangeHistogram({
           locale={locale}
           emptyText={emptyText}
         />
-        <div className={cn("mt-3 grid gap-2", single ? "grid-cols-1" : "grid-cols-2")}>
+        <div className={cn("mt-3 grid gap-2", single ? "grid-cols-1" : "grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))]")}>
           {!single && (
             <RangeField
               value={value[0]}

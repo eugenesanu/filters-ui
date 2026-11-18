@@ -569,7 +569,9 @@ export function wholeWord<Item, State>(vocabulary: Vocabulary<Item, State>, item
 /** The rest of a row's label after what is typed, drawn faintly after the caret. */
 export function ghostOf<State>(text: string, row?: Suggestion<State>) {
   if (!row || !text || /\s$/.test(text)) return "";
-  return fold(row.label).startsWith(fold(text)) ? row.label.slice(text.length) : "";
+  // Cut at the folded length: fold drops a leading space and joins double ones, which the overlay still draws.
+  const typed = fold(text);
+  return fold(row.label).startsWith(typed) ? row.label.slice(typed.length) : "";
 }
 
 /** Where the typed part sits in a label. */

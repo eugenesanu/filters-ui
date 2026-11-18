@@ -9,6 +9,7 @@ import { htmlOf, type Highlighted } from "@/components/copy/code-html";
 import { CopyButton } from "@/components/copy/copy-button";
 import { useStored } from "@/components/copy/use-stored";
 import { TARGETS, type CodeFile, type PanelData, type Target } from "@/components/copy/panel-types";
+import { promptText } from "@/components/copy/prompt-text";
 
 const TARGET_LABELS: Record<Target, string> = { "claude-code": "Claude Code", cursor: "Cursor", v0: "v0", lovable: "Lovable", other: "Other" };
 
@@ -19,9 +20,6 @@ const LENGTHS = ["full", "short"] as const;
 const MANAGERS = ["npm", "pnpm", "yarn", "bun"] as const;
 type Manager = (typeof MANAGERS)[number];
 const RUN: Record<Manager, string> = { npm: "npx", pnpm: "pnpm dlx", yarn: "yarn", bun: "bunx --bun" };
-
-const promptOf = (data: PanelData, target: Target, length: "full" | "short") =>
-  [data.prompt.heads[target], data.prompt[length], data.prompt.tails[target]].join("\n");
 
 const allFiles = (files: CodeFile[]) => files.map((file) => `// ${file.savePath}\n\n${file.source.trimEnd()}`).join("\n\n");
 
@@ -89,7 +87,8 @@ function usePromptChoice(data: PanelData, wide: boolean) {
   const [target, setTarget, stored] = useStored<Target>("fu:target", "claude-code", TARGETS);
   // A block's full prompt carries every file and is too long for many chat inputs.
   const [length, setLength] = useStored("fu:length", wide ? "short" : "full", LENGTHS);
-  return { target, setTarget, stored, length, setLength, text: promptOf(data, target, length) };
+  const text = useMemo(() => promptText(data, target, length), [data, target, length]);
+  return { target, setTarget, stored, length, setLength, text };
 }
 
 type PromptChoice = ReturnType<typeof usePromptChoice>;

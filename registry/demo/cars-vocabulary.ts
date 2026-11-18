@@ -137,7 +137,8 @@ function numeralsOf(f: Formats): Numerals {
       for (let i = 0; i < 10; i++) out = out.split(f.digits[i]).join(String(i));
       return out;
     },
-    num: `[\\d,${inClass(marks + own)}]`,
+    // A decimal point too where the locale reads one, only before a digit: "30.5k" stays one number, a full stop is not one.
+    num: `(?:[\\d,${inClass(marks + own)}]${f.readNumber("1.5") === 1.5 ? `|\\.(?=${digit})` : ""})`,
     digit,
     year: `(${digitOf(2)}${digitOf(0)}[012${own.slice(0, 3)}]${digit})`,
     before: latin ? "\\b" : `(?<![\\w${own}])`,

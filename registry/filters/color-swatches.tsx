@@ -34,6 +34,10 @@ const SWATCH = "flex min-w-0 flex-col items-center gap-1 rounded-[12px] pt-3 pb-
 // A long name wraps at its spaces under the dot, centred; a single word too long for the column ends in an ellipsis
 // (the swatch's accessible name keeps it whole), so a word is never broken in two.
 const NAME = "max-w-full overflow-hidden px-1 text-center text-ellipsis";
+// Forced colours drop fills, so a chosen swatch takes the system highlight. Its colours stay as given: left to the
+// browser, its name would sit on a backplate in the page colour.
+const FORCED_ON =
+  "forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:[forced-color-adjust:none] forced-colors:focus-visible:outline-offset-2 forced-colors:focus-visible:outline-[CanvasText]";
 
 /** Placeholder swatches while the options are on their way. */
 const LOADING_SWATCHES = 8;
@@ -116,6 +120,7 @@ export function ColorSwatches<V extends string>({
                       on ? "bg-[var(--fu-wash,rgb(255_255_255/0.08))]" : "enabled:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",
                       "disabled:cursor-not-allowed",
                       none && "opacity-40 disabled:hover:opacity-80",
+                      on && FORCED_ON,
                     )}
                   >
                     <Dot color={option.color} on={on} />
@@ -158,11 +163,12 @@ function Dot({ color, on }: { color: string; on: boolean }) {
         "size-7 shrink-0 rounded-full border-2",
         "transition-[border-color,box-shadow] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         on
-          ? "border-[var(--fu-text,#F8F5F1)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--fu-text,#F8F5F1)_18%,transparent)]"
+          ? "border-[var(--fu-text,#F8F5F1)] shadow-[0_0_0_3px_color-mix(in_srgb,var(--fu-text,#F8F5F1)_18%,transparent)] forced-colors:border-[HighlightText]"
           : loading
             ? "border-transparent"
             : "border-[var(--fu-control-border,#737373)] shadow-[0_0_0_0_color-mix(in_srgb,var(--fu-text,#F8F5F1)_18%,transparent)] group-enabled/swatch:group-hover/swatch:border-[color-mix(in_srgb,var(--fu-control-border,#737373),var(--fu-text,#F8F5F1))]",
-        loading && SKELETON_FILL,
+        // A swatch's paint is its meaning, so forced colours keep it.
+        loading ? SKELETON_FILL : "forced-colors:[forced-color-adjust:none]",
         arriving && ARRIVING,
       )}
       style={loading ? undefined : { backgroundColor: color }}

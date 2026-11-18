@@ -26,7 +26,7 @@ export type CascadingDropdownProps = Omit<HTMLAttributes<HTMLDivElement>, "onCha
   waitingText?: string;
   /** The line over the second list. Default: the first choice's label. */
   secondHeading?: (first: CascadeOption) => ReactNode;
-  /** How many of the most common second choices show as quick picks under the fields. Default 3; 0 for none. */
+  /** How many of the most common second choices show as quick picks under the fields. Default 2; 0 for none. */
   popular?: number;
   /** The quick picks' name, shown dim before them and read out. Default "Popular". */
   popularLabel?: string;
@@ -185,12 +185,17 @@ export function CascadingDropdown({
                     on
                       ? "border-[var(--fu-accent-soft,#8FAAFF)] text-[var(--fu-accent-pale,#D1DDFF)]"
                       : "border-[var(--fu-line,#404040)] text-[var(--fu-text,#F8F5F1)] hover:border-[var(--fu-control-border,#737373)]",
+                    // Forced colours drop the fill, so a chosen pick takes the system highlight; left to the browser, its
+                    // words would sit on a backplate in the page colour.
+                    on &&
+                      "forced-colors:border-[Highlight] forced-colors:text-[HighlightText] forced-colors:[forced-color-adjust:none] forced-colors:focus-visible:outline-[CanvasText]",
                   )}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
                       "absolute inset-0 -z-10 bg-[var(--fu-selected,#1F2747)] transition-[opacity] duration-200 motion-reduce:transition-none",
+                      "forced-colors:bg-[Highlight] forced-colors:[forced-color-adjust:none]",
                       on ? "opacity-100" : "opacity-0",
                     )}
                   />
@@ -198,14 +203,14 @@ export function CascadingDropdown({
                     aria-hidden="true"
                     className={cn(
                       "absolute bottom-0 inset-s-0 h-[2px] transition-[width,background-color] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-                      loading ? SKELETON_FILL : on ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-accent-soft,#8FAAFF)]/45",
+                      loading ? SKELETON_FILL : on ? "bg-[var(--fu-accent-soft,#8FAAFF)] forced-colors:bg-[HighlightText]" : "bg-[var(--fu-accent-soft,#8FAAFF)]/45",
                     )}
                     style={{ width: `${most > 0 ? (child.count / most) * 100 : 0}%` }}
                   />
                   <span className="truncate">
                     <SkeletonText>{child.label}</SkeletonText>
                   </span>{" "}
-                  <span className={cn("shrink-0 tabular-nums font-normal", on ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]")}>
+                  <span className={cn("shrink-0 tabular-nums font-normal", on ? "text-[var(--fu-accent-soft,#8FAAFF)] forced-colors:text-[HighlightText]" : "text-[var(--fu-dim,#929292)]")}>
                     <SkeletonText>{formatCount(child.count)}</SkeletonText>
                   </span>
                 </button>

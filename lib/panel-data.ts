@@ -5,7 +5,8 @@ import { buildPrompt } from "@/lib/prompt";
 import { highlight, langOf, type CodeLang } from "@/lib/highlight";
 import { codeHtml, marksOf, type Highlighted } from "@/components/copy/code-html";
 import { registryJsonUrl } from "@/lib/site";
-import { TARGETS, type PanelData, type Target } from "@/components/copy/panel-types";
+import { TARGETS, type CodeFile, type PanelData, type Target } from "@/components/copy/panel-types";
+import { filesText, promptText } from "@/components/copy/prompt-text";
 
 const baseName = (path: string) => path.split("/").pop()!;
 const NAMES: Record<string, string> = {
@@ -26,14 +27,21 @@ function listOf(parts: string[]) {
   return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
 }
 
-/** Splits each target's prompt into first line, shared middle and last line, and checks the middle really is shared. */
-function promptParts(item: RegistryItem): PanelData["prompt"] {
+/**
+ * Splits each target's prompt into first line, shared middle and last line, and checks the middle really is shared.
+ * The full middle is cut around its files, which the page already carries; every prompt the panel joins back is checked
+ * against lib/prompt.ts.
+ */
+function promptParts(item: RegistryItem, files: CodeFile[]): PanelData["prompt"] {
   const heads = {} as Record<Target, string>;
   const tails = {} as Record<Target, string>;
   const middles = { full: "", short: "" };
+  const built: string[] = [];
   for (const length of ["full", "short"] as const) {
     for (const target of TARGETS) {
-      const lines = buildPrompt(item, { target, length }).split("\n");
+      const text = buildPrompt(item, { target, length });
+      built.push(text);
+      const lines = text.split("\n");
       const head = lines[0];
       const tail = lines.at(-1)!;
       const middle = lines.slice(1, -1).join("\n");
@@ -47,7 +55,20 @@ function promptParts(item: RegistryItem): PanelData["prompt"] {
       else if (middles[length] !== middle) throw new Error(`panel-data: ${item.slug} ${target}: prompt body differs by target`);
     }
   }
-  return { heads, tails, ...middles };
+  const block = filesText(files);
+  const at = middles.full.indexOf(block);
+  if (at < 0) throw new Error(`panel-data: ${item.slug}: the full prompt does not list its files as filesText does`);
+  const prompt = {
+    heads,
+    tails,
+    full: { before: middles.full.slice(0, at), after: middles.full.slice(at + block.length) },
+    short: middles.short,
+  };
+  const joined = (["full", "short"] as const).flatMap((length) => TARGETS.map((target) => promptText({ prompt, files }, target, length)));
+  joined.forEach((text, i) => {
+    if (text !== built[i]) throw new Error(`panel-data: ${item.slug}: a prompt joined from its parts differs from lib/prompt.ts`);
+  });
+  return prompt;
 }
 
 function needsLine(item: RegistryItem) {
@@ -58,7 +79,7 @@ function needsLine(item: RegistryItem) {
     .filter((f) => !shipped.has(f.path) && (f.kind === "ui" || f.kind === "lib" || (item.kind === "filter" && f.kind === "demo")))
     .map((f) => words(f.path))
     .sort((a, b) => Number(b === "card") - Number(a === "card"));
-  const parts = [`Needs React 19 and Tailwind CSS 4.`];
+  const parts = [`Needs React 19 and Tailwind CSS 4.2 or later.`];
   if (requires.length) {
     const needed = requires.map((slug) => ITEMS.find((i) => i.slug === slug)!);
     const filters = needed.filter((i) => i.kind === "filter");
@@ -84,16 +105,17 @@ async function highlighted(source: string, lang: CodeLang): Promise<Highlighted>
 export async function panelDataOf(item: RegistryItem): Promise<PanelData> {
   const { files, dependencies } = getItemFiles(item);
   const usage = getExampleSource(item);
+  const codeFiles = await Promise.all(
+    files.map(async (file) => ({
+      savePath: file.savePath,
+      name: baseName(file.path),
+      ...(await highlighted(file.source, langOf(file.path))),
+    })),
+  );
   return {
-    prompt: promptParts(item),
+    prompt: promptParts(item, codeFiles),
     usage: await highlighted(usage, "tsx"),
-    files: await Promise.all(
-      files.map(async (file) => ({
-        savePath: file.savePath,
-        name: baseName(file.path),
-        ...(await highlighted(file.source, langOf(file.path))),
-      })),
-    ),
+    files: codeFiles,
     dependencies,
     registryUrl: registryJsonUrl(item.slug),
     needs: needsLine(item),

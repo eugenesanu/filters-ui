@@ -90,10 +90,10 @@ function Edge({ glow }: { glow: boolean }) {
       {glow && (
         <>
           <span className="absolute inset-x-0 top-0 h-14" style={{ backgroundImage: EDGE_LIGHT.top, maskImage: MASK_DOWN }} />
-          {/* physical: the glow is lighting, not reading order, so its colours stay on the same sides in RTL. */}
-          <span className="absolute inset-y-0 left-0 w-12" style={{ backgroundImage: EDGE_LIGHT.left, maskImage: MASK_RIGHT }} />
+          {/* physical: the glow is lighting, not reading order, so its colours stay on the same sides in RTL. Brackets, so shadcn's rtl option leaves both alone. */}
+          <span className="absolute inset-y-0 [left:0] w-12" style={{ backgroundImage: EDGE_LIGHT.left, maskImage: MASK_RIGHT }} />
           {/* physical: as above. */}
-          <span className="absolute inset-y-0 right-0 w-12" style={{ backgroundImage: EDGE_LIGHT.right, maskImage: MASK_LEFT }} />
+          <span className="absolute inset-y-0 [right:0] w-12" style={{ backgroundImage: EDGE_LIGHT.right, maskImage: MASK_LEFT }} />
         </>
       )}
     </span>

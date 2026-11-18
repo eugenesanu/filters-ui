@@ -277,6 +277,9 @@
 
 html {
   background-color: var(--fu-page);
+  /* What focus or a #link scrolls to stops clear of the 64px sticky header. The home sections' scroll-mt-6 adds to
+     this, so /#filters lands where it did before. */
+  scroll-padding-top: 4.5rem;
 }
 
 body {

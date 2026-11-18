@@ -246,7 +246,8 @@ export function parseDate(text: string, today: string, locale?: string): string 
   if (m === null || d === null || m < 0 || m > 11 || d < 1) return null;
   const guess = y === null;
   let year = y ?? Number(today.slice(0, 4));
-  if (guess && d <= daysIn(year, m) && `${year}-${pad(m + 1)}-${pad(d)}` > today) year -= 1;
+  // Steps back past years without the day, so Feb 29 finds the last leap year; 8 covers the gap at 2100.
+  if (guess) for (let i = 0; i < 8 && (d > daysIn(year, m) || `${year}-${pad(m + 1)}-${pad(d)}` > today); i++) year -= 1;
   if (d > daysIn(year, m)) return null;
   return `${year}-${pad(m + 1)}-${pad(d)}`;
 }
@@ -330,6 +331,19 @@ export function DateRange({
   const wanted = focusDay ?? range?.end ?? today;
   const focused = wanted && shownMonth && wanted.slice(0, 7) !== shownMonth.slice(0, 7) ? sameDayIn(shownMonth, wanted) : wanted;
   const pickable = (iso: string) => allowFuture || !today || iso <= today;
+
+  // A value set from outside, such as a Clear on the card around it, ends a half-picked range; the one day the pick set
+  // keeps it. Compared by content, so a parent that hands back an equal new object does not end it.
+  const valueKey = !value ? "" : "last" in value ? `last ${value.last}` : `${value.start}/${value.end}`;
+  const [seenValue, setSeenValue] = useState(valueKey);
+  if (valueKey !== seenValue) {
+    setSeenValue(valueKey);
+    if (pending && valueKey !== `${pending.anchor}/${pending.anchor}`) {
+      setPending(null);
+      setPreview(null);
+      setSaid("");
+    }
+  }
 
   // While a range is half picked, the band runs from its first day to the day under the pointer or the keys.
   const band: Band = pending ? { start: minIso(pending.anchor, preview ?? pending.anchor), end: maxIso(pending.anchor, preview ?? pending.anchor) } : range;
@@ -443,6 +457,7 @@ export function DateRange({
   const checkedIndex = choices.findIndex((c) => c.on);
   const [wash, setWash] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
   const [washPlaced, setWashPlaced] = useState(false);
+  // An error unmounts the buttons, so each status change measures them again.
   useLayoutEffect(() => {
     const button = presetButtons.current[checkedIndex];
     if (!button) return;
@@ -458,7 +473,7 @@ export function DateRange({
       observer.disconnect();
       stop();
     };
-  }, [checkedIndex]);
+  }, [checkedIndex, status]);
 
   const onPresetKeys = (event: KeyboardEvent<HTMLDivElement>) => {
     const from = Math.max(0, presetButtons.current.findIndex((b) => b === document.activeElement));
@@ -677,6 +692,7 @@ export function DateRange({
                     className={cn(
                       "mt-px h-3 text-[10px] leading-3 tabular-nums transition-colors duration-[180ms] motion-reduce:transition-none",
                       isEdge && !isPreviewEnd ? "text-[var(--fu-on-accent-mute,#E1E7FF)]" : inBand ? "text-[var(--fu-accent-soft,#8FAAFF)]" : "text-[var(--fu-dim,#929292)]",
+                      (inBand || isEdge) && "forced-colors:text-[HighlightText]",
                     )}
                     style={{ transitionDelay: `${timing.delay}ms` }}
                   >
@@ -802,6 +818,7 @@ export function DateRange({
               aria-hidden="true"
               className={cn(
                 "pointer-events-none absolute rounded-[9px] bg-[var(--fu-selected,#1F2747)]",
+                "forced-colors:bg-[Highlight] forced-colors:[forced-color-adjust:none]",
                 washPlaced && "transition-[opacity] duration-[360ms]",
                 SMOOTH,
                 "motion-reduce:transition-none",
@@ -826,8 +843,12 @@ export function DateRange({
                   SMOOTH,
                   FOCUS_RING,
                   choice.on
-                    ? cn("text-[var(--fu-accent-pale,#D1DDFF)]", !wash && "bg-[var(--fu-selected,#1F2747)]")
+                    ? cn("text-[var(--fu-accent-pale,#D1DDFF)]", !wash && "bg-[var(--fu-selected,#1F2747)] forced-colors:bg-[Highlight]")
                     : "text-[var(--fu-mute,#BDBDBD)] hover:bg-[var(--fu-item-hover,#2A2A2A)] hover:text-[var(--fu-text,#F8F5F1)]",
+                  // Forced colours drop the wash, so the chosen preset sits on the system highlight; left to the browser,
+                  // its words would sit on a backplate in the page colour.
+                  choice.on &&
+                    "forced-colors:text-[HighlightText] forced-colors:[forced-color-adjust:none] forced-colors:focus-visible:outline-offset-2 forced-colors:focus-visible:outline-[CanvasText]",
                 )}
               >
                 {/* A long label wraps; the count stays beside its first line. */}
@@ -843,6 +864,7 @@ export function DateRange({
                           : choice.on
                             ? "bg-[var(--fu-accent,#3B57E6)] text-[var(--fu-on-accent,#FFFFFF)]"
                             : "bg-[var(--fu-pill,rgb(255_255_255/0.1))] text-[var(--fu-pill-text,#C8C8C8)]",
+                        !loading && choice.on && "forced-colors:bg-transparent forced-colors:text-[HighlightText]",
                       )}
                     >
                       {loading ? (

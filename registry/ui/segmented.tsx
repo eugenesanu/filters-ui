@@ -33,6 +33,11 @@ export type SegmentedProps<V extends SegmentedValue> = Omit<HTMLAttributes<HTMLD
   fit?: "equal" | "content";
 };
 
+// Forced colours drop the thumb's fill, so the chosen segment sits on the system highlight. Its colours stay as given:
+// left to the browser, its words would sit on a backplate in the page colour.
+const FORCED_ON =
+  "forced-colors:text-[HighlightText] forced-colors:[forced-color-adjust:none] forced-colors:focus-visible:outline-offset-2 forced-colors:focus-visible:outline-[CanvasText]";
+
 /**
  * A segmented control: an option without a count ("Any") hugs its words while the control is under 340px wide (from 340px all share the width), the others share the rest equally, and one pill slides to the chosen one over 340ms.
  * It is a radiogroup with one tab stop; arrow keys, Home and End move and select. Right to left, the options run from
@@ -134,6 +139,7 @@ export function Segmented<V extends SegmentedValue>({
         aria-hidden="true"
         className={cn(
           "pointer-events-none absolute top-1 bottom-1 inset-s-1 rounded-[9px] bg-[var(--fu-thumb,#404040)] [--flip:1] rtl:[--flip:-1]",
+          "forced-colors:bg-[Highlight] forced-colors:[forced-color-adjust:none]",
           measuring ? placed && "transition-[left,right,width,opacity]" : "transition-[translate,opacity]",
           "duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
           (index < 0 || (measuring && !measured)) && "opacity-0",
@@ -168,7 +174,7 @@ export function Segmented<V extends SegmentedValue>({
               fit === "content" && !hug && "min-w-min",
               // In an equal share, a name too long to sit beside its count takes its own lines and the count moves under it.
               fit === "equal" && "flex-wrap content-center",
-              on && measuring && !measured && "bg-[var(--fu-thumb,#404040)]",
+              on && measuring && !measured && "bg-[var(--fu-thumb,#404040)] forced-colors:bg-[Highlight]",
               "transition-[color,background-color,scale,opacity] duration-[340ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
               "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
               // Hover and press fill with a faint thumb, so they preview the pick and still read on any track colour.
@@ -180,6 +186,7 @@ export function Segmented<V extends SegmentedValue>({
                   ),
               "disabled:cursor-not-allowed",
               off && !disabled && !on && "opacity-40",
+              on && FORCED_ON,
             )}
           >
             {/* Words wrap at spaces and the track grows; a single word too long for its segment ends in an ellipsis.
@@ -194,7 +201,10 @@ export function Segmented<V extends SegmentedValue>({
                   aria-hidden="true"
                   count={option.count}
                   format={count}
-                  className="group-enabled/seg:group-hover/seg:bg-[var(--fu-pill-hover,rgb(255_255_255/0.16))] group-enabled/seg:group-hover/seg:text-[var(--fu-text,#F8F5F1)]"
+                  className={cn(
+                    "group-enabled/seg:group-hover/seg:bg-[var(--fu-pill-hover,rgb(255_255_255/0.16))] group-enabled/seg:group-hover/seg:text-[var(--fu-text,#F8F5F1)]",
+                    on && "forced-colors:text-[HighlightText]",
+                  )}
                 />
                 <span className="sr-only">, {words(option.count)}</span>
               </>

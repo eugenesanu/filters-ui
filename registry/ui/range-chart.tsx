@@ -299,6 +299,8 @@ export function RangeChart({
                       "transition-[height,background-color] duration-[420ms,200ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
                       // While dragging, the wave follows the handle exactly; it eases back when the handle is let go.
                       "group-data-[dragging]/range:transition-none",
+                      // Forced colours would drop the inline fill, and the chart with it.
+                      "forced-colors:[forced-color-adjust:none]",
                     )}
                     style={{
                       height: heightOf(Math.max(count ? 8 : 3, (count / tallest) * 100), bumpOf(i)),
@@ -324,13 +326,13 @@ export function RangeChart({
           aria-hidden
           className={cn(
             "absolute inset-x-0 top-[10px] h-1 rounded-[2px] transition-[background-color] duration-200 motion-reduce:transition-none",
-            loading ? SKELETON_FILL : "bg-[var(--fu-rail,#4A4A4A)]",
+            loading ? SKELETON_FILL : "bg-[var(--fu-rail,#4A4A4A)] forced-colors:bg-[GrayText] forced-colors:[forced-color-adjust:none]",
           )}
         />
         <span
           aria-hidden
           className={cn(
-            "absolute top-[10px] h-1 rounded-[2px] bg-[var(--fu-accent-soft,#8FAAFF)]",
+            "absolute top-[10px] h-1 rounded-[2px] bg-[var(--fu-accent-soft,#8FAAFF)] forced-colors:bg-[Highlight] forced-colors:[forced-color-adjust:none]",
             // While loading the fill and handles are hidden; they fade in with the data.
             loading && "opacity-0",
             "transition-[left,right,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
@@ -379,6 +381,7 @@ export function RangeChart({
                   "data-[grabbed]:shadow-[0_0_0_6px_color-mix(in_srgb,var(--fu-accent-soft,#8FAAFF)_28%,transparent),0_0_0_1px_var(--fu-handle-edge,rgb(0_0_0/0.25)),0_2px_6px_var(--fu-shadow,rgb(0_0_0/0.5))]",
                   "group-data-[dragging]/range:data-[grabbed]:transition-[scale,box-shadow]",
                   "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-solid peer-focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
+                  "forced-colors:bg-[CanvasText] forced-colors:[forced-color-adjust:none] forced-colors:peer-focus-visible:outline-[Highlight]",
                 )}
                 style={{ insetInlineStart: along(shown[handle]) }}
               />

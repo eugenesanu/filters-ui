@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from "react";
-import { StageControlRow, useStage, useStageFrame, useStageStatus, type StageStatus } from "@/components/stage/stage-controls";
+import { FORCED_ON, StageControlRow, useStage, useStageFrame, useStageStatus, type StageStatus } from "@/components/stage/stage-controls";
 import { APPLIED_LONG_TAILS, APPLIED_MANY_FILTERS, LONG_FILTER_TITLES, NO_RESULTS_LONG } from "@/components/stage/state-data";
 import { formatsFor } from "@/registry/lib/format";
 import { CARS, type Car } from "@/registry/demo/cars";
@@ -246,7 +246,7 @@ export function NoResultsStage() {
       toolbar={
         <Toolbar name="Try a search" prefix="Try:">
           {TRIES.map((t, i) => (
-            <button key={t.label} type="button" aria-pressed={i === tried} onClick={() => start(i)} className={`${TRY} ${i === tried ? "text-text" : "text-dim"}`}>
+            <button key={t.label} type="button" aria-pressed={i === tried} onClick={() => start(i)} className={`${TRY} ${i === tried ? `text-text ${FORCED_ON}` : "text-dim"}`}>
               {t.label}
             </button>
           ))}

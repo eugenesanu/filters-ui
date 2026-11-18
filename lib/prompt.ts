@@ -1,5 +1,6 @@
 // Server only: reads the registry sources through registry-files.
 import { FILTER_CARD_PROPS, type ItemState, type PropRow, type RegistryItem } from "../registry/items.ts";
+import { fence, langOf } from "../components/copy/prompt-text.ts";
 import { cssVariablesOf, getExampleSource, getItemFiles, INSTALL_ALIAS, INSTALL_DIR } from "./registry-files.ts";
 import { itemUrl, registryJsonUrl } from "./site.ts";
 import { TOKENS, type TokenName } from "./theme.ts";
@@ -43,15 +44,6 @@ function lightOf(name: string) {
   if (!token) throw new Error(`prompt: ${name} is not in lib/theme.ts`);
   return token.light;
 }
-
-/** A fence longer than any run of backticks in the text, so a file can never close its own block. */
-function fence(text: string, lang: string) {
-  const longest = Math.max(2, ...[...text.matchAll(/`+/g)].map((m) => m[0].length));
-  const ticks = "`".repeat(longest + 1);
-  return `${ticks}${lang}\n${text.trimEnd()}\n${ticks}`;
-}
-
-const langOf = (path: string) => (path.endsWith(".tsx") ? "tsx" : "ts");
 
 function propLines(rows: readonly PropRow[]) {
   return rows.map((row) => {
@@ -140,7 +132,7 @@ export function buildPrompt(item: RegistryItem, { target, length }: { target: Pr
     "",
     `${item.title}: ${item.description}`,
     "",
-    "Needs: React 19, Tailwind CSS 4 and TypeScript. If this project uses another setup, adapt the classes, keep the look.",
+    "Needs: React 19, Tailwind CSS 4.2 or later and TypeScript. If this project uses another setup, adapt the classes, keep the look.",
     "",
     "## Install",
     "",

@@ -129,6 +129,8 @@ export function NoResults<Item, State>({
     if (lastKey.current === shownKey) return;
     lastKey.current = shownKey;
     if ((first && !animateFirst.current) || reducedMotion() || !rows.current) return;
+    // Each bar grows out of its start edge, which is the right one in RTL.
+    const hidden = getComputedStyle(rows.current).direction === "rtl" ? "inset(0 0 0 100% round 8px)" : "inset(0 100% 0 0 round 8px)";
     rows.current.querySelectorAll<HTMLElement>("[data-fix-row]").forEach((row, i) => {
       row.querySelector<HTMLElement>("[data-fix-content]")?.animate(
         [
@@ -139,7 +141,7 @@ export function NoResults<Item, State>({
       );
       row
         .querySelector<HTMLElement>("[data-fix-bar]")
-        ?.animate([{ clipPath: "inset(0 100% 0 0 round 8px)" }, { clipPath: "inset(0 0 0 0 round 8px)" }], {
+        ?.animate([{ clipPath: hidden }, { clipPath: "inset(0 0 0 0 round 8px)" }], {
           duration: 720,
           delay: 140 + i * 60,
           easing: EASE,
@@ -178,7 +180,7 @@ export function NoResults<Item, State>({
               {title}
             </Heading>
             <p id={`${id}-said`} className="m-0 mt-0.5 text-[14px] leading-5 text-[var(--fu-dim,#929292)]">
-              {said}
+              <span dir="auto">{said}</span>
             </p>
           </div>
         </div>

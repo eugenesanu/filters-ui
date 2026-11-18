@@ -8,8 +8,11 @@ export const TARGETS: readonly Target[] = ["claude-code", "cursor", "v0", "lovab
 export type CodeFile = Highlighted & { savePath: string; name: string };
 
 export type PanelData = {
-  /** Every target's prompt is its own first and last line around a shared middle. */
-  prompt: { heads: Record<Target, string>; tails: Record<Target, string>; full: string; short: string };
+  /**
+   * Every target's prompt is its own first and last line around a shared middle. The full middle comes as its text
+   * before and after the files, which promptText (components/copy/prompt-text.ts) puts back from `files`.
+   */
+  prompt: { heads: Record<Target, string>; tails: Record<Target, string>; full: { before: string; after: string }; short: string };
   usage: Highlighted;
   files: CodeFile[];
   dependencies: string[];

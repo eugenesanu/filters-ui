@@ -77,7 +77,7 @@ export default function SortExample({ locale = "en-US" }: { locale?: string }) {
       </div>
       <div className="relative mt-2 flex rounded-[24px] border border-[var(--fu-card-border,#2A2A2A)] bg-[var(--fu-card,#1F1F1F)] p-2">
         <ol aria-hidden="true" className="w-6 shrink-0 ps-2">
-          {cars.map((car, i) => (
+          {cars.map((_car, i) => (
             <li key={i} className="flex h-14 items-center text-[13px] leading-5 tabular-nums text-[var(--fu-dim,#929292)]">
               {f.plain(i + 1)}
             </li>

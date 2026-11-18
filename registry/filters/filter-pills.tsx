@@ -4,6 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttribute
 import { cn } from "../lib/cn";
 import { isRtl } from "../lib/direction";
 import { formatsFor } from "../lib/format";
+import { useOverflows } from "../lib/overflow";
 import { SCROLL } from "../lib/scroll";
 import { CountPill } from "../ui/count-pill";
 import { ClearAllButton, ShowButton } from "../ui/filters-head";
@@ -377,6 +378,10 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
             skipClick.current = false;
           });
         }}
+        // A key that opened the panel has its keyup land inside it, so a press is what clears the skip.
+        onPointerDown={() => {
+          skipClick.current = false;
+        }}
         onClick={() => {
           if (skipClick.current) {
             skipClick.current = false;
@@ -522,6 +527,7 @@ type PanelProps = {
 function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone, children }: PanelProps) {
   const surface = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
+  const scrollBox = useOverflows();
   const placed = useRef<Rect | null>(null);
   const done = useRef(onGone);
   useLayoutEffect(() => {
@@ -694,12 +700,15 @@ function PillPanel({ id, label, open, handoff, focus, set, width, footer, onGone
       role="dialog"
       aria-label={label}
       inert={!open}
+      // Written [left:0], not left-0, so shadcn's rtl option does not turn it into start-0 here or below.
       // physical: placed from offsetLeft in script, which counts from the left in any direction.
-      className="absolute top-0 left-0 z-30 box-border overflow-hidden border border-solid forced-colors:border-[CanvasText]"
+      className="absolute top-0 [left:0] z-30 box-border overflow-hidden border border-solid forced-colors:border-[CanvasText]"
     >
       {/* physical: moved by a translate measured from the left, as above. */}
-      <div ref={content} tabIndex={-1} className="absolute top-0 left-0 flex flex-col text-[var(--fu-text,#F8F5F1)] outline-none will-change-[translate,opacity,filter]">
-        <div className={cn("max-h-[min(560px,70vh)] overflow-y-auto overscroll-contain p-4", SCROLL)}>{children}</div>
+      <div ref={content} tabIndex={-1} className="absolute top-0 [left:0] flex flex-col text-[var(--fu-text,#F8F5F1)] outline-none will-change-[translate,opacity,filter]">
+        <div ref={scrollBox} className={cn("max-h-[min(560px,70vh)] overflow-y-auto data-[overflows]:overscroll-contain p-4", SCROLL)}>
+          {children}
+        </div>
         <div className="flex items-center justify-between gap-2 px-4 pt-1 pb-4">{footer}</div>
       </div>
     </div>

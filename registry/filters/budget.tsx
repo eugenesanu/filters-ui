@@ -61,7 +61,6 @@ export function budgetRange(value: BudgetValue, rate: number): RangeValue {
 
 
 const SMOOTH = "ease-[cubic-bezier(0.22,1,0.36,1)]";
-const FOCUS_RING = "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]";
 
 type Way = "total" | "monthly";
 
@@ -114,7 +113,7 @@ export function Budget({
     if (way === value.by) return;
     // Total price with no range of its own yet starts at the monthly top price as its highest price, so the budget stays.
     if (way === "total" && kept.total.range[0] === null && kept.total.range[1] === null && ceiling !== null) {
-      const high = Math.max(min, Math.floor(ceiling / step) * step);
+      const high = Math.max(min + step, Math.floor(ceiling / step) * step);
       onChange({ by: "total", range: [null, high >= max ? null : high] });
       return;
     }
@@ -248,7 +247,7 @@ export function Budget({
                     >
                       <span className="min-h-0 overflow-hidden">
                         <span id={`${id}-${way.key}-line`} className="block text-[13px] leading-5 text-[var(--fu-dim,#929292)]">
-                          {way.line}
+                          <span dir="auto">{way.line}</span>
                         </span>
                       </span>
                     </span>
@@ -332,7 +331,7 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
         </span>
       </p>
       <CeilingBars buckets={buckets} min={min} max={max} ceiling={ceiling} />
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2">
         <MoneyField label="Each month" value={value.monthly} placeholder={format(0)} onCommit={(monthly) => set({ monthly })} format={format} read={read} scale={monthly} />
         <MoneyField label="Down payment" value={value.down || null} placeholder={format(0)} onCommit={(down) => set({ down: down ?? 0 })} format={format} read={read} scale={down} />
       </div>
@@ -350,7 +349,7 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
         />
       </div>
       <p className="mt-3 text-[12px] leading-4 text-[var(--fu-dim,#929292)]">
-        Example estimate at {rateText} a year.
+        <span dir="auto">Example estimate at {rateText} a year.</span>
       </p>
     </div>
   );
@@ -389,7 +388,7 @@ function CeilingBars({ buckets, min, max, ceiling }: { buckets?: readonly number
     return (
       <div
         className={cn(
-          "transition-[clip-path] duration-[480ms] motion-reduce:transition-none",
+          "transition-[clip-path] duration-[480ms] motion-reduce:transition-none forced-colors:[forced-color-adjust:none]",
           SMOOTH,
           lit
             ? "absolute inset-0 [clip-path:inset(0_var(--past)_0_0)] rtl:[clip-path:inset(0_0_0_var(--past))]"

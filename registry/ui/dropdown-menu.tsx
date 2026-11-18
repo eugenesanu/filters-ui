@@ -174,6 +174,8 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
     if (inside && reason !== "blur" && reason !== "outside") trigger.current?.focus({ preventScroll: true });
     setOpen(false);
     setPressed(false);
+    // The key that opened the menu had its keyup land in it, so the skip would eat the next click on the trigger.
+    skipClick.current = false;
   };
 
   const pick = (index: number) => {

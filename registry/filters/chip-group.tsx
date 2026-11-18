@@ -34,6 +34,12 @@ export type ChipGroupProps<V extends string> = Omit<HTMLAttributes<HTMLDivElemen
 const CHIP =
   "inline-flex min-h-8 max-w-full min-w-0 items-center gap-1.5 rounded-[16px] border py-[5px] pe-1.5 ps-3 font-[inherit] text-start text-[14px] leading-5";
 
+// Forced colours draw every chip's edge alike and drop fills, so a chosen chip takes the system highlight. Its colours
+// stay as given: left to the browser, its words would sit on a backplate in the page colour.
+const FORCED_ON =
+  "forced-colors:border-[Highlight] forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:[forced-color-adjust:none] forced-colors:focus-visible:outline-[CanvasText]";
+const FORCED_ON_PILL = "forced-colors:bg-transparent forced-colors:text-[HighlightText]";
+
 /** Placeholder chips while the options are on their way. */
 const LOADING_CHIPS = 5;
 
@@ -115,12 +121,13 @@ export function ChipGroup<V extends string>({
                           : "border-[var(--fu-control-border,#737373)] enabled:hover:border-[var(--fu-control-hover,#A3A3A3)] enabled:hover:bg-[var(--fu-item-hover,#2A2A2A)]",
                       "disabled:cursor-not-allowed",
                       option.count === 0 && !on && !loading && "opacity-40",
+                      on && FORCED_ON,
                     )}
                   >
-                    <span aria-hidden="true" className="min-w-0 [overflow-wrap:anywhere] text-[var(--fu-text,#F8F5F1)]">
+                    <span aria-hidden="true" className={cn("min-w-0 [overflow-wrap:anywhere] text-[var(--fu-text,#F8F5F1)]", on && "forced-colors:text-[HighlightText]")}>
                       <SkeletonText>{option.label}</SkeletonText>
                     </span>{" "}
-                    <CountPill aria-hidden="true" on={on} count={option.count} format={formatCount} locale={locale} className="rounded-full" />
+                    <CountPill aria-hidden="true" on={on} count={option.count} format={formatCount} locale={locale} className={cn("rounded-full", on && !loading && FORCED_ON_PILL)} />
                   </button>
                 );
               })}

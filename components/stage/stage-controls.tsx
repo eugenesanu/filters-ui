@@ -202,6 +202,10 @@ export function useStageFrame(): { dir?: "rtl" | "ltr"; lang?: string } {
 const OPTION =
   "relative inline-flex h-8 cursor-pointer items-center rounded-[8px] px-2.5 transition-[color,background-color,scale] duration-200 ease-smooth active:scale-[0.96] active:duration-75 motion-reduce:transition-none pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1.5";
 
+// Forced colours drop the chosen pill's fill, so it takes the system highlight; left to the browser, its words would
+// sit on a backplate in the page colour.
+export const FORCED_ON = "forced-colors:bg-[Highlight] forced-colors:text-[HighlightText] forced-colors:[forced-color-adjust:none] forced-colors:focus-visible:outline-[CanvasText]";
+
 function ControlGroup<K extends keyof StageValues>({ control, value, item }: { control: Control<K>; value: StageValues[K]; item: ItemStage }) {
   const id = useId();
   return (
@@ -220,7 +224,7 @@ function ControlGroup<K extends keyof StageValues>({ control, value, item }: { c
               aria-pressed={on}
               onClick={() => setValue(control.key, option.value)}
               // The chosen option is a filled pill, so it differs by shape and not by colour alone.
-              className={`${OPTION} ${on ? "bg-surface-3 text-text" : "text-dim hover:bg-wash hover:text-text"}`}
+              className={`${OPTION} ${on ? `bg-surface-3 text-text ${FORCED_ON}` : "text-dim hover:bg-wash hover:text-text"}`}
             >
               {option.label}
             </button>

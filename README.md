@@ -40,7 +40,7 @@ Open a filter on [filtersui.com](https://filtersui.com) and try it. Then take it
    npx shadcn@latest add https://filtersui.com/r/range-histogram.json
    ```
 
-Needs React 19, Tailwind CSS 4 and TypeScript.
+Needs React 19, Tailwind CSS 4.2 or later and TypeScript.
 
 <a href="https://filtersui.com/filters/range-histogram">
   <picture>

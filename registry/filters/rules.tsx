@@ -331,7 +331,13 @@ function NamesPills({
           key={name}
           type="button"
           aria-label={`Remove ${name}`}
-          onClick={() => onValue(value.filter((v) => v !== name))}
+          onClick={(event) => {
+            // The chip leaves with its press; focus goes on to the chip after it, or to the menu after the last one.
+            const row = event.currentTarget.parentElement;
+            const at = value.indexOf(name);
+            onValue(value.filter((v) => v !== name));
+            requestAnimationFrame(() => (row?.querySelectorAll<HTMLElement>("button")[at] ?? row?.querySelector<HTMLElement>("button"))?.focus());
+          }}
           className={cn(
             // 5px above and below, so a line of chips is as tall as the field beside it and sits level with it.
             "relative my-[5px] flex h-[26px] max-w-full cursor-pointer items-center gap-1 rounded-full border pe-[7px] ps-[10px]",

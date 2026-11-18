@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode, type RefObject, type CSSProperties } from "react";
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
+import { useOverflows } from "../lib/overflow";
 import { SCROLL } from "../lib/scroll";
 import { SEARCH_ART } from "../ui/art-search";
 import { EmptyState } from "../ui/empty-state";
@@ -66,6 +67,8 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.
 
 const FOCUS_RING =
   "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]";
+/** The first control in the picked filter that Tab stops on. */
+const PANE_CONTROL = 'button:not(:disabled):not([tabindex="-1"]), input:not(:disabled):not([tabindex="-1"]), [tabindex="0"]';
 
 const matchesQuery = (entry: FilterEntry, query: string) =>
   !query || entry.label.toLowerCase().includes(query) || (entry.keywords ?? []).some((word) => word.toLowerCase().includes(query));
@@ -119,6 +122,7 @@ export function AllFilters({
   const list = useRef<HTMLDivElement>(null);
   const back = useRef<HTMLButtonElement>(null);
   const pane = useRef<HTMLDivElement>(null);
+  const detailBox = useOverflows();
   const rows = useRef(new Map<string, HTMLButtonElement>());
   const [inner, setInner] = useState<string | null>(defaultPicked);
   const picked = pickedProp === undefined ? inner : pickedProp;
@@ -401,7 +405,10 @@ export function AllFilters({
                     action={
                       <button
                         type="button"
-                        onClick={() => setQuery("")}
+                        onClick={() => {
+                          setQuery("");
+                          focusFind();
+                        }}
                         className={cn(
                           "relative cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 before:absolute before:inset-x-0 before:-inset-y-2 before:content-[''] hover:text-[var(--fu-accent-pale,#D1DDFF)]",
                           "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
@@ -417,6 +424,7 @@ export function AllFilters({
           </div>
 
           <div
+            ref={detailBox}
             inert={detailHidden}
             onKeyDown={(event) => {
               if (event.key === "Escape" && !event.defaultPrevented && narrow) {
@@ -426,7 +434,7 @@ export function AllFilters({
             }}
             className={cn(
               "min-h-0 min-w-0 transition-[translate,opacity] duration-[480ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
-              "@min-[520px]:m-3 @min-[520px]:ms-0 @min-[520px]:max-h-[calc(100%-24px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)]",
+              "@min-[520px]:m-3 @min-[520px]:ms-0 @min-[520px]:max-h-[calc(100%-24px)] @min-[520px]:self-start @min-[520px]:overflow-y-auto @min-[520px]:data-[overflows]:overscroll-contain @min-[520px]:rounded-[18px] @min-[520px]:bg-[var(--fu-card,#1F1F1F)]",
               SCROLL,
               disabled && "@min-[520px]:overflow-y-hidden",
               "@max-[519px]:group-data-[view=list]/body:pointer-events-none @max-[519px]:group-data-[view=list]/body:absolute @max-[519px]:group-data-[view=list]/body:inset-x-0 @max-[519px]:group-data-[view=list]/body:top-0 @max-[519px]:group-data-[view=list]/body:translate-x-[calc(var(--flip,1)*104%)] @max-[519px]:group-data-[view=list]/body:opacity-0",
@@ -457,7 +465,11 @@ export function AllFilters({
                   {current.onClear && (current.values?.length ?? 0) > 0 && !disabled && (
                     <button
                       type="button"
-                      onClick={current.onClear}
+                      onClick={() => {
+                        current.onClear?.();
+                        // Clear leaves once the filter is clear; the filter's first control takes focus, as the next Tab would.
+                        requestAnimationFrame(() => pane.current?.querySelector<HTMLElement>(PANE_CONTROL)?.focus({ preventScroll: true }));
+                      }}
                       aria-label={`Clear ${current.label.toLowerCase()}`}
                       className={cn(
                         "relative -me-1 h-7 shrink-0 cursor-pointer rounded-[6px] px-1 text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 hover:text-[var(--fu-accent-pale,#D1DDFF)]",
