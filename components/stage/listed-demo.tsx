@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useStage, useStageStatus } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
+import { ResetButton, StagePanel } from "@/components/stage/stage-panel";
 import { CARS } from "@/registry/demo/cars";
 import { EMPTY_CAR_FILTERS, carFormats, listedCounts, matchingCars, type CarFilters } from "@/registry/demo/cars-facets";
 import { DateRange, daysBetween, formatDateRange, resolveDateRange, useToday, type DateRangeValue } from "@/registry/filters/date-range";
@@ -73,5 +74,14 @@ export function ListedDemo({ reset, wide = false }: { reset: ReactNode; wide?: b
         {reset}
       </div>
     </div>
+  );
+}
+
+export function ListedStage() {
+  const [round, setRound] = useState(0);
+  return (
+    <StagePanel>
+      <ListedDemo key={round} wide reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-me-3" />} />
+    </StagePanel>
   );
 }

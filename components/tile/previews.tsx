@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, createElement } from "react";
+import { Activity, createElement, useEffect } from "react";
 import {
   CAR_FACET_COLUMNS,
   CAR_FACET_TITLES,
@@ -17,6 +17,7 @@ import { CarFilterBody } from "@/components/stage/car-filter";
 import { CAR_RULE_FIELDS } from "@/components/stage/rules-stage";
 import { recentSearches, savedSearches } from "@/components/stage/recent-searches-stage";
 import { exampleOf } from "@/components/stage/example-of";
+import { warmStages } from "@/components/stage/lazy-stages";
 import { DropdownTilePreview, SelectTilePreview } from "@/components/tile/basics-previews";
 import { PANEL_PRESET, PRESETS, SENTENCE_PRESET } from "@/components/tile/presets";
 import { CARS, type Car } from "@/registry/demo/cars";
@@ -137,8 +138,10 @@ function PanelPreview() {
 // A preview is a picture: inert, never pressed. On the home page, which holds two dozen of them, each sits in its own
 // Activity (apart) so that on load the page around them (header, switch, links) comes alive first and the previews
 // follow as the browser has time, instead of everything waiting for the last preview's script. The markup is the
-// same. An item page has three, and there the split only adds work, so they come alive with the page.
+// same. An item page has three, and there the split only adds work, so they come alive with the page. Every page with
+// tiles links to item pages, so the first tile to mount warms their stages.
 export function TilePreview({ slug, apart = false }: { slug: string; apart?: boolean }) {
+  useEffect(warmStages, []);
   if (!apart) return <PreviewOf slug={slug} />;
   return (
     <Activity mode="visible">

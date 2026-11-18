@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useStage, useStageStatus } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
+import { ResetButton, StagePanel } from "@/components/stage/stage-panel";
 import { bucketsInState } from "@/components/stage/state-data";
 import { CARS } from "@/registry/demo/cars";
 import { EMPTY_CAR_FILTERS, carFormats, PRICE_MAX, PRICE_MIN, PRICE_STEP, matchingCars, priceBuckets, summaryOf } from "@/registry/demo/cars-facets";
@@ -55,5 +56,14 @@ export function BudgetDemo({ reset }: { reset: ReactNode }) {
         {reset}
       </div>
     </div>
+  );
+}
+
+export function BudgetStage() {
+  const [round, setRound] = useState(0);
+  return (
+    <StagePanel>
+      <BudgetDemo key={round} reset={<ResetButton onReset={() => setRound((n) => n + 1)} className="-me-3" />} />
+    </StagePanel>
   );
 }

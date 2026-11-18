@@ -55,6 +55,14 @@ for (const item of ITEMS.filter((i) => i.kind === "basic")) {
   if (!previews.includes(`slug === "${item.slug}"`)) fail(`${item.slug}: add its tile preview to components/tile/previews.tsx`);
 }
 
+// Each stage that loads on its own names its path twice, once for next/dynamic and once for the warm-up; two
+// different paths would draw one stage and warm another, leaving a tap waiting for a script.
+const stages = readFileSync(join(ROOT, "components/stage/lazy-stages.ts"), "utf8");
+for (const call of stages.split(/= stage\(/).slice(1)) {
+  const [drawn, warmed] = [...call.matchAll(/import\("([^"]+)"\)\.then\(\(m\) => m\.(\w+)\)/g)].map((m) => `${m[1]}#${m[2]}`);
+  if (!drawn || drawn !== warmed) fail(`components/stage/lazy-stages.ts: ${drawn} is drawn but ${warmed} is warmed`);
+}
+
 // Every item's file set resolves: nothing outside registry/, no demo in a filter or basic, one fallback per variable.
 for (const item of ITEMS) {
   try {
