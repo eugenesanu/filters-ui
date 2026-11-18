@@ -4,7 +4,9 @@ import { useEffect, useId, useRef, useState, type HTMLAttributes, type ReactNode
 import { cn } from "../lib/cn";
 import { formatsFor, resultsLabel } from "../lib/format";
 import { SCROLL } from "../lib/scroll";
+import { SEARCH_ART } from "../ui/art-search";
 import { CountPill } from "../ui/count-pill";
+import { EmptyState } from "../ui/empty-state";
 import { CheckIcon, SearchIcon } from "../ui/icons";
 import { placeholderLabels, SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
@@ -234,7 +236,7 @@ export function SearchableList({
   status = "ready",
   onRetry,
   errorText = `Couldn't load the ${noun}.`,
-  emptyText = `No ${noun} to show.`,
+  emptyText = `No ${noun} to show`,
   disabled = false,
   className,
   ...props
@@ -389,7 +391,8 @@ export function SearchableList({
     });
   }
 
-  const near = typed && found === 0 ? nearestName(typed, options) : null;
+  const none = Boolean(typed) && found === 0;
+  const near = none ? nearestName(typed, options) : null;
   const more = listed.length > collapsedCount;
 
   return (
@@ -427,17 +430,19 @@ export function SearchableList({
         </div>
 
         {/* In the panel look the list reaches 8px past the field on each side, so boxes and counts line up with its edges.
-            The panel scrolls the whole list itself, so there the list neither scrolls in its own box nor holds its height while typing. */}
-        <div className={cn("relative mt-2", panel && "-mx-2")}>
+            The panel scrolls the whole list itself, so there the list neither scrolls in its own box nor holds its height while typing.
+            Opened in full, the scroll box reaches 10px into the card's padding and the rows keep the width of this box
+            (100cqi), so the scrollbar sits beside the rows and no count moves when it appears. */}
+        <div className={cn("relative mt-2", panel ? "-mx-2" : "@container")}>
           <div
             ref={scroller}
             id={listId}
             className={cn(
-              all && !panel && ["max-h-80 scroll-py-7 overflow-y-auto overscroll-contain", SCROLL],
+              all && !panel && ["-me-2.5 max-h-80 scroll-py-7 overflow-x-hidden overflow-y-auto overscroll-contain", SCROLL],
             )}
-            style={typed && !panel ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
+            style={typed && !panel && !none ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
           >
-            <ul ref={content} aria-label={label} className="m-0 list-none p-0">
+            <ul ref={content} aria-label={label} className={cn("m-0 list-none p-0", all && !panel && "w-[100cqi]")}>
               {rows}
             </ul>
           </div>
@@ -457,30 +462,39 @@ export function SearchableList({
           />
         </div>
 
-        <div role="status" className={cn("text-[14px] leading-5", panel && "text-[15px]")}>
-          {typed && found === 0 && (
-            <div className={cn("px-3 pt-1 pb-1.5", panel && "px-0")}>
-              <p className="flex min-w-0 text-[var(--fu-mute,#BDBDBD)]">
-                <span className="shrink-0">No {noun} match&nbsp;</span>
-                <span className="min-w-0 truncate text-[var(--fu-text,#F8F5F1)]">“{query.trim()}</span>
-                <span className="shrink-0 text-[var(--fu-text,#F8F5F1)]">”</span>
-              </p>
-              {near && (
+        {/* Nothing matches: the picture, the line and one way on sit in the middle of the room the short list takes,
+            so the card keeps its height. The region stays on the page, so the line is read out when it arrives. */}
+        <div
+          role="status"
+          className={cn(none && "grid place-items-center px-3", none && panel && "px-0 py-6")}
+          style={none && !panel ? { minHeight: collapsedCount * ROW_HEIGHT } : undefined}
+        >
+          {none && (
+            <EmptyState
+              art={SEARCH_ART}
+              title={
+                <span className="flex min-w-0 justify-center">
+                  <span className="shrink-0">No {noun} match&nbsp;</span>
+                  <span className="min-w-0 truncate">“{query.trim()}</span>
+                  <span className="shrink-0">”</span>
+                </span>
+              }
+              action={
                 <button
                   type="button"
                   onClick={() => {
-                    setQuery(near);
+                    setQuery(near ?? "");
                     field.current?.querySelector("input")?.focus();
                   }}
                   className={cn(
-                    "relative mt-1 cursor-pointer rounded-[6px] font-medium text-[var(--fu-accent-soft,#8FAAFF)] before:absolute before:inset-x-0 before:-inset-y-2 before:content-['']",
+                    "relative cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 before:absolute before:inset-x-0 before:-inset-y-2 before:content-[''] hover:text-[var(--fu-accent-pale,#D1DDFF)]",
                     "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
                   )}
                 >
-                  Did you mean {near}?
+                  {near ? `Did you mean ${near}?` : "Clear search"}
                 </button>
-              )}
-            </div>
+              }
+            />
           )}
         </div>
 

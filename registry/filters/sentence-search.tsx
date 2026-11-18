@@ -35,7 +35,7 @@ export type OwnRows<State> = {
   replace?: boolean;
   /** Key hints for the foot of the list while these rows show. */
   keys?: readonly { key: string; label: string }[];
-  /** A quiet line in the list's place while there are no rows, e.g. "No recent searches yet." */
+  /** A quiet line in the list's place while there are no rows, e.g. "No recent searches yet" */
   emptyText?: string;
 };
 

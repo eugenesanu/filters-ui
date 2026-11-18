@@ -4,7 +4,8 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncEx
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
 import { findFixes, type Fix, type RelaxMap } from "../lib/relax";
-import { ArrowRightIcon, SearchXIcon } from "../ui/icons";
+import { SEARCH_ART } from "../ui/art-search";
+import { ArrowRightIcon } from "../ui/icons";
 import { placeholderLabels, SKELETON_FILL, SkeletonText, useLoading } from "../ui/skeleton";
 import { StatusFrame, type StateProps } from "../ui/status-frame";
 
@@ -170,12 +171,8 @@ export function NoResults<Item, State>({
           frame of their own, which says "Loading" and the error, so an error stands under the title and Clear all stays. */}
       <StatusFrame status={loading ? "loading" : "ready"} disabled={disabled} announce={false} className="rounded-[23px] focus-visible:-outline-offset-2">
         <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-          <span
-            aria-hidden="true"
-            className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--fu-surface-3,#2A2A2A)] text-[var(--fu-mute,#BDBDBD)]"
-          >
-            <SearchXIcon size={20} strokeWidth={1.75} />
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={SEARCH_ART} alt="" width={44} height={44} loading="lazy" decoding="async" draggable={false} className="size-11 shrink-0 object-contain select-none" />
           <div className="min-w-0">
             <Heading id={`${id}-title`} className="m-0 text-[15px] font-semibold leading-5">
               {title}

@@ -4,6 +4,8 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttribute
 import { cn } from "../lib/cn";
 import { formatsFor } from "../lib/format";
 import { SCROLL } from "../lib/scroll";
+import { SEARCH_ART } from "../ui/art-search";
+import { EmptyState } from "../ui/empty-state";
 import { ShowButton } from "../ui/filters-head";
 import { ChevronDownIcon, SearchIcon, XIcon } from "../ui/icons";
 import { SkeletonText, useLoading } from "../ui/skeleton";
@@ -384,10 +386,32 @@ export function AllFilters({
                 );
               })}
               {visible.length === 0 && (
-                <p role="status" className="m-0 px-3 pt-6 pb-4 text-center text-[14px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
-                  No filter called &ldquo;{query.trim()}&rdquo;.
-                  <span className="block text-[var(--fu-dim,#929292)]">Try another word.</span>
-                </p>
+                <div role="status" className="px-3 pt-8 pb-4">
+                  <EmptyState
+                    art={SEARCH_ART}
+                    title={
+                      <span className="flex min-w-0 flex-wrap justify-center">
+                        <span className="shrink-0">No filter called&nbsp;</span>
+                        <span className="flex min-w-0">
+                          <span className="min-w-0 truncate">&ldquo;{query.trim()}</span>
+                          <span className="shrink-0">&rdquo;</span>
+                        </span>
+                      </span>
+                    }
+                    action={
+                      <button
+                        type="button"
+                        onClick={() => setQuery("")}
+                        className={cn(
+                          "relative cursor-pointer rounded-[6px] text-[14px] leading-5 font-medium text-[var(--fu-accent-soft,#8FAAFF)] transition-[color] duration-200 before:absolute before:inset-x-0 before:-inset-y-2 before:content-[''] hover:text-[var(--fu-accent-pale,#D1DDFF)]",
+                          "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
+                        )}
+                      >
+                        Clear search
+                      </button>
+                    }
+                  />
+                </div>
               )}
             </div>
           </div>

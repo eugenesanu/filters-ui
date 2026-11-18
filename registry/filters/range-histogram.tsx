@@ -59,7 +59,7 @@ export function RangeHistogram({
   status = "ready",
   onRetry,
   errorText = "Couldn't load the counts.",
-  emptyText = "No items to show.",
+  emptyText = "No items to show",
   disabled = false,
   announce = true,
   className,

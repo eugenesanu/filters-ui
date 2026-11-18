@@ -28,7 +28,7 @@ export type AppliedFiltersProps = Omit<HTMLAttributes<HTMLDivElement>, "children
   clearAllLabel?: string;
   /** Accessible name of the list. Default "Applied filters". */
   label?: string;
-  /** The quiet line shown in place of the chips while no filter is in use. Default "No filters applied." */
+  /** The quiet line shown in place of the chips while no filter is in use. Default "No filters applied" */
   emptyText?: string;
 };
 
@@ -71,7 +71,7 @@ export function AppliedFilters({
   onClearAll,
   clearAllLabel = "Clear all",
   label = "Applied filters",
-  emptyText = "No filters applied.",
+  emptyText = "No filters applied",
   disabled = false,
   className,
   ...props

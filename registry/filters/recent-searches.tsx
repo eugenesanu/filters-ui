@@ -24,7 +24,7 @@ export type RecentSearchesProps<Item, State> = Omit<SentenceSearchProps<Item, St
   onForget: (id: string) => void;
   /** How many recent searches show. */
   recentLimit?: number;
-  /** The quiet line in the list while there are no recent and no saved searches. Default "No recent searches yet." */
+  /** The quiet line in the list while there are no recent and no saved searches. Default "No recent searches yet" */
   emptyText?: string;
 };
 
@@ -244,7 +244,7 @@ export function RecentSearches<Item, State>({
   onSave,
   onForget,
   recentLimit = 4,
-  emptyText = "No recent searches yet.",
+  emptyText = "No recent searches yet",
   status = "ready",
   errorText = "Couldn't load your searches.",
   defaultOpen = false,

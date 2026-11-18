@@ -1,6 +1,6 @@
 // Writes public/r/<slug>.json for every item and public/r/registry.json, in the shadcn registry format.
 // Runs in prebuild, so the JSON always matches the sources. public/r is generated and git-ignored.
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ITEMS } from "../registry/items.ts";
 import { getItemFiles } from "../lib/registry-files.ts";
@@ -19,6 +19,13 @@ const FILE_TYPE = {
   lib: "registry:lib",
   demo: "registry:lib",
 };
+
+// A registry file that names a picture by address brings that picture along, saved from the project root.
+const ASSETS = { "registry/ui/art-search.ts": "public/filters-ui/search.svg" };
+const assetsOf = (files) =>
+  files
+    .filter((file) => ASSETS[file.path])
+    .map((file) => ({ path: ASSETS[file.path], type: "registry:file", target: `~/${ASSETS[file.path]}`, content: readFileSync(join(process.cwd(), ASSETS[file.path]), "utf8") }));
 
 // Files land where getItemFiles saves them, under the project's components alias, so relative imports keep working.
 const target = (savePath) => savePath.replace(/^components\//, "@components/");
@@ -39,12 +46,15 @@ function itemJson(item) {
     author: `${site.author.name} <${site.author.url}>`,
     dependencies,
     ...(requires.length ? { registryDependencies: requires.map(dependencyUrl) } : {}),
-    files: own.map((file) => ({
-      path: file.path,
-      type: FILE_TYPE[file.kind],
-      target: target(file.savePath),
-      content: file.source,
-    })),
+    files: [
+      ...own.map((file) => ({
+        path: file.path,
+        type: FILE_TYPE[file.kind],
+        target: target(file.savePath),
+        content: file.source,
+      })),
+      ...assetsOf(own),
+    ],
     meta: { addedIn: item.addedIn, updatedIn: item.updatedIn },
   };
 }

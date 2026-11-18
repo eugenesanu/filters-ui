@@ -156,7 +156,7 @@ export function BarList<V extends string = string>({
   status = "ready",
   onRetry,
   errorText = `Couldn't load the ${noun}.`,
-  emptyText = `No ${noun} to show.`,
+  emptyText = `No ${noun} to show`,
   disabled = false,
   className,
   ...props

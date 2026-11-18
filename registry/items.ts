@@ -105,11 +105,11 @@ const statusProps = (errorDefault = "\"Couldn't load the options.\""): PropRow[]
   { name: "onRetry", type: "() => void", meaning: "Called by Retry in the error state. Without it the error line has no button." },
   { name: "errorText", type: "string", default: errorDefault, meaning: "The error line, in plain words." },
 ];
-const emptyTextProp = (fallback = "\"No options to show.\""): PropRow => ({
+const emptyTextProp = (fallback = "\"No options to show\""): PropRow => ({
   name: "emptyText",
   type: "string",
   default: fallback,
-  meaning: "The quiet line shown in place of the options when there are none.",
+  meaning: "The line shown under a small picture, in place of the options, when there are none.",
 });
 const DISABLED_PROP: PropRow = {
   name: "disabled",
@@ -150,7 +150,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/icon-tiles.tsx",
     example: "registry/examples/icon-tiles.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each tile keeps its edge while its icon, name and count draw as placeholders; with no options yet it draws four placeholder tiles.",
@@ -196,7 +196,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/color-swatches.tsx",
     example: "registry/examples/color-swatches.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each dot draws as a round placeholder with no paint (a chosen one keeps its ring) and each name as a bar; with no options yet it draws eight placeholder swatches.",
@@ -244,12 +244,12 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/searchable-list.tsx",
     example: "registry/examples/searchable-list.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The search field, the first collapsedCount rows and their counts draw as placeholders; with no options yet it draws stand-in rows.",
       error: "The default line names the noun: \"Couldn't load the makes.\"",
-      empty: "A quiet line in place of the search and the list; the default names the noun: \"No makes to show.\"",
+      empty: "A picture and one line in place of the search and the list; the default names the noun: \"No makes to show\"",
       "long-labels": "A long name wraps onto more lines; the checkbox and the count stay in the row.",
       "many-options": "The short list shows collapsedCount rows; \"All N\" opens the rest in a scroll area, and the search narrows them.",
     },
@@ -266,7 +266,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "variant", type: "\"card\" | \"panel\"", default: "\"card\"", meaning: "\"panel\": a 48px search, 20px filled checkboxes, 17px names and plain counts, for a list that sits in a panel rather than a card. The list grows in place and the panel scrolls it." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
       ...statusProps("\"Couldn't load the <noun>.\""),
-      emptyTextProp("\"No <noun> to show.\""),
+      emptyTextProp("\"No <noun> to show\""),
       DISABLED_PROP,
     ],
     does: [
@@ -299,7 +299,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/sentence-search.tsx",
     example: "registry/examples/sentence-search.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "disabled", "long-labels"],
     stateNotes: {
       loading: {
@@ -363,7 +363,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/range-histogram.tsx",
     example: "registry/examples/range-histogram.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "many-options"],
     stateNotes: {
       loading: "The bars draw as pulsing columns in a soft hill and the rail pulses; the handles hide and each field shows a placeholder bar.",
@@ -385,7 +385,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "labels", type: "{ low?: string; high?: string }", default: "the placeholders", meaning: "Accessible names of the handles and fields, e.g. \"Lowest price\"." },
       ...RANGE_TAIL,
       ...statusProps("\"Couldn't load the counts.\""),
-      { ...emptyTextProp("\"No items to show.\""), meaning: "The quiet line shown where the bars go when buckets is an empty list." },
+      { ...emptyTextProp("\"No items to show\""), meaning: "The quiet line shown where the bars go when buckets is an empty list." },
       { name: "announce", type: "boolean", default: "true", meaning: "Says loading and errors out loud. Turn it off when the chart sits inside another filter that says them once, as in Budget." },
     ],
     does: [
@@ -418,7 +418,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/chip-group.tsx",
     example: "registry/examples/chip-group.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each chip keeps its place while its name and count draw as placeholders; with no options yet it draws five placeholder chips.",
@@ -464,7 +464,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/range-select.tsx",
     example: "registry/examples/range-select.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "zero-results", "disabled", "many-options"],
     stateNotes: {
       loading: "The bars draw as pulsing columns and the rail pulses; the handles hide and each picker keeps its box and prefix with a placeholder bar for its value.",
@@ -517,7 +517,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/upper-limit.tsx",
     example: "registry/examples/upper-limit.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "many-options"],
     stateNotes: {
       loading: "The bars draw as pulsing columns in a soft hill and the rail pulses; the handle hides and the field shows a placeholder bar.",
@@ -538,7 +538,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "label", type: "string", default: "the placeholder", meaning: "Accessible name of the handle and the field." },
       ...RANGE_TAIL,
       ...statusProps("\"Couldn't load the counts.\""),
-      { ...emptyTextProp("\"No items to show.\""), meaning: "The quiet line shown where the bars go when buckets is an empty list." },
+      { ...emptyTextProp("\"No items to show\""), meaning: "The quiet line shown where the bars go when buckets is an empty list." },
     ],
     does: [
       "Bars below the limit light up; bars above it dim.",
@@ -568,7 +568,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/segmented-choice.tsx",
     example: "registry/examples/segmented-choice.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "zero-results", "disabled", "long-labels"],
     stateNotes: {
       loading: "The track and the pill on the choice stay; each option's name and count draw as placeholders, and Any keeps its word.",
@@ -612,7 +612,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/date-range.tsx",
     example: "registry/examples/date-range.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "zero-results", "disabled", "long-labels"],
     stateNotes: {
       loading: "Day numbers stay; each day's count, each preset's count and the typed fields draw as placeholders.",
@@ -677,7 +677,7 @@ export const ITEMS: RegistryItem[] = [
     stateNotes: {
       loading: "Both fields keep their boxes with a placeholder bar for the value, the hairline stays, and each quick pick keeps its place with placeholders for its name, count and bar.",
       error: "The line and Retry take the place of both fields and the quick picks.",
-      empty: "No first choices: a quiet line in place of both fields.",
+      empty: "No first choices: a picture and one line in place of both fields.",
       "zero-results": "Every count is 0: each choice stays in its list, dimmed, and cannot be picked; the chosen ones stay, and the quick picks hide, as no second choice has items.",
       "long-labels": "A long name wraps in the open list; a field cuts its value short with an ellipsis, and a quick pick is cut at the row's width, read whole by its name.",
       "many-options": "Many first choices: the open list scrolls inside the screen, and typed letters still find a choice.",
@@ -697,7 +697,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
       ...statusProps(),
-      { ...emptyTextProp(), meaning: "The quiet line shown in place of both fields when there are no first choices." },
+      { ...emptyTextProp(), meaning: "The line shown in place of both fields when there are no first choices." },
       DISABLED_PROP,
     ],
     does: [
@@ -731,12 +731,12 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/bar-list.tsx",
     example: "registry/examples/bar-list.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each row keeps its checkbox and its tick; its bar pulses at a calm falling width, like a ranking, and its name and count draw as placeholders. With no options yet it draws collapsedCount stand-in rows.",
       error: "The line and Retry take the list's place, and \"All N\" hides with it. The default line names the noun: \"Couldn't load the makes.\"",
-      empty: "A quiet line in place of the list; the default names the noun: \"No makes to show.\"",
+      empty: "A picture and one line in place of the list; the default names the noun: \"No makes to show\"",
       "zero-results": "Every count is 0: the bars go, and each row stays in place, dimmed, and cannot be ticked; a ticked row can still be unticked.",
       "long-labels": "A long name wraps onto more lines; the checkbox and the count stay in the row, and the bar grows with it.",
       "many-options": "The first collapsedCount rows show; \"All N\" opens the rest under them, and past 11 rows the list scrolls in place with half a row showing at its edge.",
@@ -753,7 +753,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "countLabel", type: "(n: number) => string", default: "\"6 results\"", meaning: "Screen-reader words for a count, e.g. \"6 cars\"." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
       ...statusProps("\"Couldn't load the <noun>.\""),
-      emptyTextProp("\"No <noun> to show.\""),
+      emptyTextProp("\"No <noun> to show\""),
       DISABLED_PROP,
     ],
     does: [
@@ -841,10 +841,10 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/applied-filters.tsx",
     example: "registry/examples/applied-filters.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.3.0",
     states: ["ready", "empty", "disabled", "long-labels", "many-options"],
     stateNotes: {
-      empty: "No filter in use: a quiet line, \"No filters applied.\", takes the row's place. After Clear all it fades in once the last chip has gone.",
+      empty: "No filter in use: a quiet line, \"No filters applied\", takes the row's place. After Clear all it fades in once the last chip has gone.",
       disabled: "Every chip and its cross are off, and Clear all is left out.",
       "long-labels": "A value too long for the row is cut with an ellipsis and shows whole on hover; the chip's name holds every word, and Clear all moves to the next line rather than being pushed out.",
       "many-options": "Chips wrap onto as many lines as they need, with Clear all at the end of the last.",
@@ -856,7 +856,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "onClearAll", type: "() => void", meaning: "When given, Clear all ends the row while two or more filters are in use; it is left out while disabled." },
       { name: "clearAllLabel", type: "string", default: "\"Clear all\"", meaning: "Text of the Clear all button." },
       { name: "label", type: "string", default: "\"Applied filters\"", meaning: "Accessible name of the list." },
-      { ...emptyTextProp("\"No filters applied.\""), meaning: "The quiet line shown in place of the chips while no filter is in use." },
+      { ...emptyTextProp("\"No filters applied\""), meaning: "The quiet line shown in place of the chips while no filter is in use." },
       DISABLED_PROP,
     ],
     does: [
@@ -892,7 +892,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/no-results.tsx",
     example: "registry/examples/no-results.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "disabled", "long-labels"],
     stateNotes: {
       loading: "The title stays; each fix keeps its place with placeholders for its words, its count and its bar. With no items yet it draws limit stand-in fixes.",
@@ -950,7 +950,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/recent-searches.tsx",
     example: "registry/examples/recent-searches.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: {
@@ -958,7 +958,7 @@ export const ITEMS: RegistryItem[] = [
           "Only the list loads: the field keeps taking input, while Saved and Recent keep their headings and each search's name, filters and count draw as placeholders the size of the real ones, or stand-in rows hold their place while the lists are on their way; no row can be picked.",
       },
       error: "The field keeps working; the list shows the line and Retry in place of the searches. The default line is \"Couldn't load your searches.\"",
-      empty: "No recent and no saved searches: the list holds one quiet line in place of Saved and Recent, \"No recent searches yet.\" by default.",
+      empty: "No recent and no saved searches: the list holds a picture and one line in place of Saved and Recent, \"No recent searches yet\" by default.",
       disabled: "The field is off and the list does not open.",
       "long-labels": "A saved search's name and filters wrap onto a second line, then end in an ellipsis; a long filter in a recent row ends in one at the row's width. Every row is read out in full.",
       "many-options": "The list caps its height and scrolls; the highlight keeps its row in view as Up and Down move.",
@@ -977,7 +977,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "label / placeholder / countLabel / formatCount", type: "string / string / (n: number) => string / (n: number) => string", meaning: "As in the sentence search." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
       ...statusProps("\"Couldn't load your searches.\""),
-      { ...emptyTextProp("\"No recent searches yet.\""), meaning: "The quiet line in the list while there are no recent and no saved searches." },
+      { ...emptyTextProp("\"No recent searches yet\""), meaning: "The line in the list while there are no recent and no saved searches." },
       DISABLED_PROP,
     ],
     does: [
@@ -1014,7 +1014,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/rules.tsx",
     example: "registry/examples/rules.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each row keeps its field, condition and value boxes with a bar in place of their words, and its count pill pulses; the rail, And and Or, and the add buttons stay drawn.",
@@ -1127,7 +1127,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/all-filters.tsx",
     example: "registry/examples/all-filters.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The list keeps its groups and names while the values in its chips, the find box and the number in Show draw as placeholders; the picked filter draws its own.",
@@ -1239,7 +1239,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/ui/select.tsx",
     example: "registry/examples/select.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.2.0",
+    updatedIn: "1.3.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The field keeps its box and prefix with a bar in place of the value, and does not open. Inside a filter's own loading StatusFrame it looks the same without a status of its own.",

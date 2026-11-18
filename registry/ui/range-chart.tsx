@@ -43,7 +43,7 @@ export type RangeChartProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
    * Default: the nearest StatusFrame's loading state.
    */
   loading?: boolean;
-  /** Shown, quiet, in the bars' place when buckets is an empty list. Default "No items to show." */
+  /** Shown, quiet, in the bars' place when buckets is an empty list. Default "No items to show" */
   emptyText?: ReactNode;
 };
 
@@ -87,7 +87,7 @@ export function RangeChart({
   locale,
   disabled = false,
   loading: loadingProp,
-  emptyText = "No items to show.",
+  emptyText = "No items to show",
   className,
   ...props
 }: RangeChartProps) {

@@ -2,7 +2,9 @@
 
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactNode, type RefObject } from "react";
 import { cn } from "../lib/cn";
+import { SEARCH_ART } from "./art-search";
 import { EmptyNote } from "./empty-note";
+import { EmptyState } from "./empty-state";
 import { ERROR_LINE, ERROR_TEXT, ErrorGlyph, RetryButton } from "./inline-error";
 import { LoadingContext, useLoading } from "./skeleton";
 
@@ -20,14 +22,14 @@ export type StateProps = {
   onRetry?: () => void;
   /** The error line. Default "Couldn't load the options." */
   errorText?: string;
-  /** The line shown in place of the options when there are none. Default "No options to show." */
+  /** The line shown in place of the options when there are none. Default "No options to show" */
   emptyText?: string;
   /** Dims the whole filter, blocks pointer and keyboard input and says so to screen readers. Default false. */
   disabled?: boolean;
 };
 
 export const DEFAULT_ERROR_TEXT = "Couldn't load the options.";
-export const DEFAULT_EMPTY_TEXT = "No options to show.";
+export const DEFAULT_EMPTY_TEXT = "No options to show";
 export const DEFAULT_LOADING_TEXT = "Loading";
 
 /** How long arriving content keeps its fade-in class: a little more than the 300ms fade. */
@@ -43,6 +45,8 @@ export type StatusFrameProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> 
     /** There are no options: emptyText shows in place of the content. */
     empty?: boolean;
     emptyText?: ReactNode;
+    /** The picture above emptyText: an image address or a node. Default: the search picture. null draws the words alone as one quiet line, for a tight place. */
+    emptyArt?: string | ReactNode | null;
     /** Words read once while loading. Default "Loading". */
     loadingText?: string;
     /** Reads loading and errors out. A block that holds several filters turns it off on each and says it once itself. Default true. */
@@ -57,7 +61,7 @@ export type StatusFrameProps = Omit<HTMLAttributes<HTMLDivElement>, "children"> 
  *   placeholders of their real size, so nothing moves when the data arrives; the data then fades in once.
  * - error: one calm line and a Retry in place of the content. Loading and errors are read out through one polite
  *   status region that stays on the page.
- * - empty: a quiet note in place of the content.
+ * - empty: a picture and one line in place of the content (or the line alone, with emptyArt null).
  * - disabled: dimmed, no pointer or keyboard input (a disabled fieldset turns off every native control inside), and
  *   read as unavailable. Custom focusable parts, such as a grid's cells, also need tabIndex -1 and aria-disabled.
  * When a state change takes away the control that had focus, the frame takes focus, so it is never lost.
@@ -72,6 +76,7 @@ export function StatusFrame({
   errorText = DEFAULT_ERROR_TEXT,
   empty = false,
   emptyText = DEFAULT_EMPTY_TEXT,
+  emptyArt,
   disabled = false,
   loadingText = DEFAULT_LOADING_TEXT,
   announce = true,
@@ -133,7 +138,11 @@ export function StatusFrame({
       <SaidLoading.Provider value={saidAbove || (mode === "loading" && announce)}>
         <LoadingContext.Provider value={{ loading: mode === "loading" || outer.loading, arriving: arriving || outer.arriving }}>
           {mode === "empty" ? (
-            <EmptyNote>{emptyText}</EmptyNote>
+            emptyArt === null ? (
+              <EmptyNote>{emptyText}</EmptyNote>
+            ) : (
+              <EmptyState art={emptyArt ?? SEARCH_ART} title={emptyText} className="py-5" />
+            )
           ) : mode === "error" ? null : (
             // display: contents, so the fieldset adds no box; while disabled it turns off every native control inside.
             <fieldset role="none" disabled={disabled} inert={mode === "loading"} className="contents">

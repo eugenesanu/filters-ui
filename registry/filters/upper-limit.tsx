@@ -35,7 +35,7 @@ export type UpperLimitProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
  * One upper limit: a bar chart with a single handle and one typed field under it, kept in step both ways.
  * A typed value snaps to the step and stays at least one step above min; an empty field, or the top, is no limit.
  * The states (status, onRetry, errorText, emptyText, disabled) are the price range's: "Couldn't load the counts." and
- * "No items to show." by default.
+ * "No items to show" by default.
  */
 export function UpperLimit({
   value,
