@@ -151,15 +151,41 @@ function namePattern(name: string) {
 
 const namesOf = <State>(term: Term<State>) => [fold(term.label), ...(term.names ?? []).map(fold)];
 
-type Compiled<State> = { term: Term<State>; pattern: RegExp; length: number };
+/**
+ * The start of a folded name that namePattern keeps letter for letter: up to its first hyphen or space, or the first
+ * digit after a letter, where the pattern lets a gap in. A sentence without it cannot hold the name.
+ */
+function leadOf(name: string) {
+  for (let i = 0; i < name.length; i++) {
+    const ch = name[i];
+    if (ch === "-" || /\s/.test(ch) || (i > 0 && /\d/.test(ch) && /[a-z]/.test(name[i - 1]))) return name.slice(0, i);
+  }
+  return name;
+}
+
+type Compiled<State> = { term: Term<State>; lead: string; length: number; readonly pattern: RegExp };
 const compiled = new WeakMap<readonly Term<unknown>[], Compiled<unknown>[]>();
+
+// A vocabulary holds a few hundred names and a sentence a handful of them, so a name's pattern is built when a
+// sentence first holds its lead, not for every name up front.
+function compile<State>(term: Term<State>, name: string): Compiled<State> {
+  let pattern: RegExp | undefined;
+  return {
+    term,
+    lead: leadOf(name),
+    length: name.length,
+    get pattern() {
+      return (pattern ??= namePattern(name));
+    },
+  };
+}
 
 // Longest names first, so "Mustang Mach-E" wins over "Mustang" and "plug-in hybrid" over "hybrid".
 function patternsOf<State>(terms: readonly Term<State>[]): Compiled<State>[] {
   const hit = compiled.get(terms as readonly Term<unknown>[]);
   if (hit) return hit as Compiled<State>[];
   const list = terms
-    .flatMap((term) => namesOf(term).map((name) => ({ term, pattern: namePattern(name), length: name.length })))
+    .flatMap((term) => namesOf(term).map((name) => compile(term, name)))
     .sort((a, b) => b.length - a.length);
   compiled.set(terms as readonly Term<unknown>[], list as Compiled<unknown>[]);
   return list;
@@ -258,7 +284,11 @@ function parse<Item, State>(vocabulary: Vocabulary<Item, State>, items: readonly
     if (taken && rule.finish) finishing.push({ rule, ...taken });
   }
   // A name typed twice is read twice, so its second copy is not reported as unused.
-  for (const { term, pattern } of patternsOf(vocabulary.terms)) while (take(pattern, () => term.add(draft)));
+  for (const name of patternsOf(vocabulary.terms)) {
+    // What is left of the sentence must hold the name's lead for its pattern to match, so most names stop here.
+    if (!rest.includes(name.lead)) continue;
+    while (take(name.pattern, () => name.term.add(draft)));
+  }
   for (const { rule, words, at } of finishing) {
     const before = new Set(vocabulary.tokens(draft).map((token) => token.key));
     draft = rule.finish!(draft, ctx);
@@ -502,9 +532,12 @@ export function suggest<Item, State>(vocabulary: Vocabulary<Item, State>, items:
   const lead = leadRows(vocabulary, items, text, state);
   const numbers = (vocabulary.numbers?.(typed, state, items) ?? []).map((term) => priced(vocabulary, items, term, state));
   const stop = new Set(vocabulary.stopNames ?? []);
+  // Ranked first, so only the names that match what is typed are counted against the items.
   const direct = (stop.has(typed) ? [] : vocabulary.terms)
-    .map((term) => ({ row: priced(vocabulary, items, term, state), rank: rankOf(term, typed), own: ownChild(vocabulary, term, state) }))
-    .filter((entry): entry is { row: Suggestion<State>; rank: number; own: number } => entry.rank !== null)
+    .flatMap((term) => {
+      const rank = rankOf(term, typed);
+      return rank === null ? [] : [{ row: priced(vocabulary, items, term, state), rank, own: ownChild(vocabulary, term, state) }];
+    })
     .sort((a, b) => a.rank - b.rank || b.own - a.own || b.row.count - a.row.count)
     .map((entry) => entry.row);
   const facets = typed.length < 2 ? [] : (vocabulary.facets ?? []).filter((facet) => facet.words.some((word) => word.startsWith(typed)));
