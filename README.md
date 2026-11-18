@@ -60,6 +60,12 @@ All the filters on one board, with Clear all and a Show button.
   </picture>
 </a>
 
+## New in 1.3
+
+- **Empty states** have a picture, one line and a way on. A search with no match offers the nearest name or "Clear search". The picture is one small file, `public/filters-ui/search.svg`, which the shadcn install saves for you.
+- **Searchable list**: the counts stay where they are when the full list opens and its scrollbar appears.
+- **On the site**: the notes under each filter are closed rows that open, and the chosen stage option is a filled pill.
+
 ## New in 1.2
 
 - **Drag a number.** Under a mouse, the number fields in price range, upper limit, budget and rules show a thin handle. Drag it and the field fills like a slider.
