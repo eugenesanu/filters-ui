@@ -150,7 +150,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/icon-tiles.tsx",
     example: "registry/examples/icon-tiles.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each tile keeps its edge while its icon, name and count draw as placeholders; with no options yet it draws four placeholder tiles.",
@@ -196,7 +196,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/color-swatches.tsx",
     example: "registry/examples/color-swatches.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each dot draws as a round placeholder with no paint (a chosen one keeps its ring) and each name as a bar; with no options yet it draws eight placeholder swatches.",
@@ -219,8 +219,8 @@ export const ITEMS: RegistryItem[] = [
     does: [
       "Each swatch toggles on or off; several can be on.",
       "A chosen swatch gets a light ring and a soft wash behind it.",
-      "A colour with a count of 0 is dimmed and cannot be turned on.",
-      "Counts are read out but not drawn, to keep the grid calm.",
+      "A colour with a count of 0 is dimmed and cannot be turned on; pointing at it shows its count in the name's place.",
+      "Other counts are read out but not drawn, to keep the grid calm.",
       "A long list shows its first 12 swatches and \"Show all N\"; a long name wraps under its dot.",
     ],
     keyboard: [
@@ -244,7 +244,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/searchable-list.tsx",
     example: "registry/examples/searchable-list.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The search field, the first collapsedCount rows and their counts draw as placeholders; with no options yet it draws stand-in rows.",
@@ -299,7 +299,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/sentence-search.tsx",
     example: "registry/examples/sentence-search.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "disabled", "long-labels"],
     stateNotes: {
       loading: {
@@ -363,7 +363,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/range-histogram.tsx",
     example: "registry/examples/range-histogram.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "many-options"],
     stateNotes: {
       loading: "The bars draw as pulsing columns in a soft hill and the rail pulses; the handles hide and each field shows a placeholder bar.",
@@ -390,7 +390,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     does: [
       "Bars show how many items sit along the range; bars inside the range light up.",
-      "Drag a handle, press a bar or the rail, or type a number: the chart and fields stay in step. Under a mouse each field shows a thin handle of its own: drag it and the field fills like a slider.",
+      "Drag a handle, press a bar or the rail, or type a number: the chart and fields stay in step. Under a mouse each field shows a thin handle of its own: drag it and the field fills like a slider, while the chart's handle and bars move with it.",
       "Typed values accept \"45000\", \"45,000\", \"$45k\" or \"1.2m\" and snap outwards to the step.",
       "A handle at either end, or an empty field, leaves that end open.",
       "Handles never cross: each stops one step short of the other.",
@@ -418,7 +418,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/chip-group.tsx",
     example: "registry/examples/chip-group.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each chip keeps its place while its name and count draw as placeholders; with no options yet it draws five placeholder chips.",
@@ -464,7 +464,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/range-select.tsx",
     example: "registry/examples/range-select.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "zero-results", "disabled", "many-options"],
     stateNotes: {
       loading: "The bars draw as pulsing columns and the rail pulses; the handles hide and each picker keeps its box and prefix with a placeholder bar for its value.",
@@ -517,7 +517,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/upper-limit.tsx",
     example: "registry/examples/upper-limit.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "many-options"],
     stateNotes: {
       loading: "The bars draw as pulsing columns in a soft hill and the rail pulses; the handle hides and the field shows a placeholder bar.",
@@ -542,7 +542,7 @@ export const ITEMS: RegistryItem[] = [
     ],
     does: [
       "Bars below the limit light up; bars above it dim.",
-      "Drag the handle, press a bar, or type a number: chart and field stay in step. Under a mouse the field shows a thin handle of its own: drag it and the field fills like a slider.",
+      "Drag the handle, press a bar, or type a number: chart and field stay in step. Under a mouse the field shows a thin handle of its own: drag it and the field fills like a slider, while the chart's handle and bars move with it.",
       "A typed value snaps to the step and stays at least one step above min.",
       "The top of the scale, or an empty field, is no limit.",
     ],
@@ -568,7 +568,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/segmented-choice.tsx",
     example: "registry/examples/segmented-choice.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "zero-results", "disabled", "long-labels"],
     stateNotes: {
       loading: "The track and the pill on the choice stay; each option's name and count draw as placeholders, and Any keeps its word.",
@@ -612,7 +612,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/date-range.tsx",
     example: "registry/examples/date-range.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "zero-results", "disabled", "long-labels"],
     stateNotes: {
       loading: "Day numbers stay; each day's count, each preset's count and the typed fields draw as placeholders.",
@@ -731,7 +731,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/bar-list.tsx",
     example: "registry/examples/bar-list.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each row keeps its checkbox and its tick; its bar pulses at a calm falling width, like a ranking, and its name and count draw as placeholders. With no options yet it draws collapsedCount stand-in rows.",
@@ -784,7 +784,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/budget.tsx",
     example: "registry/examples/budget.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "zero-results", "disabled"],
     stateNotes: {
       loading: "Both cards keep their titles; in the open one the bars pulse in a soft hill, and the top price and the fields draw as placeholders. Total price draws the price chart's own loading look.",
@@ -892,7 +892,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/no-results.tsx",
     example: "registry/examples/no-results.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "disabled", "long-labels"],
     stateNotes: {
       loading: "The title stays; each fix keeps its place with placeholders for its words, its count and its bar. With no items yet it draws limit stand-in fixes.",
@@ -912,6 +912,7 @@ export const ITEMS: RegistryItem[] = [
       { name: "formatCount", type: "(n: number) => string", default: "1,234", meaning: "Text for each count." },
       { name: "limit", type: "number", default: "3", meaning: "How many fixes to offer." },
       { name: "onClearAll", type: "() => void", meaning: "When given, a Clear all button closes the card." },
+      { name: "removeLabel / applyLabel", type: "string / string", default: "\"Remove\" / \"Apply\"", meaning: "What a fix says a press does while it is pointed at: dropping its filters, or loosening one." },
       { name: "headingLevel", type: "2 | 3 | 4 | 5 | 6", default: "3", meaning: "Level of the title." },
       { name: "locale", type: "string", default: "\"en-US\"", meaning: "Formats the counts and their spoken numbers by default, e.g. \"de-DE\" prints 1.234. Words stay English." },
       ...statusProps("\"Couldn't load the changes.\""),
@@ -921,7 +922,7 @@ export const ITEMS: RegistryItem[] = [
       "Loosens each filter in use by its nearest step that finds something: \"Under $20k\" to \"Under $25k\", \"7+\" to \"Any\".",
       "Where no single change helps, it pairs two filters, nearest steps first.",
       "Each fix shows its count over a soft bar, so the fixes compare at a glance.",
-      "Pointing at a fix crosses out the value it replaces; one press applies it.",
+      "Pointing at a fix crosses out the value it replaces and shows what a press does in the count's place: Remove when it drops its filters, Apply when it loosens one. One press applies it.",
       "Works with any data: a list of looser steps for each filter (the relax prop), not the component, knows your fields.",
     ],
     keyboard: [
@@ -929,7 +930,7 @@ export const ITEMS: RegistryItem[] = [
       "While disabled no fix and not Clear all takes focus; in an error Tab reaches Retry, then Clear all.",
     ],
     accessibility: [
-      "Each fix is read in words with its count: \"Seats Any instead of 7+, 8 cars\".",
+      "Each fix is read with what a press does, its change and its count: \"Remove: Seats 7+ → Any, 8 cars\".",
       "When the card shows, its title and how many fixes it has are announced politely.",
       "After a fix, move focus to the results, as the example does.",
       "Motion is skipped when reduced motion is asked for.",
@@ -1013,7 +1014,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/rules.tsx",
     example: "registry/examples/rules.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each row keeps its field, condition and value boxes with a bar in place of their words, and its count pill pulses; the rail, And and Or, and the add buttons stay drawn.",
@@ -1238,7 +1239,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/ui/select.tsx",
     example: "registry/examples/select.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The field keeps its box and prefix with a bar in place of the value, and does not open. Inside a filter's own loading StatusFrame it looks the same without a status of its own.",
@@ -1338,7 +1339,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/blocks/cars-board.tsx",
     example: "registry/examples/cars-board.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.0.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "disabled"],
     stateNotes: {
       loading: {
@@ -1394,7 +1395,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/blocks/filter-panel.tsx",
     example: "registry/examples/filter-panel.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.1.0",
+    updatedIn: "1.2.0",
     states: ["ready", "loading", "error", "disabled"],
     stateNotes: {
       loading: {

@@ -178,7 +178,7 @@ export function Segmented<V extends SegmentedValue>({
                     "text-[var(--fu-mute,#BDBDBD)] enabled:hover:text-[var(--fu-text,#F8F5F1)]",
                     "enabled:hover:bg-[color-mix(in_srgb,var(--fu-thumb,#404040)_40%,transparent)] enabled:active:bg-[color-mix(in_srgb,var(--fu-thumb,#404040)_70%,transparent)]",
                   ),
-              "disabled:cursor-default",
+              "disabled:cursor-not-allowed",
               off && !disabled && !on && "opacity-40",
             )}
           >

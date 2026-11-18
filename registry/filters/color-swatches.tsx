@@ -95,6 +95,8 @@ export function ColorSwatches<V extends string>({
               ))
             : shown.map((option) => {
                 const on = value.includes(option.value);
+                // Nothing has this colour with the other filters as they are.
+                const none = option.count === 0 && !on && !loading;
                 return (
                   <button
                     key={option.value}
@@ -108,18 +110,30 @@ export function ColorSwatches<V extends string>({
                     data-state={on ? "on" : "off"}
                     className={cn(
                       SWATCH,
-                      "group/swatch cursor-pointer",
+                      "group/swatch relative cursor-pointer",
                       "transition-[background-color,scale,opacity] duration-[260ms] ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.97] active:duration-75 motion-reduce:transition-none",
                       "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]",
                       on ? "bg-[var(--fu-wash,rgb(255_255_255/0.08))]" : "enabled:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",
-                      "disabled:cursor-default",
-                      option.count === 0 && !on && !loading && "opacity-40",
+                      "disabled:cursor-not-allowed",
+                      none && "opacity-40 disabled:hover:opacity-80",
                     )}
                   >
                     <Dot color={option.color} on={on} />
-                    <span aria-hidden="true" className={NAME}>
+                    <span
+                      aria-hidden="true"
+                      className={cn(NAME, none && "transition-opacity duration-150 motion-reduce:transition-none group-disabled/swatch:group-hover/swatch:opacity-0")}
+                    >
                       <SkeletonText>{option.label}</SkeletonText>
                     </span>
+                    {/* A swatch shows no count, so pointing at one that is off says why, on its name's first line. */}
+                    {none && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute inset-x-0 top-11 truncate px-1 text-center opacity-0 transition-opacity duration-150 motion-reduce:transition-none group-disabled/swatch:group-hover/swatch:opacity-100"
+                      >
+                        {countLabel(0)}
+                      </span>
+                    )}
                   </button>
                 );
               })}

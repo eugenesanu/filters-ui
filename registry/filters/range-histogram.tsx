@@ -72,6 +72,9 @@ export function RangeHistogram({
   const highPlaceholder = placeholders?.high ?? "Maximum";
   const lowLabel = labels?.low ?? lowPlaceholder;
   const highLabel = labels?.high ?? highPlaceholder;
+  // The handle a field is dragging, and where: the chart moves it and raises its bars as in a drag of its own.
+  const [held, setHeld] = useState<{ handle: "low" | "high"; value: number } | null>(null);
+  const holding = (handle: "low" | "high") => (at: number | null) => setHeld(at === null ? null : { handle, value: at });
 
   // A typed number snaps outwards to the step, so nothing typed is left out, and stays inside the range, one step clear of the other end.
   // An empty field, or a value at the very end, leaves that end open.
@@ -108,6 +111,7 @@ export function RangeHistogram({
           single={single}
           labels={{ low: lowLabel, high: highLabel }}
           barScale={barScale}
+          held={held}
           locale={locale}
           emptyText={emptyText}
         />
@@ -120,7 +124,7 @@ export function RangeHistogram({
               label={lowLabel}
               placeholder={lowPlaceholder}
               onCommit={(typed) => commit(0, typed)}
-              scale={{ min, max, step, emptyAt: "min", ceiling: (value[1] ?? max) - step }}
+              scale={{ min, max, step, emptyAt: "min", ceiling: (value[1] ?? max) - step, onHold: holding("low") }}
             />
           )}
           <RangeField
@@ -130,7 +134,7 @@ export function RangeHistogram({
             label={highLabel}
             placeholder={highPlaceholder}
             onCommit={(typed) => commit(1, typed)}
-            scale={{ min, max, step, emptyAt: "max", floor: (single ? min : (value[0] ?? min)) + step }}
+            scale={{ min, max, step, emptyAt: "max", floor: (single ? min : (value[0] ?? min)) + step, onHold: holding("high") }}
           />
         </div>
       </StatusFrame>

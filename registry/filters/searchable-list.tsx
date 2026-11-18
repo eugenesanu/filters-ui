@@ -163,7 +163,7 @@ function Row({ label, query, count, checked, disabled, nested, panel, formatCoun
         "[@media(hover:hover)]:has-[input:enabled]:hover:bg-[var(--fu-wash,rgb(255_255_255/0.08))]",
         // Drawn inside the row, so neither the scroll area nor the card can clip it.
         "has-[input:focus-visible]:outline-2 has-[input:focus-visible]:-outline-offset-2 has-[input:focus-visible]:outline-solid has-[input:focus-visible]:outline-[var(--fu-accent-soft,#8FAAFF)]",
-        "has-[input:disabled]:cursor-default",
+        "has-[input:disabled]:cursor-not-allowed",
         count === 0 && !checked && !loading && "opacity-40",
       )}
     >

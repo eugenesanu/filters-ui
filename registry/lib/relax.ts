@@ -27,6 +27,8 @@ export type FixChange = {
   label: string;
   from: string;
   to: string;
+  /** True when the change leaves the filter unset, rather than looser. */
+  removed: boolean;
 };
 
 export type Fix<State> = {
@@ -91,7 +93,13 @@ export function findFixes<Item, State>({
   }
 
   const fixOf = (picks: [Facet<State>, number][], state: State, n: number): Fix<State> => {
-    const changes = picks.map(([facet, i]) => ({ key: facet.key, label: facet.label, from: facet.from, to: facet.steps[i].value }));
+    const changes = picks.map(([facet, i]) => ({
+      key: facet.key,
+      label: facet.label,
+      from: facet.from,
+      to: facet.steps[i].value,
+      removed: relax[facet.key].value(state) === null,
+    }));
     return { id: changes.map((c) => `${c.key}:${c.to}`).join("|"), changes, state, count: n };
   };
 

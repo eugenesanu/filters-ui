@@ -113,7 +113,7 @@ export function ChipGroup<V extends string>({
                         : loading
                           ? "border-[var(--fu-line,#404040)]"
                           : "border-[var(--fu-control-border,#737373)] enabled:hover:border-[var(--fu-control-hover,#A3A3A3)] enabled:hover:bg-[var(--fu-item-hover,#2A2A2A)]",
-                      "disabled:cursor-default",
+                      "disabled:cursor-not-allowed",
                       option.count === 0 && !on && !loading && "opacity-40",
                     )}
                   >

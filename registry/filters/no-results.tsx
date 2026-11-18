@@ -37,6 +37,9 @@ export type NoResultsProps<Item, State> = Omit<HTMLAttributes<HTMLElement>, "onC
   /** When given, a Clear all button closes the card. */
   onClearAll?: () => void;
   clearAllLabel?: string;
+  /** What a fix says a press does, in its count's place, while it is pointed at: dropping its filters, or loosening one. Default "Remove" and "Apply". */
+  removeLabel?: string;
+  applyLabel?: string;
   /** Heading level of the title. Default 3. */
   headingLevel?: 2 | 3 | 4 | 5 | 6;
 };
@@ -56,21 +59,23 @@ function placeholderFixes<State>(limit: number, state: State): Fix<State>[] {
   const words = placeholderLabels(limit * 3);
   return Array.from({ length: limit }, (_, i) => ({
     id: `placeholder-${i}`,
-    changes: [{ key: "placeholder", label: words[i * 3 + 1], from: words[i * 3 + 2], to: words[i * 3] }],
+    changes: [{ key: "placeholder", label: words[i * 3 + 1], from: words[i * 3 + 2], to: words[i * 3], removed: false }],
     state,
     count: 0,
   }));
 }
 
-function spoken<State>(fix: Fix<State>, noun: CountNoun, format: (n: number) => string) {
-  // In the order the row shows them, so the name holds the visible words: "Seats 7+ → Any, 3 cars".
+function spoken<State>(fix: Fix<State>, verb: string, noun: CountNoun, format: (n: number) => string) {
+  // The verb, then the changes in the order the row shows them, so the name holds the visible words:
+  // "Remove: Seats 7+ → Any, 3 cars".
   const changes = fix.changes.map((c) => `${c.label} ${c.from} → ${c.to}`).join("; ");
-  return `${changes}, ${format(fix.count)} ${fix.count === 1 ? noun.one : noun.other}`;
+  return `${verb}: ${changes}, ${format(fix.count)} ${fix.count === 1 ? noun.one : noun.other}`;
 }
 
 /**
  * Shown where results would be when the filters find nothing: the smallest changes that bring some back, each with
- * its count and a soft bar to compare them. Pointing at a fix crosses out the value it replaces. One press applies it.
+ * its count and a soft bar to compare them. Pointing at a fix crosses out the value it replaces and puts what a press
+ * does in the count's place: Remove when it drops its filters, Apply when it loosens one. One press applies it.
  * Loading, the title stays and each fix keeps its place with placeholders for its words, count and bar; an error shows
  * its line and Retry in place of the fixes, and Clear all still works.
  */
@@ -88,6 +93,8 @@ export function NoResults<Item, State>({
   limit = 3,
   onClearAll,
   clearAllLabel = "Clear all",
+  removeLabel = "Remove",
+  applyLabel = "Apply",
   headingLevel = 3,
   status = "ready",
   onRetry,
@@ -182,11 +189,13 @@ export function NoResults<Item, State>({
         <StatusFrame status={status} onRetry={onRetry} errorText={errorText} className={failed ? "mx-4 mb-4" : undefined}>
           {shownFixes.length > 0 && (
             <ul ref={rows} aria-labelledby={`${id}-said`} className="m-0 flex list-none flex-col gap-0.5 px-2 pb-2">
-              {shownFixes.map((fix, i) => (
+              {shownFixes.map((fix, i) => {
+                const verb = fix.changes.every((change) => change.removed) ? removeLabel : applyLabel;
+                return (
                 <li key={fix.id} data-fix-row="">
                   <button
                     type="button"
-                    aria-label={spoken(fix, noun, formatCount)}
+                    aria-label={spoken(fix, verb, noun, formatCount)}
                     onClick={() => onChange(fix.state)}
                     className={cn(
                       "group/fix relative isolate flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-[16px] py-2.5 pe-3 ps-4 text-start font-[inherit] text-[14px] leading-5 text-inherit",
@@ -242,16 +251,37 @@ export function NoResults<Item, State>({
                           </span>
                         ))}
                       </span>{" "}
-                      <span className="shrink-0 tabular-nums">
-                        <SkeletonText>
-                          <span className="text-[15px] font-medium text-[var(--fu-accent-soft,#8FAAFF)]">{formatCount(fix.count)}</span>
-                          <span className="text-[13px] text-[var(--fu-dim,#929292)]"> {fix.count === 1 ? noun.one : noun.other}</span>
-                        </SkeletonText>
+                      {/* The count and the verb share one place, as wide as the wider of the two, so nothing moves when they swap. */}
+                      <span className="grid shrink-0 items-center justify-items-end tabular-nums">
+                        <span
+                          className={cn(
+                            "[grid-area:1/1] transition-[opacity,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                            !loading && "group-hover/fix:-translate-y-1 group-hover/fix:opacity-0 group-focus-visible/fix:-translate-y-1 group-focus-visible/fix:opacity-0",
+                          )}
+                        >
+                          <SkeletonText>
+                            <span className="text-[15px] font-medium text-[var(--fu-accent-soft,#8FAAFF)]">{formatCount(fix.count)}</span>
+                            <span className="text-[13px] text-[var(--fu-dim,#929292)]"> {fix.count === 1 ? noun.one : noun.other}</span>
+                          </SkeletonText>
+                        </span>
+                        {/* Loading, the verb stays in place unseen, so the row is as wide as it will be when the fixes are back. */}
+                        <span
+                          className={cn(
+                            "translate-y-1 text-[14px] font-medium text-[var(--fu-accent-pale,#D1DDFF)] opacity-0 [grid-area:1/1]",
+                            "transition-[opacity,translate] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+                            loading
+                              ? "invisible"
+                              : "group-hover/fix:translate-y-0 group-hover/fix:opacity-100 group-focus-visible/fix:translate-y-0 group-focus-visible/fix:opacity-100",
+                          )}
+                        >
+                          {verb}
+                        </span>
                       </span>
                     </span>
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </StatusFrame>

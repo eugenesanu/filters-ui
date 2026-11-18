@@ -30,6 +30,11 @@ export type RangeChartProps = Omit<HTMLAttributes<HTMLDivElement>, "onChange" | 
   labels?: { low?: string; high?: string };
   /** Bar width as a share of its slot, so a chart with few bars can keep the rhythm of a denser one. Default 1. */
   barScale?: number;
+  /**
+   * A handle that something outside the chart is dragging, a field of its own say, with the value under its pointer.
+   * The chart draws that handle there and raises the bars it passes, as in a drag of its own, without the tooltip.
+   */
+  held?: { handle: "low" | "high"; value: number } | null;
   /** Formats values when no format is given, e.g. "de-DE". */
   locale?: string;
   disabled?: boolean;
@@ -78,6 +83,7 @@ export function RangeChart({
   single = false,
   labels,
   barScale = 1,
+  held,
   locale,
   disabled = false,
   loading: loadingProp,
@@ -128,9 +134,12 @@ export function RangeChart({
     return clamp((fromStart - HANDLE / 2) / (box.width - HANDLE), 0, 1);
   };
 
-  // Where each handle is drawn: a dragged one sits under the pointer, the other at its value.
+  // Where each handle is drawn: a dragged one sits under the pointer, the other at its value. A handle held from
+  // outside is drawn the same way.
+  const pulled = !drag && held ? { handle: held.handle, fraction: clamp(fractionOf(held.value), 0, 1) } : null;
   const shown = { low: fractionOf(low), high: fractionOf(high) };
   if (drag) shown[drag.handle] = drag.fraction;
+  else if (pulled) shown[pulled.handle] = pulled.fraction;
 
   const nearest = (v: number): Handle => {
     if (single || v > high) return "high";
@@ -215,7 +224,8 @@ export function RangeChart({
 
   const tallest = Math.max(1, ...(buckets ?? []));
   // While a handle is dragged, the bars it passes rise a little, in a soft wave centred on the handle.
-  const bumpAt = dragging && drag && buckets?.length ? drag.fraction * buckets.length - 0.5 : null;
+  const wave = dragging && drag ? drag.fraction : pulled ? pulled.fraction : null;
+  const bumpAt = wave !== null && buckets?.length ? wave * buckets.length - 0.5 : null;
   const bumpOf = (i: number) => {
     if (bumpAt === null) return 0;
     const near = Math.max(0, 1 - Math.abs(i - bumpAt) / 2.4);
@@ -233,7 +243,7 @@ export function RangeChart({
   return (
     <div
       ref={root}
-      data-dragging={dragging || undefined}
+      data-dragging={dragging || !!pulled || undefined}
       data-disabled={disabled || undefined}
       className={cn(
         "group/range relative cursor-pointer touch-pan-y select-none [-webkit-tap-highlight-color:transparent]",
@@ -329,7 +339,7 @@ export function RangeChart({
           style={{ insetInlineStart: single ? 0 : along(lowShown), insetInlineEnd: along(1 - shown.high) }}
         />
         {handles.map((handle) => {
-          const grabbed = drag?.handle === handle;
+          const grabbed = (drag ?? pulled)?.handle === handle;
           const label = labels?.[handle] ?? (handle === "low" ? "Minimum" : "Maximum");
           return (
             <span key={handle} className="contents">

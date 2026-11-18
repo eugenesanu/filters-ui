@@ -140,7 +140,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
             : "duration-200 [@media(hover:hover)]:hover:bg-[var(--fu-card-hover,#262626)]",
         )}
       >
-        <Heading className="m-0 text-[17px] font-semibold leading-6 text-[var(--fu-text,#F8F5F1)]">
+        <Heading className="m-0 text-[16px] font-semibold leading-6 text-[var(--fu-text,#F8F5F1)]">
           <button
             ref={head}
             type="button"
@@ -161,7 +161,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
             {set && <span className="sr-only">, {summary}</span>}
             {set && (
               // Half the head's width, as the visible slot: 50% here would be half the button's box, 40px narrower.
-              <span aria-hidden="true" className="invisible ms-auto min-w-0 max-w-[calc((100%+40px)*0.5)] shrink-0 truncate text-[17px] font-normal">
+              <span aria-hidden="true" className="invisible ms-auto min-w-0 max-w-[calc((100%+40px)*0.5)] shrink-0 truncate text-[16px] font-normal">
                 {summary}
               </span>
             )}
@@ -180,7 +180,7 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
 
         <div
           inert={!set}
-          className="group/slot pointer-events-none absolute top-0 inset-e-[58px] grid max-w-[50%] items-center justify-items-end text-[17px] leading-6 text-[var(--fu-accent-soft,#8FAAFF)]"
+          className="group/slot pointer-events-none absolute top-0 inset-e-[58px] grid max-w-[50%] items-center justify-items-end text-[16px] leading-6 text-[var(--fu-accent-soft,#8FAAFF)]"
           style={{ height: HEAD }}
         >
           <span
@@ -582,7 +582,7 @@ export function FilterPanel({
       {...props}
     >
       <div data-panel-head="" className="flex h-[60px] shrink-0 items-center gap-3 border-b border-[var(--fu-line,#404040)] pe-3 ps-5">
-        <Heading id={titleId} className="m-0 flex min-w-0 items-baseline gap-2 text-[20px] font-semibold leading-7 text-[var(--fu-text,#F8F5F1)]">
+        <Heading id={titleId} className="m-0 flex min-w-0 items-baseline gap-2 text-[22px] font-semibold leading-7 text-[var(--fu-text,#F8F5F1)]">
           Filters
           <span
             aria-hidden="true"
@@ -600,7 +600,7 @@ export function FilterPanel({
           inert={!canClear}
           onClick={clearAll}
           className={cn(
-            "relative ms-auto inline-flex h-9 shrink-0 cursor-pointer items-center rounded-[10px] px-2.5 text-[15px] font-medium leading-5 text-[var(--fu-accent-soft,#8FAAFF)] [-webkit-tap-highlight-color:transparent]",
+            "relative ms-auto inline-flex h-9 shrink-0 cursor-pointer items-center rounded-[10px] px-2.5 text-[16px] font-medium leading-5 text-[var(--fu-accent-soft,#8FAAFF)] [-webkit-tap-highlight-color:transparent]",
             "hover:text-[var(--fu-accent-pale,#D1DDFF)] pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
             FOCUS,
             "focus-visible:outline-offset-0",
