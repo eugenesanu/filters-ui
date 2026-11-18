@@ -1,10 +1,11 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { cn } from "@/registry/lib/cn";
 import { readingKey } from "@/registry/lib/direction";
 import { Segmented } from "@/registry/ui/segmented";
 import { Select } from "@/registry/ui/select";
+import { htmlOf, type Highlighted } from "@/components/copy/code-html";
 import { CopyButton } from "@/components/copy/copy-button";
 import { useStored } from "@/components/copy/use-stored";
 import { TARGETS, type CodeFile, type PanelData, type Target } from "@/components/copy/panel-types";
@@ -33,7 +34,8 @@ function Label({ children, action }: { children: ReactNode; action?: ReactNode }
   );
 }
 
-function Code({ html, className }: { html: string; className?: string }) {
+function Code({ code, className }: { code: Highlighted; className?: string }) {
+  const html = useMemo(() => htmlOf(code), [code]);
   return (
     <div
       dir="ltr"
@@ -159,6 +161,7 @@ function PromptTab({ choice, wide }: { choice: PromptChoice; wide: boolean }) {
 function CodeTab({ data }: { data: PanelData }) {
   const [index, setIndex] = useState(0);
   const file = data.files[index];
+  const fileHtml = useMemo(() => htmlOf(file), [file]);
   const manyFiles = data.files.length > 8;
   const id = useId();
 
@@ -166,7 +169,7 @@ function CodeTab({ data }: { data: PanelData }) {
     <div className="flex flex-col gap-6">
       <section className="flex flex-col gap-2">
         <Label action={<CopyButton text={data.usage.source} announce="Example copied" ariaLabel="Copy example" />}>Use it like this</Label>
-        <Code html={data.usage.html} className="max-h-[220px]" />
+        <Code code={data.usage} className="max-h-[220px]" />
       </section>
 
       {data.dependencies.length > 0 && (
@@ -227,7 +230,7 @@ function CodeTab({ data }: { data: PanelData }) {
             dir="ltr"
             className="fu-code fu-scroll overflow-auto"
             {...(manyFiles ? {} : { id: `${id}-panel`, role: "tabpanel", "aria-labelledby": `${id}-tab-${index}` })}
-            dangerouslySetInnerHTML={{ __html: file.html }}
+            dangerouslySetInnerHTML={{ __html: fileHtml }}
           />
         </div>
       </section>

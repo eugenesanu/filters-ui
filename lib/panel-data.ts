@@ -2,7 +2,8 @@
 import { ITEMS, type RegistryItem } from "@/registry/items";
 import { getExampleSource, getItemFiles } from "@/lib/registry-files";
 import { buildPrompt } from "@/lib/prompt";
-import { highlight, langOf } from "@/lib/highlight";
+import { highlight, langOf, type CodeLang } from "@/lib/highlight";
+import { codeHtml, marksOf, type Highlighted } from "@/components/copy/code-html";
 import { registryJsonUrl } from "@/lib/site";
 import { TARGETS, type PanelData, type Target } from "@/components/copy/panel-types";
 
@@ -68,18 +69,29 @@ function needsLine(item: RegistryItem) {
   return parts.join(" ");
 }
 
+/**
+ * A source with its highlighting as marks, checked against the highlighter's own HTML. Where the two differ, the
+ * page carries that HTML instead, so the Code tab always shows exactly what the highlighter wrote.
+ */
+async function highlighted(source: string, lang: CodeLang): Promise<Highlighted> {
+  const html = await highlight(source, lang);
+  const marks = marksOf(html);
+  if (marks !== null && codeHtml(source, marks) === html) return { source, marks };
+  console.warn("panel-data: marks do not stand for a highlighted file; its page carries the full HTML");
+  return { source, html };
+}
+
 export async function panelDataOf(item: RegistryItem): Promise<PanelData> {
   const { files, dependencies } = getItemFiles(item);
   const usage = getExampleSource(item);
   return {
     prompt: promptParts(item),
-    usage: { source: usage, html: await highlight(usage, "tsx") },
+    usage: await highlighted(usage, "tsx"),
     files: await Promise.all(
       files.map(async (file) => ({
         savePath: file.savePath,
         name: baseName(file.path),
-        source: file.source,
-        html: await highlight(file.source, langOf(file.path)),
+        ...(await highlighted(file.source, langOf(file.path))),
       })),
     ),
     dependencies,
