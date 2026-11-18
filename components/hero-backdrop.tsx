@@ -14,6 +14,31 @@ const fieldLeft = `calc(min(100% - var(--hero-gutter), 50% + 600px - var(--hero-
 
 const BAND: [number, number] = [-304, -64];
 
+// The opening, once on load, in ms. The handles glide apart and a bar rises as a handle reaches it. Past the handles
+// the bars keep rising outwards to both sides of the page, one after another, faster the further out they are.
+const WAIT = 150;
+const GLIDE = 800;
+const SWEEP = 850;
+/** How far past the band the sweep runs, in px. Bars beyond it rise with the last one. */
+const REACH = 1100;
+type Bezier = readonly [number, number, number, number];
+const GLIDE_EASE: Bezier = [0.65, 0, 0.35, 1];
+/** Where the handles start, as a share of the way from the band's middle to its edge. */
+const GLIDE_FROM = 0.2;
+
+/** The share of its time by which a cubic-bezier easing has covered `progress`. */
+function timeAt(progress: number, [x1, y1, x2, y2]: Bezier) {
+  const at = (s: number, a: number, b: number) => 3 * (1 - s) ** 2 * s * a + 3 * (1 - s) * s ** 2 * b + s ** 3;
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 24; i++) {
+    const mid = (low + high) / 2;
+    if (at(mid, y1, y2) < progress) low = mid;
+    else high = mid;
+  }
+  return at((low + high) / 2, x1, x2);
+}
+
 function random(seed: number) {
   return () => {
     seed = (seed + 0x6d2b79f5) | 0;
@@ -70,19 +95,12 @@ function Field({ height, children }: { height: number; children: ReactNode }) {
 }
 
 /**
- * The price chart's bars, 12px wide with 3px top corners: a 6px fill inside a 6px round-joined stroke, with relative
- * moves, keeps the path short. Clip at `base`, and fade the element rather than its fill so the overlap stays even.
+ * One of the price chart's bars, 12px wide with 3px top corners: a 6px fill inside a 6px round-joined stroke. Clip at
+ * `base`, and fade the group rather than its fill so the overlap stays even.
  */
-function columns(bars: Bar[], base: number) {
-  let at = 0;
-  return bars
-    .map(({ x, h }) => {
-      const rise = Math.max(2, Math.round(h));
-      const move = at ? `m${x - 3 - at} 0` : `M${x - 3} ${base + 3}`;
-      at = x + 3;
-      return `${move}v-${rise}h6v${rise}`;
-    })
-    .join("");
+function column({ x, h }: Bar, base: number) {
+  const rise = Math.max(2, Math.round(h));
+  return `M${x - 3} ${base + 3}v-${rise}h6v${rise}`;
 }
 
 function RangeField() {
@@ -95,6 +113,18 @@ function RangeField() {
   const rest = bars.filter((b) => !inBand(b.u));
   const low = band[0].x - PITCH / 2;
   const high = band[band.length - 1].x + PITCH / 2;
+  const centre = (low + high) / 2;
+  const half = (high - low) / 2;
+  const from = GLIDE_FROM * half;
+  // When the opening reaches a bar's near edge, counted from the band's middle.
+  const reached = (edge: number) => (edge <= from ? 0 : GLIDE * timeAt((edge - from) / (half - from), GLIDE_EASE));
+  const delay = (x: number) => {
+    const edge = Math.abs(x - centre) - PITCH / 2;
+    if (edge < half - 1) return WAIT + reached(edge);
+    return WAIT + reached(half - PITCH) + SWEEP * Math.min(1, (edge - half + PITCH) / REACH) ** (1 / 2.2);
+  };
+  const columns = (list: Bar[]) => list.map((bar) => <path key={bar.x} d={column(bar, base)} style={{ animationDelay: `${Math.round(delay(bar.x))}ms` }} />);
+  const timing = { "--fu-hero-wait": `${WAIT}ms`, "--fu-hero-span": `${GLIDE}ms`, "--fu-hero-ease": `cubic-bezier(${GLIDE_EASE.join(",")})` } as CSSProperties;
   return (
     <Field height={H}>
       <defs>
@@ -109,24 +139,28 @@ function RangeField() {
         </clipPath>
       </defs>
       <g clipPath="url(#fu-hero-feet)" strokeWidth={6} strokeLinejoin="round">
-        <path d={columns(rest, base)} fill="url(#fu-hero-near)" stroke="url(#fu-hero-near)" opacity={0.55} className="fu-hero-rise" />
-        <g style={{ fill: "var(--fu-control-hover)", stroke: "var(--fu-control-hover)" }} opacity={0.5} className="fu-hero-tint">
-          <path d={columns(band, base)} className="fu-hero-rise" style={{ animationDelay: "240ms" }} />
+        <g fill="url(#fu-hero-near)" stroke="url(#fu-hero-near)" opacity={0.55} className="fu-hero-bars">
+          {columns(rest)}
+        </g>
+        <g style={{ fill: "var(--fu-control-hover)", stroke: "var(--fu-control-hover)" }} opacity={0.5} className="fu-hero-bars">
+          {columns(band)}
         </g>
       </g>
       <rect y={rail - 2} width={FIELD_W} height={4} rx={2} style={{ fill: "var(--fu-backdrop)" }} />
-      <rect x={low} y={rail - 2} width={high - low} height={4} style={{ fill: "var(--fu-control-hover)" }} fillOpacity={0.5} className="fu-hero-open" />
-      {/* On load the handles start near the middle of the band and glide out to its edges. */}
-      {[low, high].map((cx, i) => (
-        <circle
-          key={cx}
-          cx={cx}
-          cy={rail}
-          r={10}
-          className="fu-hero-glide"
-          style={{ fill: "var(--fu-handle)", stroke: "var(--fu-knob-edge)", strokeWidth: 1, "--fu-glide": `${(i ? -0.4 : 0.4) * (high - low)}px` } as CSSProperties}
-        />
-      ))}
+      <g style={timing}>
+        <rect x={low} y={rail - 2} width={high - low} height={4} style={{ fill: "var(--fu-control-hover)", "--fu-open": GLIDE_FROM } as CSSProperties} fillOpacity={0.5} className="fu-hero-open" />
+        {/* On load the handles start near the middle of the band and glide out to its edges. */}
+        {[low, high].map((cx, i) => (
+          <circle
+            key={cx}
+            cx={cx}
+            cy={rail}
+            r={10}
+            className="fu-hero-glide"
+            style={{ fill: "var(--fu-handle)", stroke: "var(--fu-knob-edge)", strokeWidth: 1, "--fu-glide": `${(i ? -1 : 1) * (half - from)}px` } as CSSProperties}
+          />
+        ))}
+      </g>
     </Field>
   );
 }

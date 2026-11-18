@@ -393,44 +393,39 @@ body {
     scroll-behavior: smooth;
   }
 
-  /* The home hero's backdrop, once on load: bars rise, the range opens. */
-  .fu-hero-rise {
-    animation: fu-hero-rise 1400ms var(--fu-ease-smooth) both;
+  /* The home hero's backdrop, once on load: the range opens, and each bar rises when the opening reaches it. The
+     timings and each bar's delay come from components/hero-backdrop.tsx. */
+  .fu-hero-bars > path {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    animation: fu-hero-grow 600ms var(--fu-ease-smooth) both;
   }
   .fu-hero-open {
     transform-box: fill-box;
     transform-origin: center;
-    animation: fu-hero-open 1800ms var(--fu-ease-smooth) 200ms both;
+    animation: fu-hero-open var(--fu-hero-span) var(--fu-hero-ease) var(--fu-hero-wait) both;
   }
   .fu-hero-glide {
-    animation: fu-hero-glide 1800ms var(--fu-ease-smooth) 200ms both;
-  }
-  /* The band's bars rise grey and take the accent once the handles are nearly at its edges. */
-  .fu-hero-tint {
-    animation: fu-hero-tint 700ms var(--fu-ease-smooth) 800ms both;
+    animation: fu-hero-glide var(--fu-hero-span) var(--fu-hero-ease) var(--fu-hero-wait) both;
   }
 }
 
-@keyframes fu-hero-rise {
+@keyframes fu-hero-grow {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: scaleY(0);
+  }
+  40% {
+    opacity: 1;
   }
 }
 @keyframes fu-hero-open {
   from {
-    transform: scaleX(0.2);
+    transform: scaleX(var(--fu-open));
   }
 }
 @keyframes fu-hero-glide {
   from {
     transform: translateX(var(--fu-glide));
-  }
-}
-@keyframes fu-hero-tint {
-  from {
-    fill: var(--fu-backdrop-near);
-    stroke: var(--fu-backdrop-near);
-    opacity: 1;
   }
 }
