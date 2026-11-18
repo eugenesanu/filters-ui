@@ -1,6 +1,6 @@
 "use client";
 
-import { createElement } from "react";
+import { Activity, createElement } from "react";
 import {
   CAR_FACET_COLUMNS,
   CAR_FACET_TITLES,
@@ -134,7 +134,20 @@ function PanelPreview() {
   );
 }
 
-export function TilePreview({ slug }: { slug: string }) {
+// A preview is a picture: inert, never pressed. On the home page, which holds two dozen of them, each sits in its own
+// Activity (apart) so that on load the page around them (header, switch, links) comes alive first and the previews
+// follow as the browser has time, instead of everything waiting for the last preview's script. The markup is the
+// same. An item page has three, and there the split only adds work, so they come alive with the page.
+export function TilePreview({ slug, apart = false }: { slug: string; apart?: boolean }) {
+  if (!apart) return <PreviewOf slug={slug} />;
+  return (
+    <Activity mode="visible">
+      <PreviewOf slug={slug} />
+    </Activity>
+  );
+}
+
+function PreviewOf({ slug }: { slug: string }) {
   if (slug === "sentence-search") return <SentencePreview />;
   if (slug === "filter-panel") return <PanelPreview />;
   if (slug === "dropdown") return <DropdownTilePreview />;
@@ -153,6 +166,14 @@ const BOARD_COUNT = matchingCars(BOARD_FILTERS).length;
 
 /** The full board as drawn: head, then three columns. Laid out here rather than through CarsBoard, whose columns follow the window and whose bar floats over the page. */
 export function BoardPreview() {
+  return (
+    <Activity mode="visible">
+      <Board />
+    </Activity>
+  );
+}
+
+function Board() {
   return (
     <div className="w-[929px]">
       <FiltersHead count={BOARD_COUNT} noun={{ one: "car", other: "cars" }} headingLevel={3} onClearAll={still} onShow={still} />

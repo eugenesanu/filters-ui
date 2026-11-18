@@ -52,9 +52,10 @@ function Tile({ item, heading: Heading, stageClassName, className, children }: {
 /**
  * One filter: its real card in a set state, inert, over its title. The whole tile opens the filter's page. A wide tile
  * spans two columns of the three-column grid, matches its row's height and draws its preview at twice the width, for
- * a two-pane filter that closes the grid; with two columns or one it is an ordinary tile.
+ * a two-pane filter that closes the grid; with two columns or one it is an ordinary tile. `apart` lets the page come
+ * alive before the preview does (see TilePreview); the home grid sets it.
  */
-export function ItemTile({ item, heading = "h3", wide = false }: { item: RegistryItem; heading?: "h2" | "h3"; wide?: boolean }) {
+export function ItemTile({ item, heading = "h3", wide = false, apart = false }: { item: RegistryItem; heading?: "h2" | "h3"; wide?: boolean; apart?: boolean }) {
   if (wide) {
     return (
       <Tile
@@ -65,7 +66,7 @@ export function ItemTile({ item, heading = "h3", wide = false }: { item: Registr
       >
         <div className="flex h-full flex-col items-center px-8 pt-8">
           <div className="w-[320px] shrink-0 [zoom:min(1,tan(atan2(100cqw-64px,320px)))] min-[1100px]:w-[640px] min-[1100px]:[zoom:min(1,tan(atan2(100cqw-64px,640px)))]">
-            <TilePreview slug={item.slug} />
+            <TilePreview slug={item.slug} apart={apart} />
           </div>
         </div>
       </Tile>
@@ -77,7 +78,7 @@ export function ItemTile({ item, heading = "h3", wide = false }: { item: Registr
       <div className="flex h-full flex-col items-center px-8 pt-8">
         {/* Natural size; zoomed down only where the stage is narrower than the card. */}
         <div className="w-[320px] shrink-0 [zoom:min(1,tan(atan2(100cqw-64px,320px)))]">
-          <TilePreview slug={item.slug} />
+          <TilePreview slug={item.slug} apart={apart} />
         </div>
       </div>
     </Tile>

@@ -55,7 +55,7 @@ export default function Home() {
             </h2>
             <TileGrid>
               {filters.map((item) => (
-                <ItemTile key={item.slug} item={item} wide={item.slug === "all-filters"} />
+                <ItemTile key={item.slug} item={item} wide={item.slug === "all-filters"} apart />
               ))}
             </TileGrid>
           </section>
@@ -67,7 +67,7 @@ export default function Home() {
               </h2>
               <TileGrid>
                 {basics.map((item) => (
-                  <ItemTile key={item.slug} item={item} />
+                  <ItemTile key={item.slug} item={item} apart />
                 ))}
               </TileGrid>
             </section>
