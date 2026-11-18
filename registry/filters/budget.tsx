@@ -190,7 +190,7 @@ export function Budget({
                   "group/way rounded-[16px] border transition-[border-color,background-color] duration-[480ms] motion-reduce:transition-none",
                   SMOOTH,
                   on
-                    ? "border-[var(--fu-accent-soft,#8FAAFF)] bg-[var(--fu-selected,#1F2747)] forced-colors:border-[Highlight]"
+                    ? "border-[var(--fu-accent-soft,#8FAAFF)] forced-colors:border-[Highlight]"
                     : "border-[var(--fu-surface-3,#2A2A2A)] hover:border-[var(--fu-line,#404040)] hover:bg-[var(--fu-item-hover,#2A2A2A)]",
                 )}
               >
