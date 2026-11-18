@@ -60,6 +60,17 @@ All the filters on one board, with Clear all and a Show button.
   </picture>
 </a>
 
+## New in 1.2
+
+- **Drag a number.** Under a mouse, the number fields in price range, upper limit, budget and rules show a thin handle. Drag it and the field fills like a slider.
+- **Rules** shows which row or group a cross will delete before you press it, and keeps every row's controls on one top line.
+- **Budget** is calmer: the picked option has no fill, and nothing that cannot be pressed is blue.
+- **Price range and upper limit**: dragging a number field moves the chart's handle too, and the bars it passes rise with it.
+- **No results** says what a press will do. Point at a suggestion and its count becomes "Remove" or "Apply".
+- **Unavailable options** show the not-allowed cursor, and an unavailable colour shows "0 cars" under the pointer.
+- **Filter panel** has a clearer head: a larger "Filters" title, with row values and both Clear links at one size.
+- **Faster.** On a slow phone, filter pages answer taps about 0.2 s sooner, a tile tapped early opens up to a second sooner, and the full set keeps up with a dragged handle.
+
 ## Global styles in your project
 
 The filters style themselves with Tailwind utilities, which live in `@layer utilities`. CSS outside any layer wins over every layer, so a global reset such as `button { padding: 8px 16px; background: #eee }` repaints the filters. Put resets like that in `@layer base`.
