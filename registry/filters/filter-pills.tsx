@@ -378,9 +378,10 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
             skipClick.current = false;
           });
         }}
-        // A key that opened the panel has its keyup land inside it, so a press is what clears the skip.
+        // A key that opened the panel has its keyup land inside it, so a press on the closed pill clears the skip. While
+        // open the skip stays: Safari does not focus a pressed button, so the panel closes on blur before this click.
         onPointerDown={() => {
-          skipClick.current = false;
+          if (!isOpen) skipClick.current = false;
         }}
         onClick={() => {
           if (skipClick.current) {

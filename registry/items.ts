@@ -784,7 +784,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/budget.tsx",
     example: "registry/examples/budget.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.1",
+    updatedIn: "1.3.3",
     states: ["ready", "loading", "error", "zero-results", "disabled"],
     stateNotes: {
       loading: "Both cards keep their titles; in the open one the bars pulse in a soft hill, and the top price and the fields draw as placeholders. Total price draws the price chart's own loading look.",
@@ -1069,7 +1069,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/filter-pills.tsx",
     example: "registry/examples/filter-pills.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.2",
+    updatedIn: "1.3.3",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each pill keeps its size and outline, and a set pill its fill, while its name, its value and Clear all draw as placeholders; no panel opens until the data is in.",
@@ -1127,7 +1127,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/all-filters.tsx",
     example: "registry/examples/all-filters.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.2",
+    updatedIn: "1.3.3",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The list keeps its groups and names while the values in its chips, the find box and the number in Show draw as placeholders; the picked filter draws its own.",
@@ -1185,7 +1185,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/ui/dropdown-menu.tsx",
     example: "registry/examples/dropdown.tsx",
     addedIn: "1.0.0",
-    updatedIn: "1.3.1",
+    updatedIn: "1.3.3",
     states: ["ready", "empty", "disabled", "long-labels", "many-options"],
     stateNotes: {
       empty: "No options and no actions: the open menu holds one quiet line, \"No choices\" by default, and the trigger shows only its prefix.",

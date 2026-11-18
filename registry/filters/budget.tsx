@@ -331,7 +331,7 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
         </span>
       </p>
       <CeilingBars buckets={buckets} min={min} max={max} ceiling={ceiling} />
-      <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2">
+      <div className="mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,6.25rem),1fr))] gap-2">
         <MoneyField label="Each month" value={value.monthly} placeholder={format(0)} onCommit={(monthly) => set({ monthly })} format={format} read={read} scale={monthly} />
         <MoneyField label="Down payment" value={value.down || null} placeholder={format(0)} onCommit={(down) => set({ down: down ?? 0 })} format={format} read={read} scale={down} />
       </div>

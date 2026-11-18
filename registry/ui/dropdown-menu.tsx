@@ -174,8 +174,6 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
     if (inside && reason !== "blur" && reason !== "outside") trigger.current?.focus({ preventScroll: true });
     setOpen(false);
     setPressed(false);
-    // The key that opened the menu had its keyup land in it, so the skip would eat the next click on the trigger.
-    skipClick.current = false;
   };
 
   const pick = (index: number) => {
@@ -335,6 +333,11 @@ export function DropdownMenu<V extends string = string>(props: DropdownMenuProps
           setTimeout(() => {
             skipClick.current = false;
           });
+        }}
+        // The key that opened the menu had its keyup land in it, so a press on the closed trigger clears the skip. While
+        // open the skip stays: Safari does not focus a pressed button, so the menu closes on blur before this click.
+        onPointerDown={() => {
+          if (!isOpen) skipClick.current = false;
         }}
         onClick={() => {
           if (skipClick.current) {

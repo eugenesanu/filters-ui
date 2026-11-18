@@ -60,6 +60,11 @@ All the filters on one board, with Clear all and a Show button.
   </picture>
 </a>
 
+## Fixed in 1.3.3
+
+- **Filter pills and dropdown menus in Safari**: a pill or menu opened with the keyboard closes again with one click on its button, instead of closing and opening at once.
+- **Budget**: Each month and Down payment sit side by side again from 335px wide, as before 1.3.1; they stack only on the narrowest screens.
+
 ## Fixed in 1.3.2
 
 - **Bar list, all filters and filter pills** no longer freeze the page when a finished animation sits inside their scrolling box (seen on the bar list in Arabic). Update these three if you installed them from 1.3.1.

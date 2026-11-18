@@ -68,7 +68,14 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.
 const FOCUS_RING =
   "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]";
 /** The first control in the picked filter that Tab stops on. */
-const PANE_CONTROL = 'button:not(:disabled):not([tabindex="-1"]), input:not(:disabled):not([tabindex="-1"]), [tabindex="0"]';
+const PANE_CONTROL = [
+  'a[href]:not([tabindex="-1"])',
+  'button:not(:disabled):not([tabindex="-1"])',
+  'input:not(:disabled):not([type="hidden"]):not([tabindex="-1"])',
+  'select:not(:disabled):not([tabindex="-1"])',
+  'textarea:not(:disabled):not([tabindex="-1"])',
+  '[tabindex="0"]',
+].join(", ");
 
 const matchesQuery = (entry: FilterEntry, query: string) =>
   !query || entry.label.toLowerCase().includes(query) || (entry.keywords ?? []).some((word) => word.toLowerCase().includes(query));
