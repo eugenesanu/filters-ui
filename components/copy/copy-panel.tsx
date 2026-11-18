@@ -130,7 +130,23 @@ function PromptControls({ choice }: { choice: PromptChoice }) {
   );
 }
 
+// Below lg the prompt is a short faded preview, yet the browser would still lay out every line of it: thousands of
+// wrapped lines on a phone. So the text is cut at a line break well past what the preview shows, and the rest sits in a
+// block that small screens skip until it nears the screen, which there it never does. The cut is never a break that
+// follows a blank line (the blank line would vanish), and the head stays under the 65,536 characters at which the
+// browser would split it into two text nodes and hydration would stop matching.
+const HEAD_LINES = 40;
+function promptCut(text: string) {
+  let seen = 0;
+  for (let i = text.indexOf("\n"); i >= 0; i = text.indexOf("\n", i + 1)) {
+    if (++seen < HEAD_LINES || text[i - 1] === "\n") continue;
+    return i < 60000 && i < text.length - 1 ? i : -1;
+  }
+  return -1;
+}
+
 function PromptTab({ choice, wide }: { choice: PromptChoice; wide: boolean }) {
+  const cut = promptCut(choice.text);
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       {!wide && (
@@ -152,7 +168,14 @@ function PromptTab({ choice, wide }: { choice: PromptChoice; wide: boolean }) {
         aria-label="Prompt text"
         className="fu-scroll min-h-[200px] flex-1 overflow-auto whitespace-pre-wrap break-words rounded-[12px] border border-card bg-page p-4 font-mono text-[13px] leading-5 text-mute max-lg:max-h-[220px] max-lg:overflow-hidden max-lg:[mask-image:linear-gradient(to_bottom,#000_55%,transparent)] [overflow-wrap:anywhere]"
       >
-        {choice.text}
+        {cut < 0 ? (
+          choice.text
+        ) : (
+          <>
+            {choice.text.slice(0, cut)}
+            <span className="block max-lg:[content-visibility:auto]">{choice.text.slice(cut + 1)}</span>
+          </>
+        )}
       </pre>
     </div>
   );
