@@ -60,6 +60,18 @@ All the filters on one board, with Clear all and a Show button.
   </picture>
 </a>
 
+## Fixed in 1.3.1
+
+- **Date range**: a Clear from outside the calendar also ends a half-picked range, so the next click starts a new one and Escape no longer brings the cleared dates back. "Feb 29" typed without a year finds the last leap year.
+- **Focus stays in the filter** after Clear and Clear search in all filters, after removing a name in rules, and after unticking a bar list row that is down to 0.
+- **Filter pills and dropdown menus** open on the first click after being opened with the keyboard and closed with the mouse.
+- **Chrome**: the page scrolls again with the pointer over the bar list, the all-filters pane or an open pill panel. They hold the scroll only when they have more to show.
+- **Windows High Contrast**: sliders keep their rail, range and handles, and chosen chips, tiles, swatches, segments and presets show the system highlight.
+- **Small screens**: at 320px the year, price and down payment fields stack instead of cutting their values.
+- **Builds**: no unused code in budget or the dropdown example, so a Vite project's `tsc -b` passes. The code needs **Tailwind CSS 4.2 or later** (it uses `inset-s-*` and `inset-e-*`), and the docs now say so. With shadcn's `rtl` option on, filter pills' panels stay under their pill.
+- **Smaller fixes**: decimal prices in sentence search ("under 30.5k"), its completion after a leading space, Budget's switch from a tiny monthly budget, right-to-left bars and full stops in no results and budget, the selected preset's fill after Retry, the searchable list's fades after Retry, and the cascading dropdown's `popular` default in its doc comment.
+- **On the site**: the home page fetches an item page when you point at, focus or touch its tile, not every page as you scroll (about 7 MB less). Item pages are about a quarter smaller. Unknown addresses show a proper "Page not found" page, focus never hides under the header, and the footer fits at 320px.
+
 ## New in 1.3
 
 - **Empty states** have a picture, one line and a way on. A search with no match offers the nearest name or "Clear search". The picture is one small file, `public/filters-ui/search.svg`, which the shadcn install saves for you.
