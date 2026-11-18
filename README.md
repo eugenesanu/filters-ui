@@ -60,6 +60,10 @@ All the filters on one board, with Clear all and a Show button.
   </picture>
 </a>
 
+## Fixed in 1.3.2
+
+- **Bar list, all filters and filter pills** no longer freeze the page when a finished animation sits inside their scrolling box (seen on the bar list in Arabic). Update these three if you installed them from 1.3.1.
+
 ## Fixed in 1.3.1
 
 - **Date range**: a Clear from outside the calendar also ends a half-picked range, so the next click starts a new one and Escape no longer brings the cleared dates back. "Feb 29" typed without a year finds the last leap year.

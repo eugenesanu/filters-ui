@@ -731,7 +731,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/bar-list.tsx",
     example: "registry/examples/bar-list.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.1",
+    updatedIn: "1.3.2",
     states: ["ready", "loading", "error", "empty", "zero-results", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each row keeps its checkbox and its tick; its bar pulses at a calm falling width, like a ranking, and its name and count draw as placeholders. With no options yet it draws collapsedCount stand-in rows.",
@@ -1069,7 +1069,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/filter-pills.tsx",
     example: "registry/examples/filter-pills.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.1",
+    updatedIn: "1.3.2",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each pill keeps its size and outline, and a set pill its fill, while its name, its value and Clear all draw as placeholders; no panel opens until the data is in.",
@@ -1127,7 +1127,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/all-filters.tsx",
     example: "registry/examples/all-filters.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.1",
+    updatedIn: "1.3.2",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The list keeps its groups and names while the values in its chips, the find box and the number in Show draw as placeholders; the picked filter draws its own.",

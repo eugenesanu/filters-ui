@@ -19,7 +19,10 @@ export function useOverflows<T extends HTMLElement = HTMLDivElement>() {
       node.toggleAttribute("data-overflows", node.scrollHeight > node.clientHeight + 1);
       // Content that moves in (a rise, a slide) overflows until it lands, and landing resizes nothing: measure again then.
       if (settling) return;
-      const moving = node.getAnimations({ subtree: true }).filter((animation) => animation.effect?.getComputedTiming().endTime !== Infinity);
+      // Only animations still running: a finished one held by fill is listed too, and its settled promise would loop.
+      const moving = node
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.playState === "running" && animation.effect?.getComputedTiming().endTime !== Infinity);
       if (!moving.length) return;
       settling = true;
       void Promise.allSettled(moving.map((animation) => animation.finished)).then(() => {
