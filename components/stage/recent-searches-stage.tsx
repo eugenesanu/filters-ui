@@ -10,29 +10,32 @@ import { carVocabulary, carVocabularyFor } from "@/registry/demo/cars-vocabulary
 import { RecentSearches, remember, type SavedSearch } from "@/registry/filters/recent-searches";
 import { readSentence } from "@/registry/lib/sentence";
 import type { ItemState } from "@/registry/items";
+import { once } from "@/lib/once";
 
 const read = (sentence: string) => readSentence(carVocabulary, CARS, sentence).value;
 
-export const SAVED: SavedSearch<CarFilters>[] = [
+// Each list is read on first use, not when this file loads: every page loads the file (the tile previews import it),
+// and reading nineteen sentences there cost a slow phone about a third of a second before anything answered a tap.
+export const savedSearches = once<SavedSearch<CarFilters>[]>(() => [
   { id: "family", name: "Family hybrid", value: read("hybrid 7 seats") },
   { id: "city", name: "City electric", value: read("electric under 40k") },
   { id: "weekend", name: "Weekend truck", value: read("4wd truck") },
-];
+]);
 
-export const RECENT: SavedSearch<CarFilters>[] = ["blue suv under 30k", "rav4 2020 or newer", "hatchback under 25k", "silver awd under 35k"].map(
-  (sentence, i) => ({ id: `recent-${i}`, value: read(sentence) }),
+export const recentSearches = once<SavedSearch<CarFilters>[]>(() =>
+  ["blue suv under 30k", "rav4 2020 or newer", "hatchback under 25k", "silver awd under 35k"].map((sentence, i) => ({ id: `recent-${i}`, value: read(sentence) })),
 );
 
 /** Long names on the saved searches for the long-labels state; the filters get theirs from longVocabulary. */
-const LONG_SAVED: SavedSearch<CarFilters>[] = [
+const longSaved = once<SavedSearch<CarFilters>[]>(() => [
   { id: "family", name: "Family hybrid with room for the grandparents and the dog on long weekends away", value: read("hybrid 7 seats") },
   { id: "city", name: "City electric", value: read("white electric under 50k") },
   { id: "weekend", name: "Weekend truck", value: read("4wd truck") },
-];
+]);
 
 /** Twelve saved searches for the many-options state, so the list scrolls. */
-const MANY_SAVED: SavedSearch<CarFilters>[] = [
-  ...SAVED,
+const manySaved = once<SavedSearch<CarFilters>[]>(() => [
+  ...savedSearches(),
   ...[
     ["Commuter", "hybrid sedan under 25k"],
     ["Road trip", "awd suv 2022 or newer"],
@@ -44,14 +47,14 @@ const MANY_SAVED: SavedSearch<CarFilters>[] = [
     ["Snow days", "awd under 30k"],
     ["Quiet ride", "electric sedan"],
   ].map(([name, sentence], i) => ({ id: `many-${i}`, name, value: read(sentence) })),
-];
+]);
 
 /** The lists a state starts from: none for empty, long names, or twelve saved searches. */
 function listsIn(state: ItemState): { saved: SavedSearch<CarFilters>[]; recent: SavedSearch<CarFilters>[] } {
   if (state === "empty") return { saved: [], recent: [] };
-  if (state === "long-labels") return { saved: LONG_SAVED, recent: RECENT };
-  if (state === "many-options") return { saved: MANY_SAVED, recent: RECENT };
-  return { saved: SAVED, recent: RECENT };
+  if (state === "long-labels") return { saved: longSaved(), recent: recentSearches() };
+  if (state === "many-options") return { saved: manySaved(), recent: recentSearches() };
+  return { saved: savedSearches(), recent: recentSearches() };
 }
 
 /** The data states bring their own lists; the others keep the lists as they are. */
@@ -70,8 +73,8 @@ export function RecentSearchesStage() {
   const vocabulary = state === "long-labels" ? longVocabulary(local) : local;
   const [round, setRound] = useState(0);
   const [filters, setFilters] = useState<CarFilters>(carVocabulary.empty);
-  const [recent, setRecent] = useState(RECENT);
-  const [saved, setSaved] = useState(SAVED);
+  const [recent, setRecent] = useState(recentSearches);
+  const [saved, setSaved] = useState(savedSearches);
   const [listed, setListed] = useState(listsOf(state));
   const matches = matchingCars(filters).length;
 

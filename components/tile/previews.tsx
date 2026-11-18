@@ -15,7 +15,7 @@ import { FilterCard } from "@/registry/ui/filter-card";
 import { FiltersHead } from "@/registry/ui/filters-head";
 import { CarFilterBody } from "@/components/stage/car-filter";
 import { CAR_RULE_FIELDS } from "@/components/stage/rules-stage";
-import { RECENT, SAVED } from "@/components/stage/recent-searches-stage";
+import { recentSearches, savedSearches } from "@/components/stage/recent-searches-stage";
 import { exampleOf } from "@/components/stage/example-of";
 import { DropdownTilePreview, SelectTilePreview } from "@/components/tile/basics-previews";
 import { PANEL_PRESET, PRESETS, SENTENCE_PRESET } from "@/components/tile/presets";
@@ -29,6 +29,7 @@ import { SentenceSearch } from "@/registry/filters/sentence-search";
 import { Button, IconButton } from "@/registry/ui/button";
 import { CopyIcon } from "@/registry/ui/icons";
 import { TextLink } from "@/registry/ui/link";
+import { once } from "@/lib/once";
 
 // Previews are inert, so nothing ever calls these.
 const still = () => {};
@@ -46,7 +47,8 @@ function PresetCard({ facet, filters, headingLevel = 3 }: { facet: CarFacet; fil
   );
 }
 
-const SENTENCE_VALUE = readSentence(carVocabulary, CARS, SENTENCE_PRESET).value;
+// Read when the tile first draws, not when this file loads: every item page loads it for its related tiles.
+const sentenceValue = once(() => readSentence(carVocabulary, CARS, SENTENCE_PRESET).value);
 
 /** The box with three tokens and its suggestions open under it. */
 function SentencePreview() {
@@ -54,7 +56,7 @@ function SentencePreview() {
     <SentenceSearch
       vocabulary={carVocabulary}
       items={CARS}
-      value={SENTENCE_VALUE}
+      value={sentenceValue()}
       onChange={still}
       label="Describe the car you want"
       defaultOpen
@@ -83,8 +85,8 @@ function RecentPreview() {
       items={CARS}
       value={carVocabulary.empty}
       onChange={still}
-      recent={RECENT}
-      saved={SAVED}
+      recent={recentSearches()}
+      saved={savedSearches()}
       onSearch={still}
       onSave={still}
       onForget={still}
