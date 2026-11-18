@@ -312,7 +312,7 @@ function MonthlyBody({ id, value, onChange, ceiling, min, max, buckets, rate, te
   return (
     <div className="pt-1">
       <p aria-live="polite" className="flex items-baseline justify-between gap-3">
-        <span className="text-[13px] leading-5 text-[var(--fu-accent-soft,#8FAAFF)]">Top price</span>
+        <span className="text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">Top price</span>
         <span className="text-[20px] leading-7 font-semibold text-[var(--fu-text,#F8F5F1)] tabular-nums">
           <SkeletonText>
             <TextSwap>{ceiling === null ? "–" : format(ceiling)}</TextSwap>
@@ -373,7 +373,8 @@ function CeilingBars({ buckets, min, max, ceiling }: { buckets?: readonly number
   // The lit side runs into the pin; the dim side starts a little past it, so the pin stands clear of the dim bars.
   const gap = ceiling === null ? 0 : 2.5;
   const layer = (lit: boolean) => {
-    const fill = lit ? "bg-[var(--fu-accent-soft,#8FAAFF)]" : "bg-[var(--fu-bar-out,#4A4A4A)]";
+    // Neutral, not the accent: these bars and the pin only show the top price and take no press.
+    const fill = lit ? "bg-[var(--fu-control-hover,#A3A3A3)]" : "bg-[var(--fu-bar-out,#4A4A4A)]";
     return (
       <div
         className={cn(
@@ -413,7 +414,7 @@ function CeilingBars({ buckets, min, max, ceiling }: { buckets?: readonly number
       {layer(true)}
       <span
         className={cn(
-          "pointer-events-none absolute -top-1.5 bottom-0 w-0.5 -translate-x-1/2 rtl:translate-x-1/2 rounded-full bg-[var(--fu-accent-soft,#8FAAFF)]",
+          "pointer-events-none absolute -top-1.5 bottom-0 w-0.5 -translate-x-1/2 rtl:translate-x-1/2 rounded-full bg-[var(--fu-text,#F8F5F1)]",
           "forced-colors:bg-[Highlight] forced-colors:[forced-color-adjust:none]",
           "transition-[left,right,opacity] duration-[480ms] motion-reduce:transition-none",
           SMOOTH,
