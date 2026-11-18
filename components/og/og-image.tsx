@@ -14,18 +14,15 @@ import { C, col, row } from "./parts";
 const OG_SIZE = { width: 1200, height: 630 };
 
 type Weight = 400 | 500 | 600;
-type Font = { name: string; data: ArrayBuffer; weight: Weight; style: "normal" };
+type Font = { name: string; data: Buffer; weight: Weight; style: "normal" };
 
-// The site's font, fetched once per build worker from Google Fonts as TTF (next/font serves woff2, which Satori cannot read).
+// The site's font as TTF (next/font serves woff2, which Satori cannot read), read once per build worker. The files sit
+// in assets/, as Google Fonts serves them, so a build never waits on another server.
+const FILES: Record<Weight, string> = { 400: "Outfit-Regular.ttf", 500: "Outfit-Medium.ttf", 600: "Outfit-SemiBold.ttf" };
 let fonts: Promise<Font[]> | undefined;
 
 async function outfit(weight: Weight): Promise<Font> {
-  const css = await fetch(`https://fonts.googleapis.com/css2?family=Outfit:wght@${weight}`, { cache: "force-cache" }).then((res) => res.text());
-  const url = /src: url\((.+?)\) format\('(?:opentype|truetype)'\)/.exec(css)?.[1];
-  if (!url) throw new Error(`Share images: Google Fonts sent no TTF for Outfit ${weight}.`);
-  const res = await fetch(url, { cache: "force-cache" });
-  if (!res.ok) throw new Error(`Share images: Outfit ${weight} failed to load (${res.status}).`);
-  return { name: "Outfit", data: await res.arrayBuffer(), weight, style: "normal" };
+  return { name: "Outfit", data: await readFile(join(process.cwd(), "assets", FILES[weight])), weight, style: "normal" };
 }
 
 const loadFonts = () => (fonts ??= Promise.all(([400, 500, 600] as const).map(outfit)));
