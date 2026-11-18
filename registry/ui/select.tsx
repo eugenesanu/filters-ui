@@ -81,7 +81,7 @@ function Value({ text, empty, waiting }: { text: string; empty: boolean; waiting
 }
 
 /**
- * A select drawn like TextField (44px, 12px radius, --fu-control-border border, 15px text, a chevron) whose list grows out of the
+ * A select drawn like TextField (44px, 12px radius, --fu-field-border border, 15px text, a chevron) whose list grows out of the
  * field in a panel of its own instead of the system menu. One highlight marks the active row; the chosen row is
  * tinted with a check that draws in; options with counts show a bar for their share that grows in the first time the list opens.
  * Focus stays on the field: arrows, Home, End, Page Up and Page Down move, typing finds an option by its first letters,
@@ -282,7 +282,7 @@ export function Select({
           else openAt(start);
         }}
         className={cn(
-          "relative flex h-11 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-input,rgb(0_0_0/0))] pe-9 ps-3 text-start",
+          "relative flex h-11 w-full min-w-0 cursor-pointer items-center gap-1.5 rounded-[12px] border border-[var(--fu-field-border,#737373)] bg-[var(--fu-input,rgb(0_0_0/0))] pe-9 ps-3 text-start",
           "font-[inherit] text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] outline-none [-webkit-tap-highlight-color:transparent]",
           "transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none disabled:cursor-default",
           "hover:border-[var(--fu-control-hover,#A3A3A3)] data-[waiting]:not-focus-visible:not-aria-expanded:border-[var(--fu-line,#404040)] data-[waiting]:not-focus-visible:not-aria-expanded:hover:border-[var(--fu-control-border,#737373)]",

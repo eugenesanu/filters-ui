@@ -22,7 +22,7 @@ export type TextFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "value"
   inputClassName?: string;
 };
 
-/** 44px field, 12px radius, 1px --fu-control-border border, 15px text, optional prefix and clear X. */
+/** 44px field, 12px radius, 1px --fu-field-border border, 15px text, optional prefix and clear X. */
 export function TextField({
   value,
   onChange,
@@ -44,7 +44,7 @@ export function TextField({
   return (
     <div
       className={cn(
-        "flex h-11 min-w-0 items-center gap-1.5 rounded-[12px] border border-[var(--fu-control-border,#737373)] bg-[var(--fu-input,rgb(0_0_0/0))] px-3",
+        "flex h-11 min-w-0 items-center gap-1.5 rounded-[12px] border border-[var(--fu-field-border,#737373)] bg-[var(--fu-input,rgb(0_0_0/0))] px-3",
         "text-[15px] leading-5 text-[var(--fu-text,#F8F5F1)] transition-[border-color,box-shadow] duration-200 motion-reduce:transition-none",
         "hover:border-[var(--fu-control-hover,#A3A3A3)] focus-within:border-[var(--fu-accent-soft,#8FAAFF)] focus-within:hover:border-[var(--fu-accent-soft,#8FAAFF)]",
         "focus-within:shadow-[inset_0_0_0_1px_var(--fu-accent-soft,#8FAAFF)]",

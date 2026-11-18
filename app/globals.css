@@ -21,6 +21,7 @@
   --fu-card-border: #2A2A2A;
   --fu-rail: #4A4A4A;
   --fu-control-border: #737373;
+  --fu-field-border: #737373;
   --fu-control-hover: #A3A3A3;
   --fu-swatch-edge: rgb(255 255 255/0.2);
   --fu-text: #F8F5F1;
@@ -106,6 +107,7 @@
   --fu-card-border: #E5E5E2;
   --fu-rail: #D6D6D2;
   --fu-control-border: #787874;
+  --fu-field-border: #949490;
   --fu-control-hover: #5B5B57;
   --fu-swatch-edge: rgb(29 27 24/0.2);
   --fu-text: #1B1B19;
@@ -121,7 +123,7 @@
   --fu-token: #E8EDFD;
   --fu-token-edge: #3049D2;
   --fu-token-text: #3049D2;
-  --fu-bar-out: #C1C8F1;
+  --fu-bar-out: #D6D6D2;
   --fu-on-accent: #FFFFFF;
   --fu-on-accent-mute: #E1E7FF;
   --fu-link-line: rgb(52 80 216/0.4);
@@ -183,6 +185,7 @@
     --fu-card-border: #E5E5E2;
     --fu-rail: #D6D6D2;
     --fu-control-border: #787874;
+    --fu-field-border: #949490;
     --fu-control-hover: #5B5B57;
     --fu-swatch-edge: rgb(29 27 24/0.2);
     --fu-text: #1B1B19;
@@ -198,7 +201,7 @@
     --fu-token: #E8EDFD;
     --fu-token-edge: #3049D2;
     --fu-token-text: #3049D2;
-    --fu-bar-out: #C1C8F1;
+    --fu-bar-out: #D6D6D2;
     --fu-on-accent: #FFFFFF;
     --fu-on-accent-mute: #E1E7FF;
     --fu-link-line: rgb(52 80 216/0.4);

@@ -191,7 +191,7 @@ export function Budget({
                   SMOOTH,
                   on
                     ? "border-[var(--fu-accent-soft,#8FAAFF)] forced-colors:border-[Highlight]"
-                    : "border-[var(--fu-surface-3,#2A2A2A)] hover:border-[var(--fu-line,#404040)] hover:bg-[var(--fu-item-hover,#2A2A2A)]",
+                    : "border-[var(--fu-line,#404040)] hover:border-[var(--fu-control-border,#737373)] hover:bg-[var(--fu-item-hover,#2A2A2A)]",
                 )}
               >
                 <button
@@ -444,7 +444,7 @@ function MoneyField({ label, placeholder, value, format, read, onCommit, scale }
   const [draft, setDraft] = useState<string | null>(null);
   return (
     <div className="min-w-0">
-      <span aria-hidden="true" className="mb-1.5 block text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
+      <span aria-hidden="true" className="mb-1 block text-[13px] leading-5 text-[var(--fu-mute,#BDBDBD)]">
         {label}
       </span>
       <TextField

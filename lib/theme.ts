@@ -41,6 +41,8 @@ export const TOKENS = {
   "--fu-card-border": { dark: "#2A2A2A", light: "#E5E5E2" },
   "--fu-rail": { dark: "#4A4A4A", light: "#D6D6D2" },
   "--fu-control-border": { dark: "#737373", light: "#787874" },
+  // The edge of a text field or a select; a little softer than other controls on a light page.
+  "--fu-field-border": { dark: "#737373", light: "#949490" },
   "--fu-control-hover": { dark: "#A3A3A3", light: "#5B5B57" },
   "--fu-swatch-edge": { dark: "rgb(255 255 255/0.2)", light: "rgb(29 27 24/0.2)" },
 
@@ -62,7 +64,7 @@ export const TOKENS = {
   "--fu-token-edge": { dark: "#D1DDFF", light: "#3049D2" },
   "--fu-token-text": { dark: "#171717", light: "#3049D2" },
   // A chart bar outside the chosen range. Light is a soft tint of the accent.
-  "--fu-bar-out": { dark: "#4A4A4A", light: "#C1C8F1" },
+  "--fu-bar-out": { dark: "#4A4A4A", light: "#D6D6D2" },
   "--fu-on-accent": { dark: "#FFFFFF", light: "#FFFFFF" },
   "--fu-on-accent-mute": { dark: "#E1E7FF", light: "#E1E7FF" },
   "--fu-link-line": { dark: "rgb(143 170 255/0.4)", light: "rgb(52 80 216/0.4)" },
