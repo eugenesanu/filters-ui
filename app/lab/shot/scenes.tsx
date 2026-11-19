@@ -8,13 +8,19 @@ import type { StageStatus } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
 import { presetFilters } from "@/components/tile/presets";
 import { HERO } from "@/lib/home-copy";
-import { CARS } from "@/registry/demo/cars";
+import { listedFilters } from "@/components/stage/listed-demo";
+import { CAR_RULE_FIELDS, CAR_RULES } from "@/components/stage/rules-stage";
+import { CARS, FUELS, type Car } from "@/registry/demo/cars";
 import {
   CAR_FACET_COLUMNS,
   CAR_FACET_TITLES,
   EMPTY_CAR_FILTERS,
   clearFacet,
+  carFormats,
   formatCarCount,
+  fuelCounts,
+  listedCounts,
+  makeOptions,
   matchingCars,
   summaryOf,
   type CarFacet,
@@ -22,7 +28,12 @@ import {
 } from "@/registry/demo/cars-facets";
 import { carVocabulary } from "@/registry/demo/cars-vocabulary";
 import { AppliedFilters, type AppliedFilter } from "@/registry/filters/applied-filters";
+import { BarList } from "@/registry/filters/bar-list";
+import { DateRange, daysBetween, formatDateRange, useToday, type DateRangeValue } from "@/registry/filters/date-range";
+import { matchRules, Rules, type RuleSet } from "@/registry/filters/rules";
+import { SearchableList } from "@/registry/filters/searchable-list";
 import { SentenceSearch } from "@/registry/filters/sentence-search";
+import { readSentence } from "@/registry/lib/sentence";
 import { FilterCard } from "@/registry/ui/filter-card";
 import { FiltersHead } from "@/registry/ui/filters-head";
 
@@ -40,12 +51,13 @@ const GLOW =
  * would put the pointer a few pixels off a dragged handle), so the tile's own measures are divided by it here.
  */
 function Board({
-  glow = 250,
+  glow,
   zoom = 2.5,
   width = 320,
   top,
   children,
 }: {
+  /** Degrees the ring of colour is turned; left out, the tile has no glow. */
   glow?: number;
   zoom?: number;
   width?: number;
@@ -60,8 +72,12 @@ function Board({
         className={`relative isolate flex h-full justify-center overflow-hidden border-solid border-card bg-panel ${top === undefined ? "items-center" : "items-start"}`}
         style={{ borderRadius: u(28), borderWidth: u(1) }}
       >
-        <span aria-hidden className={GLOW} style={{ rotate: `${glow}deg` }} />
-        <span aria-hidden className="pointer-events-none absolute -z-10 rounded-[inherit] bg-panel" style={{ inset: u(3), filter: `blur(${u(14)}px)` }} />
+        {glow !== undefined && (
+          <>
+            <span aria-hidden className={GLOW} style={{ rotate: `${glow}deg` }} />
+            <span aria-hidden className="pointer-events-none absolute -z-10 rounded-[inherit] bg-panel" style={{ inset: u(3), filter: `blur(${u(14)}px)` }} />
+          </>
+        )}
         <div
           className="shrink-0"
           style={
@@ -226,7 +242,7 @@ function SetScene() {
   const [filters, setFilters] = useState<CarFilters>(SET_START);
   const [open, setOpen] = useState<CarFacet[]>(SET_OPEN);
   return (
-    <Board zoom={SET_ZOOM} width={929} glow={250} top={34}>
+    <Board zoom={SET_ZOOM} width={929} top={34}>
       <FiltersHead count={matchingCars(filters).length} noun={CAR_NOUN} headingLevel={3} onClearAll={() => setFilters(EMPTY_CAR_FILTERS)} onShow={nothing} />
       <div className="mt-6 grid grid-cols-3 items-start gap-4">
         {CAR_FACET_COLUMNS.map((column) => (
@@ -249,10 +265,244 @@ function SetScene() {
   );
 }
 
+const CARDS_ZOOM = 1.25;
+type CardKey = CarFacet | "fuel-bars" | "make-list";
+// One box per kind of filter, none twice: date range, bar list, chips, segmented choice, icon tiles, swatches,
+// searchable list, price range. Picked so each pair of columns comes out the same height.
+const CARDS_LEFT: CardKey[][] = [["listed"], ["fuel-bars", "drive", "seats"]];
+const CARDS_RIGHT: CardKey[][] = [
+  ["body", "color"],
+  ["make-list", "price"],
+];
+/** The makes shown before "All 21 makes"; one fewer than the site's eight, so the card ends level with its neighbour. */
+const MAKES_SHOWN = 7;
+
+type SetFilters = (next: (f: CarFilters) => CarFilters) => void;
+
+/** Fuel as a bar list: the same choice as the chips, drawn as ranked rows. */
+function FuelBars({ filters, setFilters }: { filters: CarFilters; setFilters: SetFilters }) {
+  const counts = fuelCounts(filters);
+  return (
+    <FilterCard data-facet="fuel" title="Fuel" summary={summaryOf(filters, "fuel")} onClear={() => setFilters((f) => clearFacet(f, "fuel"))} open onOpenChange={nothing} headingLevel={3}>
+      <BarList
+        label="Fuel"
+        noun="fuels"
+        options={FUELS.map((v) => ({ value: v, label: v, count: counts.get(v) ?? 0 }))}
+        value={filters.fuels}
+        onChange={(fuels) => setFilters((f) => ({ ...f, fuels: fuels as CarFilters["fuels"] }))}
+        countLabel={formatCarCount}
+      />
+    </FilterCard>
+  );
+}
+
+/** Make and model as on the site, with a row fewer up front. */
+function MakeList({ filters, setFilters }: { filters: CarFilters; setFilters: SetFilters }) {
+  return (
+    <FilterCard data-facet="make" title={CAR_FACET_TITLES.make} summary={summaryOf(filters, "make")} onClear={() => setFilters((f) => clearFacet(f, "make"))} open onOpenChange={nothing} headingLevel={3}>
+      <SearchableList
+        label="Make and model"
+        noun="makes"
+        collapsedCount={MAKES_SHOWN}
+        options={makeOptions(filters)}
+        value={filters.makes.map((pick) => ({ value: pick.make, children: pick.models }))}
+        onChange={(picks) => setFilters((f) => ({ ...f, makes: picks.map((pick) => ({ make: pick.value, models: pick.children })) }))}
+        countLabel={formatCarCount}
+      />
+    </FilterCard>
+  );
+}
+
+/** Listed as a date range. Its own value is kept beside the search and dropped when the search loses the filter. */
+function ListedCard({ filters, setFilters }: { filters: CarFilters; setFilters: SetFilters }) {
+  const today = useToday();
+  const [value, setValue] = useState<DateRangeValue>(null);
+  if (value !== null && filters.listedMin === null && filters.listedMax === null) setValue(null);
+  const perDay = listedCounts(filters);
+  return (
+    <FilterCard data-facet="listed" title="Listed" summary={formatDateRange(value, undefined, today)} onClear={() => setFilters((f) => clearFacet(f, "listed"))} open onOpenChange={nothing} headingLevel={3}>
+      <DateRange
+        label="Listed"
+        value={value}
+        onChange={(next) => {
+          setValue(next);
+          const { listedMin, listedMax } = listedFilters(next, today);
+          setFilters((f) => ({ ...f, listedMin, listedMax }));
+        }}
+        countOf={(day) => (today ? (perDay.get(daysBetween(day, today)) ?? 0) : 0)}
+        total={[...perDay.values()].reduce((n, k) => n + k, 0)}
+        countLabel={formatCarCount}
+      />
+    </FilterCard>
+  );
+}
+
+/**
+ * A bento board with no tiles around the filters: each filter card is a box of the grid itself, laid straight on
+ * the page. Only the brand keeps the tile surface. Every card holds the same search as the sentence box.
+ */
+function CardsScene() {
+  const [filters, setFilters] = useState<CarFilters>(BENTO_START);
+  const u = (px: number) => px / CARDS_ZOOM;
+  const gap = u(20);
+  const half = (u(1600) - u(44) * 2 - gap) / 2;
+  const brandHeight = 307;
+  // The room under the brand tile on the left and under the search on the right; a column spreads its cards over it.
+  const leftRoom = u(1200) - u(44) * 2 - brandHeight - gap;
+  const rightRoom = 625;
+  const box = (key: CardKey) =>
+    key === "fuel-bars" ? (
+      <FuelBars key={key} filters={filters} setFilters={setFilters} />
+    ) : key === "make-list" ? (
+      <MakeList key={key} filters={filters} setFilters={setFilters} />
+    ) : key === "listed" ? (
+      <ListedCard key={key} filters={filters} setFilters={setFilters} />
+    ) : (
+      <LiveCard key={key} facet={key} filters={filters} setFilters={setFilters} />
+    );
+  const column = (room: number) => (keys: CardKey[]) => (
+    <div key={keys[0]} className="flex min-w-0 flex-col justify-between" style={{ height: room }}>
+      {keys.map(box)}
+    </div>
+  );
+  return (
+    <div id="shot" className="relative overflow-hidden bg-page" style={{ width: u(1600), height: u(1200), padding: u(44) }}>
+      <div className="grid grid-cols-2 items-start" style={{ gap }}>
+        <div className="flex min-w-0 flex-col" style={{ gap }}>
+          <div className="relative isolate overflow-hidden border-solid border-card bg-panel" style={{ height: brandHeight, borderRadius: u(28), borderWidth: u(1) }}>
+            {/* Drawn at the size of the approved boards, whatever the page is magnified by. */}
+            <div style={{ zoom: 1 / CARDS_ZOOM, width: half * CARDS_ZOOM, height: brandHeight * CARDS_ZOOM }} className="relative">
+              <HeroBackdrop />
+              <div className="flex h-full flex-col p-9">
+                <div className="flex items-center justify-between">
+                  <Logo className="h-8 w-auto" />
+                  <span className="text-[20px] font-medium leading-8 text-mute">filtersui.com</span>
+                </div>
+                <p className="mt-7 whitespace-nowrap text-[46px] font-semibold leading-[1.05] tracking-[-0.03em] text-text">{HERO.title}</p>
+              </div>
+            </div>
+          </div>
+          {/* An even split on purpose: in a wider column the calendar's "Last 30 days" fits one line with a small count
+              and two with a large one, and the card would change height mid-shot. */}
+          <div className="grid grid-cols-2 items-start" style={{ gap }}>
+            {CARDS_LEFT.map(column(leftRoom))}
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-col justify-between" style={{ height: u(1200) - u(44) * 2 }}>
+          {/* The box grows a line when its tokens wrap; its room is kept, so the cards under it never move. */}
+          <div data-cell="sentence" className="relative z-10 h-[100px]">
+            <SentenceSearch vocabulary={carVocabulary} items={CARS} value={filters} onChange={setFilters} label="Describe the car you want" countLabel={formatCarCount} />
+          </div>
+          <div className="px-1">
+            <FiltersHead count={matchingCars(filters).length} noun={CAR_NOUN} headingLevel={3} onClearAll={() => setFilters(EMPTY_CAR_FILTERS)} onShow={nothing} />
+            <div className="mt-5 flex h-10 items-center">
+              <AppliedFilters filters={chipsOf(filters)} onRemove={(key) => setFilters((f) => clearFacet(f, key as CarFacet))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 items-start" style={{ gap }}>
+            {CARDS_RIGHT.map(column(rightRoom))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FORMATS = carFormats();
+
+/** The four cheapest cars a search finds, drawn as the site's result lists are. */
+function CheapestCars({ cars }: { cars: readonly Car[] }) {
+  return (
+    <ul aria-label="Cheapest results" className="rounded-[24px] border border-card-border bg-card p-2">
+      {[...cars]
+        .sort((a, b) => a.price - b.price)
+        .slice(0, 4)
+        .map((car) => (
+          <li key={car.id} className="flex h-14 items-center gap-3 px-3 tabular-nums">
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[15px] font-medium leading-5 text-text">
+                {car.make} {car.model}
+              </span>
+              <span className="block truncate text-[13px] leading-5 text-dim">
+                {car.year}
+                {car.km !== null && <> · {FORMATS.km(car.km)}</>}
+                {car.fuel && <> · {car.fuel}</>}
+              </span>
+            </span>
+            <span className="shrink-0 text-[15px] font-medium leading-5 text-accent-soft">{FORMATS.money(car.price)}</span>
+          </li>
+        ))}
+    </ul>
+  );
+}
+
+/** The sentence box on the demo cars: the count and the cheapest finds under it. Opens on a sentence already read. */
+function SentenceScene() {
+  const [filters, setFilters] = useState<CarFilters>(() => readSentence(carVocabulary, CARS, "blue suv under 30k").value);
+  const found = matchingCars(filters);
+  return (
+    <Board zoom={2} width={620} glow={300}>
+      <div data-cell="sentence" className="relative z-10">
+        <SentenceSearch vocabulary={carVocabulary} items={CARS} value={filters} onChange={setFilters} label="Describe the car you want" countLabel={formatCarCount} />
+      </div>
+      <div className="mt-3 ps-4">
+        <StageCount matches={found.length} total={CARS.length} stage={READY} live={false} />
+      </div>
+      <div className="mt-4">
+        <CheapestCars cars={found} />
+      </div>
+    </Board>
+  );
+}
+
+/** The Listed card (a date range) on the demo cars, with the count under it. */
+function ListedScene({ wide = false }: { wide?: boolean }) {
+  const today = useToday();
+  const [value, setValue] = useState<DateRangeValue>({ last: 30 });
+  const filters = listedFilters(value, today);
+  const perDay = listedCounts(filters);
+  return (
+    <Board zoom={wide ? 2 : 1.6} width={wide ? 600 : 320} glow={160}>
+      <FilterCard data-facet="listed" title="Listed" summary={formatDateRange(value, undefined, today)} onClear={() => setValue(null)} open onOpenChange={nothing} headingLevel={2}>
+        <DateRange
+          label="Listed"
+          value={value}
+          onChange={setValue}
+          countOf={(day) => (today ? (perDay.get(daysBetween(day, today)) ?? 0) : 0)}
+          total={[...perDay.values()].reduce((n, k) => n + k, 0)}
+          countLabel={formatCarCount}
+        />
+      </FilterCard>
+      <div className="mt-3 ps-4">
+        <StageCount matches={matchingCars(filters).length} total={CARS.length} stage={READY} live={false} />
+      </div>
+    </Board>
+  );
+}
+
+/** The rules builder on the demo cars, opening on the page's own set: a budget, two fuels, then a group. */
+function RulesScene() {
+  const [rules, setRules] = useState<RuleSet>(CAR_RULES);
+  const found = CARS.filter((car) => matchRules(car, rules, CAR_RULE_FIELDS)).length;
+  return (
+    <Board zoom={2} width={670} glow={90}>
+      <Rules fields={CAR_RULE_FIELDS} items={CARS} value={rules} onChange={setRules} label="Car rules" countLabel={formatCarCount} />
+      <div className="mt-4 ps-11">
+        <StageCount matches={found} total={CARS.length} stage={READY} live={false} />
+      </div>
+    </Board>
+  );
+}
+
 const SCENES: Record<string, ComponentType> = {
   price: () => <CarFilterScene slug="range-histogram" facet="price" glow={30} />,
   bento: BentoScene,
+  cards: CardsScene,
   set: SetScene,
+  sentence: SentenceScene,
+  listed: () => <ListedScene />,
+  "listed-wide": () => <ListedScene wide />,
+  rules: RulesScene,
 };
 
 /** The scene a name picks; an unknown name draws nothing. */
