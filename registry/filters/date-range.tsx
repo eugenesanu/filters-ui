@@ -615,9 +615,13 @@ export function DateRange({
           const selected = !!range && day >= range.start && day <= range.end;
           const timing = timingOf(day);
           const before = !band || day < band.start;
-          // The band is square where it wraps to the next week or runs into another month; only its own ends are round.
-          const roundStart = isStart;
-          const roundEnd = isEnd;
+          // The band is square where it wraps to the next week or runs into another month. Under a filled circle it also
+          // stops square, at the circle's middle, so the circle closes it; a round end there would pinch in beside the
+          // circle. Under the outlined circle of a day being pointed at, it runs on to the circle's edge and rounds with
+          // it, so the outline holds the band's end.
+          const roundStart = isStart && isPreviewEnd;
+          const roundEnd = isEnd && isPreviewEnd;
+          const endInset = isPreviewEnd ? "calc(50% - 20px)" : "50%";
           return (
             <div
               key={c}
@@ -652,8 +656,8 @@ export function DateRange({
                 )}
                 style={{
                   // Neighbouring segments overlap by a pixel, so no seam shows between days.
-                  insetInlineStart: inBand && isStart && !single ? "50%" : -0.5,
-                  insetInlineEnd: inBand && isEnd && !single ? "50%" : -0.5,
+                  insetInlineStart: inBand && isStart && !single ? endInset : -0.5,
+                  insetInlineEnd: inBand && isEnd && !single ? endInset : -0.5,
                   transitionDelay: `${timing.delay}ms`,
                   transitionDuration: `${timing.duration}ms`,
                 }}
