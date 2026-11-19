@@ -8,6 +8,7 @@ import type { StageStatus } from "@/components/stage/stage-controls";
 import { StageCount } from "@/components/stage/stage-count";
 import { presetFilters } from "@/components/tile/presets";
 import { HERO } from "@/lib/home-copy";
+import { BudgetDemo } from "@/components/stage/budget-demo";
 import { listedFilters } from "@/components/stage/listed-demo";
 import { CAR_RULE_FIELDS, CAR_RULES } from "@/components/stage/rules-stage";
 import { CARS, FUELS, type Car } from "@/registry/demo/cars";
@@ -503,6 +504,11 @@ const SCENES: Record<string, ComponentType> = {
   listed: () => <ListedScene />,
   "listed-wide": () => <ListedScene wide />,
   rules: RulesScene,
+  budget: () => (
+    <Board zoom={2} glow={210}>
+      <BudgetDemo reset={null} />
+    </Board>
+  ),
 };
 
 /** The scene a name picks; an unknown name draws nothing. */
