@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type ComponentType, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
+import { carMatches, carRelax } from "@/components/stage/car-relax";
 import { HeroBackdrop } from "@/components/hero-backdrop";
 import { Logo } from "@/components/logo";
 import { CarFilterBody } from "@/components/stage/car-filter";
@@ -31,6 +32,9 @@ import { carVocabulary } from "@/registry/demo/cars-vocabulary";
 import { AppliedFilters, type AppliedFilter } from "@/registry/filters/applied-filters";
 import { BarList } from "@/registry/filters/bar-list";
 import { DateRange, daysBetween, formatDateRange, useToday, type DateRangeValue } from "@/registry/filters/date-range";
+import { FilterPills, type FilterPill } from "@/registry/filters/filter-pills";
+import { NoResults } from "@/registry/filters/no-results";
+import { SlidersIcon } from "@/registry/ui/icons";
 import { matchRules, Rules, type RuleSet } from "@/registry/filters/rules";
 import { SearchableList } from "@/registry/filters/searchable-list";
 import { SentenceSearch } from "@/registry/filters/sentence-search";
@@ -412,12 +416,12 @@ function CardsScene() {
 const FORMATS = carFormats();
 
 /** The four cheapest cars a search finds, drawn as the site's result lists are. */
-function CheapestCars({ cars }: { cars: readonly Car[] }) {
+function CheapestCars({ cars, count = 4 }: { cars: readonly Car[]; count?: number }) {
   return (
     <ul aria-label="Cheapest results" className="rounded-[24px] border border-card-border bg-card p-2">
       {[...cars]
         .sort((a, b) => a.price - b.price)
-        .slice(0, 4)
+        .slice(0, count)
         .map((car) => (
           <li key={car.id} className="flex h-14 items-center gap-3 px-3 tabular-nums">
             <span className="min-w-0 flex-1">
@@ -495,6 +499,100 @@ function RulesScene() {
   );
 }
 
+const PILL_BAR: { facet: CarFacet; width: number }[] = [
+  { facet: "price", width: 360 },
+  { facet: "make", width: 340 },
+  { facet: "body", width: 320 },
+  { facet: "fuel", width: 320 },
+];
+// Year waits in More filters here, so the bar stays on one line with two pills set and Clear all at its end.
+const PILL_MORE: CarFacet[] = ["year", "km", "seats", "condition", "drive", "transmission", "color"];
+
+/** The pill bar on the demo cars with the newest finds under it. Opens with nothing set. */
+function PillsScene() {
+  const [filters, setFilters] = useState<CarFilters>(EMPTY_CAR_FILTERS);
+  const set = (patch: Partial<CarFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  const found = matchingCars(filters);
+  const pills: FilterPill[] = [
+    ...PILL_BAR.map(({ facet, width }) => ({
+      id: facet,
+      label: CAR_FACET_TITLES[facet],
+      summary: summaryOf(filters, facet),
+      onClear: () => setFilters((f) => clearFacet(f, facet)),
+      width,
+      content: <CarFilterBody facet={facet} filters={filters} set={set} />,
+    })),
+    {
+      id: "more",
+      label: "More filters",
+      icon: <SlidersIcon size={16} />,
+      count: PILL_MORE.filter((facet) => summaryOf(filters, facet) !== null).length,
+      onClear: () => setFilters((f) => PILL_MORE.reduce(clearFacet, f)),
+      width: 400,
+      content: <div />,
+    },
+  ];
+  return (
+    <Board zoom={1.6} width={900} glow={60} top={60}>
+      <FilterPills label="Car filters" pills={pills} showLabel={`Show ${formatCarCount(found.length)}`} onClearAll={() => setFilters(EMPTY_CAR_FILTERS)} />
+      <div className="mt-4 ps-1">
+        <StageCount matches={found.length} total={CARS.length} stage={READY} />
+      </div>
+      <div className="mt-3">
+        <CheapestCars cars={found} count={6} />
+      </div>
+    </Board>
+  );
+}
+
+/** Rises in through a 6px blur when it mounts, as the results do on the No results page. */
+function Reveal({ children }: { children: ReactNode }) {
+  const node = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const rise = node.current?.animate(
+      [
+        { opacity: 0, transform: "translateY(6px)", filter: "blur(6px)" },
+        { opacity: 1, transform: "translateY(0)", filter: "blur(0)" },
+      ],
+      { duration: 480, easing: "cubic-bezier(0.22, 1, 0.36, 1)", fill: "backwards" },
+    );
+    return () => rise?.cancel();
+  }, []);
+  return <div ref={node}>{children}</div>;
+}
+
+/** A hybrid with seven seats under $45k. Pull the price low enough and nothing is left. */
+const NONE_START: CarFilters = { ...EMPTY_CAR_FILTERS, priceMax: 45000, fuels: ["Hybrid"], seatsMin: 7 };
+
+/** The Price card over the results; a price too low finds nothing, and No results offers the changes that bring cars back. */
+function NoResultsScene() {
+  const [filters, setFilters] = useState<CarFilters>(NONE_START);
+  const relax = useMemo(() => carRelax(), []);
+  const found = matchingCars(filters);
+  return (
+    <Board zoom={1.6} width={600} glow={140} top={170}>
+      <AppliedFilters filters={chipsOf(filters)} onRemove={(key) => setFilters((f) => clearFacet(f, key as CarFacet))} />
+      <div className="mt-4">
+        <LiveCard facet="price" filters={filters} setFilters={setFilters} headingLevel={3} />
+      </div>
+      <div className="mt-3 ps-4">
+        <StageCount matches={found.length} total={CARS.length} stage={READY} />
+      </div>
+      <div className="mt-3">
+        {found.length === 0 ? (
+          <Reveal key="none">
+            <NoResults items={CARS} value={filters} onChange={setFilters} matches={carMatches} relax={relax} title="No cars match" noun={CAR_NOUN} />
+          </Reveal>
+        ) : (
+          <Reveal key="some">
+            <CheapestCars cars={found} count={3} />
+          </Reveal>
+        )}
+      </div>
+    </Board>
+  );
+}
+
 const SCENES: Record<string, ComponentType> = {
   price: () => <CarFilterScene slug="range-histogram" facet="price" glow={30} />,
   bento: BentoScene,
@@ -504,6 +602,8 @@ const SCENES: Record<string, ComponentType> = {
   listed: () => <ListedScene />,
   "listed-wide": () => <ListedScene wide />,
   rules: RulesScene,
+  pills: PillsScene,
+  none: NoResultsScene,
   budget: () => (
     <Board zoom={2} glow={210}>
       <BudgetDemo reset={null} />
