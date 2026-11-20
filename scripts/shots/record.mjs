@@ -376,6 +376,11 @@ try {
   // Makes the browser draw a real frame now: one pixel is asked for, the whole page is brought up to date for it.
   const nudge = () => send("Page.captureScreenshot", { format: "jpeg", quality: 1, clip: { x: 0, y: 0, width: 1, height: 1, scale: 1 } }, 20000);
   await ev(`window.__freeze()`);
+  // From here the page's own animation clock stands still. A transition begun by a click used to run on real time
+  // until the next frame held it, and a 4K frame takes over a second to draw: a short fade (a slider's value label
+  // going out on release) had run out before it was ever held, and the label vanished in one frame.
+  await send("Animation.enable");
+  await send("Animation.setPlaybackRate", { playbackRate: 0 });
   await nudge();
 
   if (STILLS) mkdirSync(out, { recursive: true });
