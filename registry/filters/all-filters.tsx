@@ -474,7 +474,7 @@ export function AllFilters({
                 All filters
               </button>
             </div>
-            <div ref={pane} className="px-5 pt-2 pb-6 @min-[520px]:px-6 @min-[520px]:pt-6 @min-[520px]:pb-8">
+            <div ref={pane} className="px-5 pt-2 pb-6 @min-[520px]:p-6">
               {current && (
                 <div className="flex min-h-7 items-start gap-3">
                   <div className="min-w-0 flex-1">
@@ -501,7 +501,7 @@ export function AllFilters({
                   )}
                 </div>
               )}
-              <div className={current ? "mt-5 max-w-[420px] @min-[520px]:mt-6 @min-[760px]:max-w-[560px]" : undefined}>
+              <div className={current ? "mt-5 @min-[520px]:mt-6 @min-[760px]:max-w-[560px]" : undefined}>
                 <StatusFrame status={status === "error" ? "error" : "ready"} onRetry={onRetry} errorText={errorText}>
                   {current ? (
                     current.content
