@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Scene } from "./scenes";
+import { Scene, type Frame } from "./scenes";
 
 export const metadata: Metadata = {
   title: "Lab: shot",
@@ -13,11 +13,14 @@ const first = (value: string | string[] | undefined) => (Array.isArray(value) ? 
 export default async function LabShotPage({ searchParams }: PageProps<"/lab/shot">) {
   // Private scenes for making videos; never served by a production build.
   if (process.env.NODE_ENV === "production") notFound();
-  const scene = first((await searchParams).scene) ?? "price";
+  const params = await searchParams;
+  const scene = first(params.scene) ?? "price";
+  const asked = first(params.frame);
+  const frame: Frame = asked === "plain" || asked === "tile" ? asked : "edge";
 
   return (
     <main className="bg-page">
-      <Scene name={scene} />
+      <Scene name={scene} frame={frame} />
     </main>
   );
 }
