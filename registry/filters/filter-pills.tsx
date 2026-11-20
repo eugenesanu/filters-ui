@@ -282,17 +282,39 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
   const skipClick = useRef(false);
   const titleId = `${panelId}-title`;
   const count = pill.count ?? 0;
-  const valued = Boolean(pill.summary);
+
+  // While a pointer is held down in the panel, as on a slider's handle, the pill keeps the value it had and takes the
+  // new one on release. A value that changes with every step of a drag would resize the pill, and push the pills
+  // after it, many times a second.
+  const [dragging, setDragging] = useState(false);
+  const [steady, setSteady] = useState(pill.summary ?? null);
+  if (!dragging && steady !== (pill.summary ?? null)) setSteady(pill.summary ?? null);
+  const summary = dragging ? steady : (pill.summary ?? null);
+  useEffect(() => {
+    if (!dragging) return;
+    const release = () => setDragging(false);
+    window.addEventListener("pointerup", release);
+    window.addEventListener("pointercancel", release);
+    return () => {
+      window.removeEventListener("pointerup", release);
+      window.removeEventListener("pointercancel", release);
+    };
+  }, [dragging]);
+
+  const valued = Boolean(summary);
   const set = valued || count > 0;
   const clearable = valued && Boolean(pill.onClear) && !disabled;
   const raised = Boolean(layer && layer.mode === "panel");
 
   // The last value stays in place while the cross and the value leave after a clear.
-  const [lastSummary, setLastSummary] = useState(pill.summary ?? "");
-  if (pill.summary && pill.summary !== lastSummary) setLastSummary(pill.summary);
+  const [lastSummary, setLastSummary] = useState(summary ?? "");
+  if (summary && summary !== lastSummary) setLastSummary(summary);
 
-  // A change of value eases the pill to its new width over 200ms, measured without the leaving text.
+  // A change of value eases the pill to its new width over 200ms, measured without the leaving text. Until it gets
+  // there its words keep their full width and the pill's edge uncovers them; squeezed into the old width instead,
+  // the label would cut itself short ("Pr…") for those frames.
   const width = useRef<number | null>(null);
+  const gliding = useRef<Animation | null>(null);
   useLayoutEffect(() => {
     const node = group.current;
     if (!node) return;
@@ -304,8 +326,16 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
     width.current = to;
     if (from === null || from === to || reducedMotion()) return;
     const glide = node.animate([{ width: `${from}px` }, { width: `${to}px` }], { duration: 200, easing: EASE });
+    gliding.current = glide;
+    node.dataset.gliding = "";
+    const settle = () => {
+      if (gliding.current !== glide) return;
+      gliding.current = null;
+      delete node.dataset.gliding;
+    };
+    glide.finished.then(settle, settle);
     return () => glide.cancel();
-  }, [pill.summary, count, clearable]);
+  }, [summary, count, clearable]);
 
   const focusFirst = () => {
     const panel = document.getElementById(panelId);
@@ -334,6 +364,10 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
       }}
       data-state={isOpen ? "open" : "closed"}
       data-set={set ? "true" : "false"}
+      onPointerDownCapture={(event) => {
+        const panel = document.getElementById(panelId);
+        if (event.target instanceof Node && panel?.contains(event.target)) setDragging(true);
+      }}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || event.defaultPrevented || !isOpen || layer?.mode !== "panel") return;
         event.preventDefault();
@@ -345,7 +379,7 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
         if (next instanceof Node && !event.currentTarget.contains(next)) onClose(false);
       }}
       className={cn(
-        "group/pill inline-flex h-10 max-w-full min-w-0 items-center rounded-[12px] border",
+        "group/pill inline-flex h-10 max-w-full min-w-0 items-center rounded-[12px] border data-[gliding]:overflow-hidden",
         "transition-[background-color,border-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         set
           ? "border-[var(--fu-selected,#1F2747)] bg-[var(--fu-selected,#1F2747)] hover:border-[var(--fu-accent-soft,#8FAAFF)]/40"
@@ -391,7 +425,7 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
           onToggle(false);
         }}
         className={cn(
-          "relative flex h-full min-w-0 cursor-pointer items-center gap-2 rounded-[11px] ps-3.5 font-[inherit] text-[14px] leading-5 font-medium whitespace-nowrap outline-none",
+          "relative flex h-full min-w-0 cursor-pointer items-center gap-2 rounded-[11px] ps-3.5 font-[inherit] text-[14px] leading-5 font-medium whitespace-nowrap outline-none group-data-[gliding]/pill:shrink-0",
           "[-webkit-tap-highlight-color:transparent] pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-[3px] pointer-coarse:after:content-['']",
           clearable ? "pe-1" : "pe-2.5",
           raised && "z-[32]",
@@ -413,7 +447,7 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
         <span
           dir="auto"
           className={cn(
-            "min-w-0 max-w-[200px] truncate transition-[color] duration-200",
+            "min-w-0 max-w-[200px] truncate transition-[color] duration-200 group-data-[gliding]/pill:shrink-0",
             set ? "text-[var(--fu-accent-pale,#D1DDFF)]" : "text-[var(--fu-text,#F8F5F1)]",
           )}
         >
@@ -424,14 +458,14 @@ function Pill({ pill, panelId, isOpen, handoff, layer, showLabel, formatCount, d
         {valued && (
           <>
             <span aria-hidden="true" className="h-4 w-px shrink-0 bg-[var(--fu-accent-soft,#8FAAFF)]/30" />
-            <SkeletonText className="min-w-0 max-w-[200px] shrink-[0.25]">
+            <SkeletonText className="min-w-0 max-w-[200px] shrink-[0.25] group-data-[gliding]/pill:shrink-0">
               <TextSwap
                 aria-hidden="true"
                 data-swap=""
                 dir="auto"
                 className="min-w-0 max-w-[200px] shrink-[0.25] grid-cols-[minmax(0,1fr)] font-normal text-[var(--fu-accent-soft,#8FAAFF)] tabular-nums [&>span]:truncate"
               >
-                {pill.summary || lastSummary}
+                {summary || lastSummary}
               </TextSwap>
             </SkeletonText>
           </>
