@@ -67,6 +67,10 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.
 
 const FOCUS_RING =
   "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid focus-visible:outline-[var(--fu-accent-soft,#8FAAFF)]";
+/** A hairline between the list's rows and over its groups; it stops at the rows' padding, clear of the list's edges. */
+const HAIRLINE =
+  "before:pointer-events-none before:absolute before:inset-x-3 before:h-px before:bg-[var(--fu-card-border,#2A2A2A)] before:content-[''] forced-colors:before:bg-[CanvasText]";
+
 /** The first control in the picked filter that Tab stops on. */
 const PANE_CONTROL = [
   'a[href]:not([tabindex="-1"])',
@@ -370,14 +374,22 @@ export function AllFilters({
                 const shown = group.filters.filter((entry) => matchesQuery(entry, q));
                 if (!shown.length) return null;
                 const groupId = `${id}-group-${index}`;
+                // A hairline over every group but the first that shows, inset to the rows' own padding.
+                const below = groups.slice(0, index).some((earlier) => earlier.filters.some((entry) => matchesQuery(entry, q)));
                 return (
-                  <div key={group.label} role="group" aria-labelledby={groupId} className="relative">
+                  <div
+                    key={group.label}
+                    role="group"
+                    aria-labelledby={groupId}
+                    className={cn("relative", below && cn("mt-3 before:top-0", HAIRLINE))}
+                  >
                     <div id={groupId} className="px-3 pt-4 pb-1.5 @min-[520px]:pt-5 @min-[520px]:pb-2 text-[12px] leading-4 font-medium text-[var(--fu-dim,#929292)]">
                       {group.label}
                     </div>
-                    {shown.map((entry) => (
+                    {shown.map((entry, at) => (
                       <Row
                         key={entry.id}
+                        first={at === 0}
                         id={`${id}-row-${entry.id}`}
                         entry={entry}
                         query={q}
@@ -526,6 +538,8 @@ type RowProps = {
   entry: FilterEntry;
   query: string;
   picked: boolean;
+  /** The first row of its group: no hairline over it, the group's name is there. */
+  first: boolean;
   tabbable: boolean;
   /** The chips' crosses are left out, as they cannot run. */
   disabled: boolean;
@@ -539,13 +553,13 @@ type RowProps = {
  * A filter in the list: its name and chevron, then its values as chips. The whole row picks it; a chip's cross removes
  * one value. A long name wraps in the row; a long value wraps in its chip.
  */
-function Row({ id, entry, query, picked, tabbable, disabled, buttonRef, onPick, onFocus, onKeyDown }: RowProps) {
+function Row({ id, entry, query, picked, first, tabbable, disabled, buttonRef, onPick, onFocus, onKeyDown }: RowProps) {
   const values = entry.values ?? [];
   const set = values.length > 0;
   // A row found by another word says which, so "mileage" finding Kilometres makes sense.
   const via = query && !entry.label.toLowerCase().includes(query) ? entry.keywords?.find((word) => word.toLowerCase().includes(query)) : undefined;
   return (
-    <div id={id} className="group/row relative rounded-[10px]">
+    <div id={id} className={cn("group/row relative rounded-[10px]", !first && cn("mt-[9px] before:-top-[5px]", HAIRLINE))}>
       <button
         ref={buttonRef}
         type="button"
