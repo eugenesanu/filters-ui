@@ -114,7 +114,7 @@ type RowProps = {
 
 /**
  * One filter as a row: a 56px head (title, the value in words or Clear, chevron) over a body that opens with the
- * FilterCard motion. While open, the head takes a lighter wash and stays pinned as its body scrolls under it.
+ * FilterCard motion. While open, the head stays pinned as its body scrolls under it.
  */
 function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, headingLevel, children }: RowProps) {
   const id = useId();

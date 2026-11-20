@@ -943,7 +943,7 @@ const MOTIFS: Record<string, () => ReactNode> = {
           <div style={{ color: C.accentSoft, marginRight: 15 }}>Under $45k</div>
           <Chevron size={21} />
         </div>
-        <div style={row({ height: 66, padding: "0 21px", background: C.headOpen, fontSize: 21 })}>
+        <div style={row({ height: 66, padding: "0 21px", fontSize: 21 })}>
           <div style={{ flex: 1, fontWeight: 600, color: C.text }}>Make and model</div>
           <div style={{ color: C.accentSoft, fontWeight: 500, marginRight: 15 }}>Clear</div>
           <Chevron up size={21} />

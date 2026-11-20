@@ -60,6 +60,13 @@ All the filters on one board, with Clear all and a Show button.
   </picture>
 </a>
 
+## Fixed in 1.3.4
+
+- **Filter pills**: a pill keeps its value while you drag a handle in its panel and takes the new one when you let go. Before, the pill and the pills after it changed width with every step of the drag. The pill's label also stays whole while the pill widens.
+- **All filters**: thin lines sit between the rows of the list and over each group's name. The picked filter's side has the same padding on every edge, and the filter fills its width.
+- **Filter panel**: an open row's head keeps the panel's own surface, with no fill of its own.
+- **Date range**: the band meets the circles at each end of a range without a pinch. It stops square under a filled end circle, and under the outlined circle of the day you point at it runs on to the circle's edge.
+
 ## Fixed in 1.3.3
 
 - **Filter pills and dropdown menus in Safari**: a pill or menu opened with the keyboard closes again with one click on its button, instead of closing and opening at once.

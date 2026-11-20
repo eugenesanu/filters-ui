@@ -501,7 +501,7 @@ export function AllFilters({
                   )}
                 </div>
               )}
-              <div className={current ? "mt-5 @max-[519px]:max-w-[420px] @min-[520px]:mt-6 @min-[760px]:max-w-[560px]" : undefined}>
+              <div className={current ? "mt-5 @min-[520px]:mt-6 @min-[760px]:max-w-[560px]" : undefined}>
                 <StatusFrame status={status === "error" ? "error" : "ready"} onRetry={onRetry} errorText={errorText}>
                   {current ? (
                     current.content

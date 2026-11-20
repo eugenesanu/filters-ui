@@ -612,7 +612,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/date-range.tsx",
     example: "registry/examples/date-range.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.1",
+    updatedIn: "1.3.4",
     states: ["ready", "loading", "error", "zero-results", "disabled", "long-labels"],
     stateNotes: {
       loading: "Day numbers stay; each day's count, each preset's count and the typed fields draw as placeholders.",
@@ -1069,7 +1069,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/filter-pills.tsx",
     example: "registry/examples/filter-pills.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.3",
+    updatedIn: "1.3.4",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "Each pill keeps its size and outline, and a set pill its fill, while its name, its value and Clear all draw as placeholders; no panel opens until the data is in.",
@@ -1127,7 +1127,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/filters/all-filters.tsx",
     example: "registry/examples/all-filters.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.3",
+    updatedIn: "1.3.4",
     states: ["ready", "loading", "error", "disabled", "long-labels", "many-options"],
     stateNotes: {
       loading: "The list keeps its groups and names while the values in its chips, the find box and the number in Show draw as placeholders; the picked filter draws its own.",
@@ -1396,7 +1396,7 @@ export const ITEMS: RegistryItem[] = [
     entry: "registry/blocks/filter-panel.tsx",
     example: "registry/examples/filter-panel.tsx",
     addedIn: "1.1.0",
-    updatedIn: "1.3.1",
+    updatedIn: "1.3.4",
     states: ["ready", "loading", "error", "disabled"],
     stateNotes: {
       loading: {
