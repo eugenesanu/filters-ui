@@ -135,9 +135,9 @@ function PanelRow({ title, summary, onClear, open, onToggle, onHeadKeyDown, head
         className={cn(
           "group/head sticky top-0 z-10 transition-[background-color] motion-reduce:transition-none",
           SMOOTH,
-          open
-            ? "bg-[var(--fu-head-open,#333333)] duration-[480ms]"
-            : "duration-200 [@media(hover:hover)]:hover:bg-[var(--fu-card-hover,#262626)]",
+          // An open row's head keeps the panel's own surface: it stays in place while its filter scrolls under it, so
+          // it has to cover what passes, and no more than that.
+          open ? "bg-[var(--fu-card,#1F1F1F)] duration-[480ms]" : "duration-200 [@media(hover:hover)]:hover:bg-[var(--fu-card-hover,#262626)]",
         )}
       >
         <Heading className="m-0 text-[16px] font-semibold leading-6 text-[var(--fu-text,#F8F5F1)]">
