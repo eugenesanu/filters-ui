@@ -415,6 +415,7 @@ try {
     }
   };
   let missed = 0;
+  let warming = false;
   // A picture now and then comes out with patches of the page not yet drawn (black squares, a missing pointer),
   // mostly at 4K where graphics memory runs short. The page is frozen between frames, so two pictures of one frame
   // must be the same: each frame is taken until two in a row match.
@@ -470,6 +471,10 @@ try {
     }
     sent = null;
     await ev(`window.__tick(${DT}, ${JSON.stringify(cursor)})`);
+    if (warming) {
+      await nudge();
+      return;
+    }
     const t = Math.round(frames * DT);
     if (STILLS) {
       const hit = STILLS.find((ms) => Math.round(ms / DT) === frames);
@@ -574,6 +579,12 @@ try {
     },
   };
 
+  // Warm-up: 24 frames go by before the first picture. Now and then the page opens with something in its hover look
+  // far from the pointer (seen at 4K: a button where the pointer's place divided by the scale falls), and it takes a
+  // frame or two of pointer reports, then the fade back, to put right. The first recorded frame is the page at rest.
+  warming = true;
+  for (let i = 0; i < 24; i++) await frame();
+  warming = false;
   await scene.run(api);
   if (missed) console.log(`\n${missed} pointer moves were not seen by the page in time`);
   console.log(`\n${retaken} frames had to be taken again; ${unsettled} never settled`);
